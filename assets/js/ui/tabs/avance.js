@@ -29,6 +29,7 @@ import {
   validarRegimen,
 } from '../../domain/speed.js';
 import { tdfRpm } from '../../domain/pump.js';
+import { TOLERANCIA_RPM_COINCIDENCIA } from '../../domain/constants.js';
 
 export const id = 'avance';
 
@@ -108,7 +109,7 @@ export function render(panel, ctx) {
     etiqueta: 'Régimen del motor',
     unidad: 'rpm',
     valorInicial: borrador.rpm ?? tractor.regimenHabitual,
-    ayuda: `Se precarga el régimen habitual de trabajo (${tractor.regimenHabitual} rpm), no el nominal: este rancho opera entre 1500 y 1800 rpm.`,
+    ayuda: `Se precarga el régimen habitual de trabajo del tractor (${tractor.regimenHabitual} rpm), no el nominal (${tractor.regimenNominal} rpm): la calculadora arranca donde el rancho realmente opera.`,
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { rpm: valor });
       recalcular();
@@ -472,7 +473,7 @@ export function render(panel, ctx) {
             )
           )
         );
-      } else if (Math.abs(rpm - equipo.rpmCalibracion) > 1) {
+      } else if (Math.abs(rpm - equipo.rpmCalibracion) > TOLERANCIA_RPM_COINCIDENCIA) {
         nodos.push(
           el(
             'div',
@@ -496,11 +497,16 @@ export function render(panel, ctx) {
       el(
         'div',
         { estilo: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' } },
-        pintarResultado({ etiqueta: 'Área por tabla', valor: g.valores.areaM2, unidad: 'm2', decimales: 2 }),
         pintarResultado({
-          etiqueta: 'Hectáreas por tabla',
-          valor: g.valores.hectareasPorTabla,
-          unidad: 'ha',
+          etiqueta: 'Área por tabla',
+          valor: aSistema('areaChica', g.valores.areaM2, sistema),
+          unidad: unidad('areaChica', sistema),
+          decimales: 2,
+        }),
+        pintarResultado({
+          etiqueta: 'Superficie por tabla',
+          valor: aSistema('superficie', g.valores.hectareasPorTabla, sistema),
+          unidad: unidad('superficie', sistema),
           decimales: 4,
         }),
         pintarResultado({
@@ -511,8 +517,8 @@ export function render(panel, ctx) {
         }),
         pintarResultado({
           etiqueta: 'Espaciamiento efectivo',
-          valor: g.valores.espaciamientoEfectivo,
-          unidad: 'm',
+          valor: aSistema('distanciaCorta', g.valores.espaciamientoEfectivo, sistema),
+          unidad: unidad('distanciaCorta', sistema),
           decimales: 4,
         })
       ),
@@ -537,7 +543,7 @@ export function render(panel, ctx) {
     }
     const p = ctx.estado().parametros;
     const campoSegundosMedidos = crearCampoNumerico({
-      etiqueta: `Segundos medidos por tramo de ${p.geometria.distanciaReferencia} m`,
+      etiqueta: `Segundos medidos por tramo de ${formatear(aSistema('distancia', p.geometria.distanciaReferencia, sistema), 0)} ${unidad('distancia', sistema)}`,
       unidad: 's',
     });
     const campoRpmMedidas = crearCampoNumerico({

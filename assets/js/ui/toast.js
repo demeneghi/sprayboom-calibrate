@@ -16,7 +16,10 @@ export function mostrarToast(mensaje, opciones = {}) {
   const zona = asegurarContenedor();
   const toast = el(
     'div',
-    { clase: `toast${tipo === 'destructivo' ? ' toast--destructivo' : ''}` },
+    {
+      clase: `toast${tipo === 'destructivo' ? ' toast--destructivo' : ''}`,
+      role: tipo === 'destructivo' ? 'alert' : null,
+    },
     el('span', {}, mensaje)
   );
   if (accionTexto) {

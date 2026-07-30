@@ -27,7 +27,7 @@ import { mostrarToast } from '../toast.js';
 import { filaIso } from '../../data/iso-colors.js';
 import { aSistema, deSistema, unidad } from '../../domain/units.js';
 import { estadisticaCaptura } from '../../domain/capture.js';
-import { caudalAPresion } from '../../domain/nozzles.js';
+import { caudalAPresionDetallado } from '../../domain/nozzles.js';
 import { geometria } from '../../domain/speed.js';
 
 export const id = 'captura';
@@ -348,13 +348,19 @@ export function render(panel, ctx) {
         const presionBar = deSistema('presion', campoPresion.obtener(), sistema);
         const boquilla = boquillaSeleccionada();
         let caudalTeoricoLmin = null;
+        // Variante detallada del dominio: ademas del caudal teorico
+        // regresa el paso del escalado presion-caudal con los numeros
+        // sustituidos, para anteponerlo al desglose de la prueba.
+        let desgloseTeorico = [];
         if (boquilla && presionBar !== null) {
-          caudalTeoricoLmin = caudalAPresion({
+          const teorico = caudalAPresionDetallado({
             caudalRef: boquilla.caudalRefLmin,
             presionRef: boquilla.presionRefBar,
             presion: presionBar,
             exponente: boquilla.exponente,
           });
+          caudalTeoricoLmin = teorico.valores.caudalLmin;
+          desgloseTeorico = teorico.desglose;
           if (presionBar < boquilla.presionMinBar || presionBar > boquilla.presionMaxBar) {
             nodos.push(
               el(
@@ -373,6 +379,19 @@ export function render(panel, ctx) {
         const velocidadKmh = deSistema('velocidad', campoVelocidad.obtener(), sistema);
         const espaciamientoM = deSistema('distanciaCorta', campoEspaciamiento.obtener(), sistema);
         const lhaObjetivo = deSistema('volumenAplicacion', campoObjetivo.obtener(), sistema);
+
+        // Guardas de plausibilidad del espaciamiento capturado (dominio):
+        // detecta captura en centimetros y discrepancia contra el
+        // derivado del ancho entre el numero de boquillas configurados.
+        if (espaciamientoM !== null) {
+          try {
+            const g = geometria({ ...parametrosGeometria(), espaciamientoCapturado: espaciamientoM });
+            nodos.push(...pintarAvisos(g.avisos));
+          } catch {
+            // La geometria configurada no bloquea el aforo: el volumen
+            // real solo depende de las capturas de esta pestana.
+          }
+        }
 
         const resultado = estadisticaCaptura({
           volumenesMl: capturas.map((c) => c.volumenMl),
@@ -502,7 +521,9 @@ export function render(panel, ctx) {
           );
         }
 
-        nodos.push(pintarDesglose(resultado.desglose));
+        // Un solo desglose auditable: primero la derivacion del caudal
+        // teorico desde la presion y despues los pasos de la prueba.
+        nodos.push(pintarDesglose([...desgloseTeorico, ...resultado.desglose]));
 
         ultimoCalculo = {
           resultado,

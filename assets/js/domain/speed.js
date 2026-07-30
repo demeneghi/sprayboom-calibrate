@@ -6,7 +6,7 @@
 // la desviacion real proviene del patinaje y del instrumento, y se
 // corrige con factores MEDIDOS en campo, nunca con formula inventada.
 
-import { KMH_A_MS, M2_POR_HA, PORCIENTO } from './constants.js';
+import { KMH_A_MS, M2_POR_HA, PORCIENTO, TOLERANCIA_RPM_COINCIDENCIA } from './constants.js';
 import { aviso, requierePositivo, requiereFinito } from './validate.js';
 
 // Redondeo solo para las sustituciones legibles del desglose; los
@@ -305,8 +305,6 @@ export function validarRegimen({ rpm, tractor }) {
 // fuera del rango medido: se pide una medicion.
 // ---------------------------------------------------------------------
 
-const TOLERANCIA_RPM_MEDICION = 0.5; // media rpm: coincidencia exacta practica
-
 export function factorDesviacion({ mediciones, rpm }) {
   requierePositivo('el régimen del motor', rpm);
   const avisos = [];
@@ -327,7 +325,7 @@ export function factorDesviacion({ mediciones, rpm }) {
     return { factor: 1.0, estado: 'sin-mediciones', avisos };
   }
 
-  const exacta = lista.find((m) => Math.abs(m.rpm - rpm) <= TOLERANCIA_RPM_MEDICION);
+  const exacta = lista.find((m) => Math.abs(m.rpm - rpm) <= TOLERANCIA_RPM_COINCIDENCIA);
   if (exacta) {
     return { factor: exacta.factor, estado: 'medido', medicion: exacta, avisos };
   }

@@ -35,8 +35,8 @@ import {
   calibrarMarcha,
 } from '../../domain/speed.js';
 import {
-  caudalAPresion,
-  caudalConDensidad,
+  caudalAPresionDetallado,
+  caudalConDensidadDetallado,
   volumenEquivalenteEnAgua,
   clasificarGota,
   distanciaAlCentroDeRango,
@@ -106,17 +106,27 @@ export function render(panel, ctx) {
   }
 
   // Caudal de la boquilla a una presion dada: con agua y con el caldo
-  // (un caldo mas denso sale mas despacio por la misma boquilla).
+  // (un caldo mas denso sale mas despacio por la misma boquilla). Se usan
+  // las variantes detalladas del dominio para regresar tambien el
+  // desglose auditable: un solo desglose que combina el escalado
+  // presion-caudal y, si aplica, la correccion por densidad.
   function caudales(boquilla, presionBar, densidadRelativa) {
-    const agua = caudalAPresion({
+    const conAgua = caudalAPresionDetallado({
       caudalRef: boquilla.caudalRefLmin,
       presionRef: boquilla.presionRefBar,
       presion: presionBar,
       exponente: boquilla.exponente,
     });
-    const caldo =
-      densidadRelativa === 1 ? agua : caudalConDensidad({ caudalAguaLmin: agua, densidadRelativa });
-    return { agua, caldo };
+    const agua = conAgua.valores.caudalLmin;
+    if (densidadRelativa === 1) {
+      return { agua, caldo: agua, desglose: conAgua.desglose };
+    }
+    const conCaldo = caudalConDensidadDetallado({ caudalAguaLmin: agua, densidadRelativa });
+    return {
+      agua,
+      caldo: conCaldo.valores.caudalCaldoLmin,
+      desglose: [...conAgua.desglose, ...conCaldo.desglose],
+    };
   }
 
   function alertaDestructiva(error) {
@@ -400,7 +410,8 @@ export function render(panel, ctx) {
               unidad: unidadCaudal,
               decimales: 3,
               principal: true,
-            })
+            }),
+            pintarDesglose(q.desglose)
           );
         } else {
           nodos.push(
@@ -421,6 +432,7 @@ export function render(panel, ctx) {
                 principal: true,
               })
             ),
+            pintarDesglose(q.desglose),
             el(
               'p',
               { clase: 'ayuda' },
@@ -465,6 +477,16 @@ export function render(panel, ctx) {
           )
         );
       } else {
+        // Guardas de plausibilidad del espaciamiento capturado (dominio):
+        // detecta captura en centimetros y discrepancia contra el
+        // derivado del ancho entre el numero de boquillas configurados.
+        try {
+          const g = geometria({ ...parametrosGeometria(), espaciamientoCapturado: espaciamientoM });
+          nodos.push(...pintarAvisos(g.avisos));
+        } catch {
+          // La geometria configurada no bloquea el calculo central: los
+          // dos metodos solo dependen de las capturas del dia.
+        }
         const q = caudales(b, presionBar, dr);
         const resultado = ambosMetodos({
           caudalBoquillaLmin: q.caldo,

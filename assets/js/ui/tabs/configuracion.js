@@ -16,9 +16,12 @@ import { formatear } from '../formato.js';
 import { confirmar } from '../dialog.js';
 import { mostrarToast } from '../toast.js';
 import { estiloBadgeIso } from '../color.js';
+import { aSistema, unidad } from '../../domain/units.js';
 import {
   PARAMETROS,
   COTAS_TRACTOR,
+  COTAS_BOQUILLA,
+  BOQUILLA_NUEVA,
   COTAS_VELOCIDAD_MARCHA,
   COTAS_EQUIPO,
   COTAS_GAS,
@@ -59,6 +62,11 @@ function seccion(props, ...hijos) {
 function generarId(prefijo) {
   return `${prefijo}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
 }
+
+// El reporte de la ultima importacion vive a nivel de modulo: el
+// re-render por 'contexto' reconstruye la pestana y el reporte se
+// vuelve a pintar en el nodo nuevo (antes se escribia en uno huerfano).
+let ultimoReporteImportacion = null;
 
 export function render(panel, ctx) {
   const almacen = ctx.almacen;
@@ -113,6 +121,7 @@ export function render(panel, ctx) {
         espaciamientoMinimoPlausible: p.umbrales.espaciamientoMinimoPlausible,
         umbralDiscrepanciaPct: p.umbrales.umbralDiscrepanciaMetodos,
       });
+      const sistema = ctx.sistema();
       const fila = (etiqueta, valor, unidadTexto, decimales) =>
         el(
           'div',
@@ -123,10 +132,10 @@ export function render(panel, ctx) {
         );
       reemplazar(
         zonaDerivados,
-        fila('Área por tabla', g.valores.areaM2, 'm2', 2),
-        fila('Hectáreas por tabla', g.valores.hectareasPorTabla, 'ha', 6),
+        fila('Área por tabla', aSistema('areaChica', g.valores.areaM2, sistema), unidad('areaChica', sistema), 2),
+        fila('Superficie por tabla', aSistema('superficie', g.valores.hectareasPorTabla, sistema), unidad('superficie', sistema), 6),
         fila('Tramos por tabla', g.valores.tramosPorTabla, '', 2),
-        fila('Espaciamiento derivado', g.valores.espaciamientoDerivado, 'm', 4)
+        fila('Espaciamiento derivado', aSistema('distanciaCorta', g.valores.espaciamientoDerivado, sistema), unidad('distanciaCorta', sistema), 4)
       );
       reemplazar(zonaAvisosGeometria, ...pintarAvisos(g.avisos));
     } catch (error) {
@@ -231,7 +240,7 @@ export function render(panel, ctx) {
       );
     }
 
-    const campoNombre = el('input', { clase: 'entrada', value: tractor.nombre, 'aria-label': 'Nombre del tractor' });
+    const campoNombre = el('input', { clase: 'entrada', id: 'tractor-nombre', value: tractor.nombre });
     campoNombre.addEventListener('change', () => {
       const nombre = campoNombre.value.trim();
       if (!nombre) return;
@@ -239,37 +248,71 @@ export function render(panel, ctx) {
         e.tractores.find((t) => t.id === tractor.id).nombre = nombre;
       }, 'contexto');
     });
-    nodos.push(el('div', { clase: 'campo' }, el('label', { clase: 'etiqueta' }, 'Nombre'), campoNombre));
+    nodos.push(el('div', { clase: 'campo' }, el('label', { clase: 'etiqueta', for: 'tractor-nombre' }, 'Nombre'), campoNombre));
 
     for (const [campo, cota] of Object.entries(COTAS_TRACTOR)) {
+      // Validacion en vivo al teclear, pero el COMMIT es al confirmar
+      // (change/blur): asi no se re-renderiza ni se poda la tabla de
+      // velocidades con un valor a medio teclear.
       const entrada = crearCampoNumerico({
         etiqueta: cota.etiqueta,
         unidad: cota.unidad,
         valorInicial: tractor[campo],
-        ayuda: `Cotas: ${cota.min} a ${cota.max}${cota.unidad ? ` ${cota.unidad}` : ''}.`,
+        ayuda: `Cotas: ${cota.min} a ${cota.max}${cota.unidad ? ` ${cota.unidad}` : ''}. Se aplica al salir del campo.`,
         alCambiar: (valor) => {
           const veredicto = validarValor(cota, valor);
-          if (!veredicto.ok) {
-            entrada.fijarError(veredicto.mensaje);
-            return;
-          }
-          entrada.fijarError(null);
-          almacen.actualizar((e) => {
-            const t = e.tractores.find((x) => x.id === tractor.id);
-            t[campo] = valor;
-            if (campo === 'numRangos' || campo === 'marchasPorRango') {
-              // La cuadricula y la tabla se generan desde estos valores:
-              // se ajusta la tabla conservando lo capturado que quepa.
-              const rangos = t.numRangos;
-              const marchas = t.marchasPorRango;
-              t.etiquetasRango = Array.from({ length: rangos }, (_, i) =>
-                t.etiquetasRango[i] ?? String.fromCharCode(65 + i));
-              t.velocidades = t.velocidades.filter(
-                (v) => v.rango < rangos && v.marcha <= marchas
-              );
-            }
-          }, 'contexto');
+          entrada.fijarError(veredicto.ok ? null : veredicto.mensaje);
         },
+      });
+      entrada.entrada.addEventListener('change', async () => {
+        const valor = entrada.obtener();
+        const veredicto = validarValor(cota, valor);
+        if (!veredicto.ok) {
+          entrada.fijarError(veredicto.mensaje);
+          entrada.fijar(tractor[campo]);
+          return;
+        }
+        entrada.fijarError(null);
+        const numero = veredicto.numero ?? valor;
+        if (campo === 'numRangos' || campo === 'marchasPorRango') {
+          const rangosNuevos = campo === 'numRangos' ? numero : tractor.numRangos;
+          const marchasNuevas = campo === 'marchasPorRango' ? numero : tractor.marchasPorRango;
+          const perdidas = tractor.velocidades.filter(
+            (v) => !(v.rango < rangosNuevos && v.marcha <= marchasNuevas)
+          );
+          if (perdidas.length > 0) {
+            const ok = await confirmar({
+              titulo: 'Reducir la transmisión elimina marchas capturadas',
+              descripcion: 'Estas filas de velocidad se perderían:',
+              cuerpo: el(
+                'ul',
+                { estilo: { paddingLeft: '1.2rem', fontSize: '0.9rem' } },
+                perdidas.map((v) =>
+                  el('li', {}, `${tractor.etiquetasRango[v.rango] ?? v.rango + 1}${v.marcha}: ${v.kmhNominal} km/h (${v.origen})`)
+                )
+              ),
+              confirmarTexto: 'Reducir de todos modos',
+              destructivo: true,
+            });
+            if (!ok) {
+              entrada.fijar(tractor[campo]);
+              return;
+            }
+          }
+        }
+        almacen.actualizar((e) => {
+          const t = e.tractores.find((x) => x.id === tractor.id);
+          t[campo] = numero;
+          if (campo === 'numRangos' || campo === 'marchasPorRango') {
+            const rangos = t.numRangos;
+            const marchas = t.marchasPorRango;
+            t.etiquetasRango = Array.from({ length: rangos }, (_, i) =>
+              t.etiquetasRango[i] ?? String.fromCharCode(65 + i));
+            t.velocidades = t.velocidades.filter(
+              (v) => v.rango < rangos && v.marcha <= marchas
+            );
+          }
+        }, 'contexto');
       });
       nodos.push(entrada.elemento);
     }
@@ -403,7 +446,7 @@ export function render(panel, ctx) {
     });
     nodos.push(selector.elemento);
 
-    const campoNombre = el('input', { clase: 'entrada', value: equipo.nombre, 'aria-label': 'Nombre del equipo' });
+    const campoNombre = el('input', { clase: 'entrada', id: 'equipo-nombre', value: equipo.nombre });
     campoNombre.addEventListener('change', () => {
       const nombre = campoNombre.value.trim();
       if (!nombre) return;
@@ -411,7 +454,7 @@ export function render(panel, ctx) {
         e.equipos.find((x) => x.id === equipo.id).nombre = nombre;
       }, 'contexto');
     });
-    nodos.push(el('div', { clase: 'campo' }, el('label', { clase: 'etiqueta' }, 'Nombre'), campoNombre));
+    nodos.push(el('div', { clase: 'campo' }, el('label', { clase: 'etiqueta', for: 'equipo-nombre' }, 'Nombre'), campoNombre));
 
     nodos.push(
       crearCampoSelect({
@@ -672,10 +715,10 @@ export function render(panel, ctx) {
       const campoRpm = crearCampoNumerico({ etiqueta: COTAS_FACTOR_DESVIACION.rpm.etiqueta, unidad: 'rpm' });
       const campoTeorica = crearCampoNumerico({ etiqueta: COTAS_FACTOR_DESVIACION.velocidadTeorica.etiqueta, unidad: 'km/h' });
       const campoMedida = crearCampoNumerico({ etiqueta: COTAS_FACTOR_DESVIACION.velocidadMedida.etiqueta, unidad: 'km/h' });
-      const campoCondiciones = el('input', { clase: 'entrada', placeholder: 'Implemento, humedad del suelo...' });
+      const campoCondiciones = el('input', { clase: 'entrada', id: 'factor-condiciones', placeholder: 'Implemento, humedad del suelo...' });
       const cuerpo = el('div', {},
         selectorTractor.elemento, campoRpm.elemento, campoTeorica.elemento, campoMedida.elemento,
-        el('div', { clase: 'campo' }, el('label', { clase: 'etiqueta' }, 'Condiciones'), campoCondiciones));
+        el('div', { clase: 'campo' }, el('label', { clase: 'etiqueta', for: 'factor-condiciones' }, 'Condiciones'), campoCondiciones));
       const ok = await confirmar({
         titulo: 'Medición de desviación',
         descripcion: 'factor = velocidad medida / velocidad teórica. Se aplica exacto en su régimen y se interpola entre mediciones; nunca se extrapola.',
@@ -745,26 +788,22 @@ export function render(panel, ctx) {
       fabricante: 'generica',
       serie: '',
       modelo: '',
-      tipoPatron: 'abanico-plano',
-      anguloGrados: 110,
       tamanoIso: null,
       caudalRefLmin: null,
-      presionRefBar: 3,
-      presionMinBar: 1,
-      presionMaxBar: 4,
-      exponente: 0.5,
-      material: 'polimero',
       edicionEstandar: null,
       clasesGota: [],
       notas: '',
       fuente: 'captura manual',
+      // La semilla numerica de una ficha nueva vive en defaults.js
+      // (todo es parametro; la UI no incrusta numeros de dominio).
+      ...JSON.parse(JSON.stringify(BOQUILLA_NUEVA)),
     };
     const campoFabricante = crearCampoSelect({
       etiqueta: 'Fabricante',
       opciones: FABRICANTES_SUGERIDOS.map((f) => ({ valor: f, texto: f })),
       valorInicial: FABRICANTES_SUGERIDOS.includes(b.fabricante) ? b.fabricante : 'generica',
     });
-    const campoModelo = el('input', { clase: 'entrada', value: b.modelo, placeholder: 'XR11004' });
+    const campoModelo = el('input', { clase: 'entrada', id: 'boquilla-modelo', value: b.modelo, placeholder: 'XR11004' });
     const campoPatron = crearCampoSelect({
       etiqueta: 'Tipo de patron',
       opciones: TIPOS_PATRON.map((t) => ({ valor: t, texto: t })),
@@ -773,7 +812,7 @@ export function render(panel, ctx) {
     const campoTamano = crearCampoSelect({
       etiqueta: 'Tamaño ISO (deriva el color)',
       opciones: [{ valor: '', texto: 'Sin tamaño ISO' }].concat(
-        TABLA_ISO_10625.map((f) => ({ valor: f.tamano, texto: `${f.tamano} (${f.caudalLmin} L/min a 3 bar)` }))
+        TABLA_ISO_10625.map((f) => ({ valor: f.tamano, texto: `${f.tamano} (${f.caudalLmin} L/min a ${PRESION_NOMINAL_ISO_BAR} bar)` }))
       ),
       valorInicial: b.tamanoIso ?? '',
     });
@@ -800,7 +839,7 @@ export function render(panel, ctx) {
       valorInicial: b.edicionEstandar ?? '',
       ayuda: 'No se comparan clases entre ediciones distintas: S572.3 subio umbrales e invirtio los colores C/VC.',
     });
-    const campoNotas = el('input', { clase: 'entrada', value: b.notas ?? '' });
+    const campoNotas = el('input', { clase: 'entrada', id: 'boquilla-notas', value: b.notas ?? '' });
 
     // Mini editor de clases de gota por rango de presion
     const listaClases = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.4rem' } });
@@ -832,12 +871,12 @@ export function render(panel, ctx) {
 
     const cuerpo = el('div', {},
       campoFabricante.elemento,
-      el('div', { clase: 'campo' }, el('label', { clase: 'etiqueta' }, 'Serie o modelo'), campoModelo),
+      el('div', { clase: 'campo' }, el('label', { clase: 'etiqueta', for: 'boquilla-modelo' }, 'Serie o modelo'), campoModelo),
       campoPatron.elemento, campoTamano.elemento, campoAngulo.elemento, campoCaudal.elemento,
       campoPresionRef.elemento, campoPresionMin.elemento, campoPresionMax.elemento,
       campoExponente.elemento, campoMaterial.elemento, campoEdicion.elemento,
       el('h3', { clase: 'etiqueta' }, 'Clase de gota por rango de presión'), listaClases, agregarClase,
-      el('div', { clase: 'campo' }, el('label', { clase: 'etiqueta' }, 'Notas'), campoNotas));
+      el('div', { clase: 'campo' }, el('label', { clase: 'etiqueta', for: 'boquilla-notas' }, 'Notas'), campoNotas));
 
     return {
       cuerpo,
@@ -861,17 +900,20 @@ export function render(panel, ctx) {
           notas: campoNotas.value.trim(),
         };
         if (!nueva.modelo) return { error: 'Falta el modelo de la boquilla.' };
-        for (const [valor, etiqueta] of [
-          [nueva.caudalRefLmin, 'el caudal de referencia'],
-          [nueva.presionRefBar, 'la presión de referencia'],
-          [nueva.presionMinBar, 'la presión mínima'],
-          [nueva.presionMaxBar, 'la presión máxima'],
-          [nueva.exponente, 'el exponente'],
-        ]) {
-          if (valor === null || !(valor > 0)) return { error: `Falta o es invalido ${etiqueta}.` };
+        // Las MISMAS cotas (y mensajes) que valida la importacion JSON:
+        // lo que el formulario acepta siempre se puede reimportar.
+        for (const [campo, cota] of Object.entries(COTAS_BOQUILLA)) {
+          const veredicto = validarValor(cota, nueva[campo]);
+          if (!veredicto.ok) return { error: veredicto.mensaje };
+          nueva[campo] = veredicto.numero ?? nueva[campo];
         }
         if (nueva.presionMinBar >= nueva.presionMaxBar) {
           return { error: 'La presión mínima debe ser menor que la máxima.' };
+        }
+        for (const rango of nueva.clasesGota) {
+          if (!(rango.presionMinBar < rango.presionMaxBar)) {
+            return { error: 'Cada rango de clase de gota necesita presión mínima menor que la máxima.' };
+          }
         }
         return { boquilla: nueva };
       },
@@ -963,11 +1005,13 @@ export function render(panel, ctx) {
   // ----------------------------------------------------------------
   // Exportacion / importacion
   // ----------------------------------------------------------------
-  const entradaImportar = el('input', { type: 'file', accept: 'application/json,.json', clase: 'visualmente-oculto', id: 'importar-config' });
-  const entradaImportarCatalogo = el('input', { type: 'file', accept: 'application/json,.json', clase: 'visualmente-oculto', id: 'importar-catalogo' });
+  const entradaImportar = el('input', { type: 'file', accept: 'application/json,.json', clase: 'visualmente-oculto', id: 'importar-config', tabindex: '-1', 'aria-hidden': 'true' });
+  const entradaImportarCatalogo = el('input', { type: 'file', accept: 'application/json,.json', clase: 'visualmente-oculto', id: 'importar-catalogo', tabindex: '-1', 'aria-hidden': 'true' });
   const zonaRechazos = el('div', {});
 
-  function reportarImportacion(resultado) {
+  function pintarReporteImportacion() {
+    if (!ultimoReporteImportacion) return;
+    const resultado = ultimoReporteImportacion;
     if (!resultado.ok) {
       reemplazar(zonaRechazos,
         el('div', { clase: 'alerta alerta--destructiva', role: 'alert' },
@@ -975,16 +1019,26 @@ export function render(panel, ctx) {
           ...resultado.errores.map((e) => el('p', { clase: 'alerta__descripcion' }, e))));
       return;
     }
-    almacen.reemplazarEstado(resultado.estado, 'contexto');
     const nodos = [el('div', { clase: 'alerta', role: 'status' },
       el('p', { clase: 'alerta__descripcion' }, 'Importación aplicada.'))];
     if (resultado.rechazos.length > 0) {
       nodos.push(
         el('div', { clase: 'alerta alerta--advertencia', role: 'alert' },
-          el('p', { clase: 'alerta__titulo' }, `${resultado.rechazos.length} valores rechazados (se conservo el vigente)`),
+          el('p', { clase: 'alerta__titulo' }, `${resultado.rechazos.length} valores rechazados (se conservó el vigente)`),
           ...resultado.rechazos.map((r) => el('p', { clase: 'alerta__descripcion' }, `${r.ruta}: ${r.mensaje}`))));
     }
     reemplazar(zonaRechazos, nodos);
+  }
+
+  function reportarImportacion(resultado) {
+    ultimoReporteImportacion = resultado;
+    if (!resultado.ok) {
+      pintarReporteImportacion();
+      return;
+    }
+    // reemplazarEstado re-renderiza toda la pestana; el reporte se
+    // pinta al montar (ver final de render()).
+    almacen.reemplazarEstado(resultado.estado, 'contexto');
   }
 
   entradaImportar.addEventListener('change', async () => {
@@ -1066,6 +1120,7 @@ export function render(panel, ctx) {
   );
 
   pintarDerivados();
+  pintarReporteImportacion();
   pintarEditorTractor();
   pintarEditorEquipo();
   pintarEditorGas();

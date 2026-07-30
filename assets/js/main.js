@@ -193,8 +193,9 @@ const panel = document.getElementById('panel');
 
 let rutaActual = leerHash();
 let tabsActuales = null;
+let seccionPintada = null;
 
-function renderizar() {
+function renderizar({ conservarPosicion = false } = {}) {
   const seccion = SECCIONES.find((s) => s.id === rutaActual.seccion);
   const tab = seccion.tabs.find((t) => t.id === rutaActual.tab);
 
@@ -203,15 +204,26 @@ function renderizar() {
     boton.setAttribute('aria-current', activo ? 'true' : 'false');
   }
 
-  limpiar(zonaSubnav);
-  tabsActuales = crearTabs({
-    id: `subnav-${seccion.id}`,
-    tabs: seccion.tabs,
-    activoId: tab.id,
-    idPanel: 'panel',
-    alCambiar: (tabId) => escribirHash(seccion.id, tabId),
-  });
-  zonaSubnav.append(tabsActuales.elemento);
+  // La tablist se conserva VIVA mientras la seccion no cambie: asi la
+  // navegacion por teclado (flechas) no pierde el foco al cambiar de
+  // pestana, y el roving tabindex sigue funcionando.
+  if (seccionPintada !== seccion.id || !tabsActuales) {
+    limpiar(zonaSubnav);
+    tabsActuales = crearTabs({
+      id: `subnav-${seccion.id}`,
+      tabs: seccion.tabs,
+      activoId: tab.id,
+      idPanel: 'panel',
+      alCambiar: (tabId) => escribirHash(seccion.id, tabId),
+    });
+    zonaSubnav.append(tabsActuales.elemento);
+    seccionPintada = seccion.id;
+  } else {
+    tabsActuales.activarPorId(tab.id);
+  }
+
+  const scrollPrevio = window.scrollY;
+  const idEnfocado = conservarPosicion ? document.activeElement?.id : null;
 
   panel.setAttribute('aria-labelledby', `subnav-${seccion.id}-tab-${tab.id}`);
   limpiar(panel);
@@ -227,7 +239,14 @@ function renderizar() {
       )
     );
   }
-  window.scrollTo({ top: 0 });
+  if (conservarPosicion) {
+    // Re-render por cambio de contexto (tractor, equipo, unidades):
+    // conserva el punto de lectura y, si se puede, el foco.
+    window.scrollTo({ top: scrollPrevio });
+    if (idEnfocado) document.getElementById(idEnfocado)?.focus();
+  } else {
+    window.scrollTo({ top: 0 });
+  }
 }
 
 for (const boton of botonesSeccion) {
@@ -240,6 +259,9 @@ for (const boton of botonesSeccion) {
 window.addEventListener('hashchange', () => {
   rutaActual = leerHash();
   renderizar();
+  if (rutaActual.consulta) {
+    aplicarEstadoCompartido(rutaActual.consulta);
+  }
 });
 
 // Cambios de contexto (tractor, equipo, unidades, tema) recalculan todo
@@ -248,7 +270,7 @@ almacen.suscribir(({ tipo }) => {
   if (tipo === 'contexto') {
     aplicarTema();
     llenarSelectoresEncabezado();
-    renderizar();
+    renderizar({ conservarPosicion: true });
   }
 });
 
@@ -324,6 +346,16 @@ function registrarServiceWorker() {
   navigator.serviceWorker
     .register('./sw.js')
     .then((registro) => {
+      // Si ya habia una version nueva esperando desde una visita
+      // anterior, avisar de inmediato.
+      if (registro.waiting && navigator.serviceWorker.controller) {
+        const esperando = registro.waiting;
+        mostrarToast('Hay una versión nueva de la aplicación.', {
+          duracionMs: 0,
+          accionTexto: 'Actualizar',
+          alAccionar: () => esperando.postMessage('SALTAR_ESPERA'),
+        });
+      }
       registro.addEventListener('updatefound', () => {
         const nuevo = registro.installing;
         if (!nuevo) return;

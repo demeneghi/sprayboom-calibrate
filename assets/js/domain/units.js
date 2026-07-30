@@ -70,6 +70,12 @@ export const MAGNITUDES = {
     imperial: 'acre',
     factor: 1 / HA_POR_ACRE,
   },
+  areaChica: {
+    etiqueta: 'Área',
+    metrico: 'm2',
+    imperial: 'ft2',
+    factor: 1 / (M_POR_PIE * M_POR_PIE),
+  },
   masa: {
     etiqueta: 'Masa',
     metrico: 'g',

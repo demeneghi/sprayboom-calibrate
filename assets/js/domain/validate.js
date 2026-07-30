@@ -28,7 +28,9 @@ export function validarValor(def, valor) {
       mensaje: `${etiqueta}: debe estar entre ${def.min} y ${def.max}${unidad}.`,
     };
   }
-  return { ok: true };
+  // numero: el valor ya normalizado a Number, para que la importacion y
+  // los formularios guarden numeros y no cadenas.
+  return { ok: true, numero };
 }
 
 // Valida un objeto contra un mapa de definiciones { campo: def }.

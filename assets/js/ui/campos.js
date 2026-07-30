@@ -32,13 +32,15 @@ export function crearCampoNumerico({
     value: valorInicial === null || valorInicial === undefined ? '' : String(valorInicial),
   });
   const nodoError = el('p', { clase: 'campo__error oculto', id: `${idCampo}-error` });
+  const nodoAyuda = ayuda ? el('p', { clase: 'ayuda', id: `${idCampo}-ayuda` }, ayuda) : null;
+  if (nodoAyuda) entrada.setAttribute('aria-describedby', nodoAyuda.id);
   const raiz = el(
     'div',
     { clase: 'campo' },
     el('label', { clase: 'etiqueta', for: idCampo }, etiqueta, unidad ? el('span', { clase: 'texto-suave' }, ` (${unidad})`) : null),
     entrada,
     nodoError,
-    ayuda ? el('p', { clase: 'ayuda' }, ayuda) : null
+    nodoAyuda
   );
 
   if (alCambiar) {
@@ -58,14 +60,17 @@ export function crearCampoNumerico({
       entrada.value = valor === null || valor === undefined ? '' : String(valor);
     },
     fijarError(mensaje) {
+      const idsAyuda = nodoAyuda ? `${nodoAyuda.id} ` : '';
       if (mensaje) {
         nodoError.textContent = mensaje;
         nodoError.classList.remove('oculto');
         entrada.setAttribute('aria-invalid', 'true');
-        entrada.setAttribute('aria-describedby', nodoError.id);
+        entrada.setAttribute('aria-describedby', `${nodoError.id} ${idsAyuda}`.trim());
       } else {
         nodoError.classList.add('oculto');
         entrada.removeAttribute('aria-invalid');
+        if (nodoAyuda) entrada.setAttribute('aria-describedby', nodoAyuda.id);
+        else entrada.removeAttribute('aria-describedby');
       }
     },
   };

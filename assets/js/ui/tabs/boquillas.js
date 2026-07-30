@@ -6,6 +6,12 @@
 // por cercania al centro del rango, y las fuera de rango en tabla
 // aparte. Al elegir una candidata se precarga en Gasto de agua.
 //
+// Las curvas presion-caudal del catalogo estan medidas con agua: cuando
+// la densidad relativa del caldo difiere de 1, el despeje usa el
+// objetivo equivalente en agua (volumenEquivalenteEnAgua del dominio,
+// igual que el modo inverso de gasto.js) y se muestra ese equivalente
+// con su explicacion y su paso de desglose. Con densidad 1 nada cambia.
+//
 // Reglas duras respetadas aqui: cero formulas en la UI (todo llega de
 // domain/), captura y muestra en el sistema de unidades activo con
 // calculo interno metrico, y ningun numero sin desglose ni gate de
@@ -27,7 +33,8 @@ import { mostrarToast } from '../toast.js';
 import { estiloBadgeIso } from '../color.js';
 import { aSistema, deSistema, unidad } from '../../domain/units.js';
 import { seleccionDeBoquilla } from '../../domain/index.js';
-import { geometria } from '../../domain/speed.js';
+import { volumenEquivalenteEnAgua } from '../../domain/nozzles.js';
+import { geometria, paso, redondeoLegible } from '../../domain/speed.js';
 import { PORCIENTO } from '../../domain/constants.js';
 import { filaIso } from '../../data/iso-colors.js';
 import {
@@ -333,9 +340,20 @@ export function render(panel, ctx) {
           // solo depende de los tres valores capturados.
         }
 
+        // Las curvas presion-caudal del catalogo estan medidas con agua:
+        // con un caldo mas denso se despeja contra el objetivo
+        // equivalente en agua (el dominio lo calcula; el caldo, mas
+        // lento, entrega en campo el objetivo real). Con densidad 1 el
+        // equivalente es el mismo objetivo y nada visible cambia.
+        const dr = estado.parametros.caldo.densidadRelativa;
+        const objetivoEnAgua =
+          dr === 1
+            ? lhaObjetivo
+            : volumenEquivalenteEnAgua({ volumenCaldoLha: lhaObjetivo, densidadRelativa: dr });
+
         const resultado = seleccionDeBoquilla({
           catalogo: estado.catalogo,
-          lhaObjetivo,
+          lhaObjetivo: objetivoEnAgua,
           velocidadKmh,
           espaciamientoM,
           claseDeseada,
@@ -344,8 +362,42 @@ export function render(panel, ctx) {
         const avisosSinCandidatas = resultado.avisos.filter((a) => a.codigo === 'sin-candidatas');
         const avisosDelCaudal = resultado.avisos.filter((a) => a.codigo !== 'sin-candidatas');
         const confiable = resultadoConfiable(resultado);
+        // El desglose arranca en la correccion por densidad para que la
+        // cadena objetivo de caldo -> objetivo en agua -> caudal quede
+        // auditable con los numeros sustituidos.
+        const desglose =
+          dr === 1
+            ? resultado.desglose
+            : [
+                paso(
+                  'Objetivo equivalente en agua',
+                  'v_agua = v_caldo * raíz(densidad_relativa)',
+                  `${redondeoLegible(lhaObjetivo)} * raíz(${redondeoLegible(dr)})`,
+                  objetivoEnAgua,
+                  'L/ha'
+                ),
+                ...resultado.desglose,
+              ];
 
         nodosResultado.push(...pintarAvisos(avisosDelCaudal));
+        if (dr !== 1) {
+          nodosResultado.push(
+            pintarResultado({
+              etiqueta: 'Objetivo equivalente en agua',
+              valor: aSistema('volumenAplicacion', objetivoEnAgua, sistema),
+              unidad: unidadVolumen,
+              decimales: 1,
+            }),
+            el(
+              'p',
+              { clase: 'ayuda' },
+              `Densidad relativa del caldo: ${formatear(dr, 2)}. La calibración se hace con agua y un ` +
+                'caldo más denso sale más despacio por la misma boquilla (q_caldo = q_agua / raíz(dr)): ' +
+                'el caudal requerido y las presiones de las candidatas se despejan contra este ' +
+                'equivalente para que el caldo entregue el objetivo real.'
+            )
+          );
+        }
         if (confiable) {
           nodosResultado.push(
             pintarResultado({
@@ -359,7 +411,7 @@ export function render(panel, ctx) {
         } else {
           nodosResultado.push(pintarResultadoNoVerificado('Caudal requerido por boquilla'));
         }
-        nodosResultado.push(pintarVerificacion(resultado.verificacion), pintarDesglose(resultado.desglose));
+        nodosResultado.push(pintarVerificacion(resultado.verificacion), pintarDesglose(desglose));
 
         if (!confiable) {
           nodosCandidatas.push(

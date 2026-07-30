@@ -18,6 +18,43 @@ export function caudalAPresion({ caudalRef, presionRef, presion, exponente }) {
   return caudalRef * (presion / presionRef) ** exponente;
 }
 
+// Variante con desglose auditable del escalado presion-caudal, para que
+// la interfaz pueda mostrar el paso con los numeros sustituidos.
+export function caudalAPresionDetallado({ caudalRef, presionRef, presion, exponente }) {
+  const caudal = caudalAPresion({ caudalRef, presionRef, presion, exponente });
+  return {
+    valores: { caudalLmin: caudal },
+    desglose: [
+      paso(
+        'Caudal a la presión de trabajo',
+        'caudal_ref * (presión / presión_ref) ^ exponente',
+        `${redondeoLegible(caudalRef)} * (${redondeoLegible(presion)} / ${redondeoLegible(presionRef)}) ^ ${exponente}`,
+        caudal,
+        'L/min'
+      ),
+    ],
+    avisos: [],
+  };
+}
+
+// Variante con desglose de la correccion por densidad del caldo.
+export function caudalConDensidadDetallado({ caudalAguaLmin, densidadRelativa }) {
+  const caudal = caudalConDensidad({ caudalAguaLmin, densidadRelativa });
+  return {
+    valores: { caudalCaldoLmin: caudal },
+    desglose: [
+      paso(
+        'Caudal con el caldo (más denso sale más despacio)',
+        'q_caldo = q_agua / raíz(densidad_relativa)',
+        `${redondeoLegible(caudalAguaLmin)} / raíz(${redondeoLegible(densidadRelativa)})`,
+        caudal,
+        'L/min'
+      ),
+    ],
+    avisos: [],
+  };
+}
+
 // Despeje: presion que produce un caudal dado.
 export function presionParaCaudal({ caudalRef, presionRef, caudal, exponente }) {
   requierePositivo('el caudal de referencia', caudalRef);
@@ -126,17 +163,17 @@ export function seleccionarBoquillas({
     .sort((a, b) => a.distanciaAlCentro - b.distanciaAlCentro);
 
   if (candidatas.length === 0) {
-    avisos.push(
-      aviso(
-        'advertencia',
-        'sin-candidatas',
-        'Ninguna boquilla del catálogo logra el caudal requerido dentro de su rango de ' +
+    const enRangoSinFiltro = evaluadas.filter((c) => c.dentroDeRango).length;
+    const mensaje =
+      claseDeseada && enRangoSinFiltro > 0
+        ? `Con la clase de gota pedida (${claseDeseada}) ninguna boquilla logra el caudal ` +
+          `dentro de su rango de presión; sin ese filtro habría ${enRangoSinFiltro} candidata(s). ` +
+          'Cambia la clase deseada, la velocidad o el espaciamiento.'
+        : 'Ninguna boquilla del catálogo logra el caudal requerido dentro de su rango de ' +
           'presión. Cambiar de tamaño de boquilla es más efectivo que forzar la presión; ' +
           'también puedes bajar la velocidad o cerrar el espaciamiento para reducir el ' +
-          'caudal requerido por boquilla.',
-        { caudalRequeridoLmin }
-      )
-    );
+          'caudal requerido por boquilla.';
+    avisos.push(aviso('advertencia', 'sin-candidatas', mensaje, { caudalRequeridoLmin, enRangoSinFiltro }));
   }
 
   return { candidatas, fueraDeRango, avisos };

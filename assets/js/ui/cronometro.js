@@ -66,7 +66,15 @@ export function crearCronometro({
   function arrancar() {
     if (intervalo) return;
     inicio = performance.now();
-    intervalo = setInterval(pintar, 100);
+    intervalo = setInterval(() => {
+      // Autolimpieza: si la pestaña se desmontó, el nodo ya no está en
+      // el documento y el intervalo se detiene solo (sin fugas).
+      if (!elemento.isConnected) {
+        detener();
+        return;
+      }
+      pintar();
+    }, 100);
     botonArrancar.textContent = 'Parar';
   }
 

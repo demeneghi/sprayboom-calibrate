@@ -13,6 +13,15 @@
     (function () {
       var segmento = location.pathname.split('/')[1] || '';
       var base = segmento ? '/' + segmento + '/' : '/';
+      // Guarda contra bucle: si ya intentamos esta base y volvimos a
+      // caer en 404 (por ejemplo, sitio publicado en dominio raiz), ir
+      // a la raiz del dominio.
+      var marca = null;
+      try { marca = sessionStorage.getItem('redir-404'); } catch (e) { marca = null; }
+      if (marca === base) {
+        base = '/';
+      }
+      try { sessionStorage.setItem('redir-404', base); } catch (e) { /* sin sesion */ }
       location.replace(base + location.hash);
     })();
   </script>

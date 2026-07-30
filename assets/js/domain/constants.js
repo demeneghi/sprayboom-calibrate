@@ -82,6 +82,10 @@ export const PORCIENTO = 100;
 // etiquetas de producto.
 export const BASE_DOSIS_100L = 100;
 
+// Media rpm: tolerancia para considerar que dos regimenes capturados
+// son el mismo (coincidencia practica de lectura de tacometro).
+export const TOLERANCIA_RPM_COINCIDENCIA = 0.5;
+
 // =====================================================================
 // Grupo SI para la ruta redundante de calculo (domain/verify.js).
 //

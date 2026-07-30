@@ -31,6 +31,19 @@ No se necesita GitHub Actions porque no hay nada que compilar.
 | Caché CDN de unos 10 minutos al publicar cambios | El service worker versiona su caché y avisa cuando hay versión nueva |
 | Recargar sin señal no es confiable con solo caché HTTP | La PWA precachea el sitio completo: tras la primera carga funciona sin conexión |
 
+## Aplicación instalable (PWA) y funciones de campo
+
+- **Sin conexión**: tras la primera carga, el service worker precachea el sitio completo; la
+  aplicación abre y calcula sin señal. Al publicar cambios hay que subir la versión en
+  `version.js`; la aplicación avisa "hay una versión nueva" con botón de actualizar.
+- **Instalable**: desde el navegador del teléfono, "Agregar a pantalla de inicio". El manifiesto
+  usa rutas relativas y funciona bajo el subdirectorio de Pages.
+- **Compartir por URL**: el botón de compartir del encabezado codifica los valores capturados de
+  la pantalla activa y el contexto (tractor, equipo, unidades) en el fragmento hash; al abrir el
+  enlace, la aplicación pregunta antes de aplicar. El fragmento nunca llega al servidor.
+- **Cronómetro integrado**: en Avance mide los segundos por tramo; en Prueba de captura es
+  cuenta regresiva con el tiempo de aforo configurado.
+
 ## Uso y prueba local
 
 Los módulos ES no cargan desde `file://`. Para probar en local se necesita un servidor HTTP simple:
@@ -60,6 +73,17 @@ npm test
 ```
 
 npm solo se usa para herramientas de desarrollo; el sitio publicado no depende de npm ni de ningún paquete.
+
+Herramientas de desarrollo (ninguna es requisito del sitio publicado):
+
+```bash
+node tools/verificar-contraste.mjs      # contraste AA de tokens y colores ISO
+node tools/generar-precache.mjs         # regenera la lista de precache de sw.js
+CHROMIUM_PATH=/opt/pw-browsers/chromium node tools/generar-iconos.mjs   # PNG del manifest
+CHROMIUM_PATH=... node tools/humo.mjs               # humo: 10 rutas x 2 viewports de teléfono
+CHROMIUM_PATH=... node tools/interaccion.mjs        # interacción completa + recarga sin conexión
+node tools/acentuar.mjs <archivos>      # ortografía de textos visibles
+```
 
 ## Importante: dónde viven los datos
 
@@ -91,6 +115,23 @@ assets/
 tests/                pruebas con node:test
 tools/                scripts solo de desarrollo (iconos, contraste)
 ```
+
+## Limitaciones conocidas y pendientes declarados
+
+- El régimen nominal del JD 5715 (2,400 rpm) está **pendiente de confirmar** contra el manual;
+  la interfaz lo marca. El del 6603 (2,100 rpm) proviene de la prueba de Nebraska.
+- El **volumen de agua objetivo propio** del forzamiento está vacío a propósito: lo captura el
+  usuario; la aplicación no lo inventa ni lo rellena con la referencia de la literatura.
+- Del tamaño ISO **20** solo el caudal (8.0 L/min) está verificado (prólogo de ISO 10625:2018);
+  su color vive en la Tabla 2 del estándar, no disponible en la vista previa consultada.
+- El catálogo sembrado cubre TeeJet (7 series) y Albuz ATR 80 con fuentes citadas; **Lechler,
+  Hypro y ARAG** quedaron pendientes por falta de ficha descargable verificable. Se capturan en
+  el editor citando la fuente.
+- El detalle de bitácora compara el snapshot contra los parámetros numéricos vigentes y los
+  datos de tractor/equipo guardados; los campos categóricos del equipo y la configuración de
+  gas/rotámetro no entran al diff todavía.
+- `componentes.html` es una galería estática del sistema de diseño: sus números son texto de
+  muestra, no cálculos.
 
 ## Mecanismo de cálculo redundante
 

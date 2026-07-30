@@ -13,6 +13,7 @@
 
 import {
   PARAMETROS,
+  COTAS_BOQUILLA,
   TRACTORES_SIEMBRA,
   EQUIPOS_SIEMBRA,
   GASES_SIEMBRA,
@@ -82,18 +83,47 @@ export function crearAlmacen({ backend = null, alFallarEscritura = null } = {}) 
 
   let estado = null;
   const errores = [];
+  // Cuando lo guardado no se puede adoptar (version desconocida o JSON
+  // corrupto), NO se sobreescribe: se respalda en una clave aparte y la
+  // siembra vive solo en memoria hasta la primera edicion del usuario.
+  let conservarGuardado = false;
   if (almacenamiento) {
     try {
       const crudo = almacenamiento.getItem(CLAVE_ALMACEN);
       if (crudo) {
-        const cargado = JSON.parse(crudo);
-        if (cargado && cargado.version === VERSION_ESQUEMA) {
-          // Fusion superficial con la siembra: campos nuevos del esquema
-          // aparecen con su default sin perder lo guardado.
-          estado = { ...sembrarEstado(), ...cargado };
+        let cargado = null;
+        let parseFallo = false;
+        try {
+          cargado = JSON.parse(crudo);
+        } catch {
+          parseFallo = true;
+        }
+        if (!parseFallo && cargado && cargado.version === VERSION_ESQUEMA) {
+          // Fusion PROFUNDA con la siembra: los campos nuevos del
+          // esquema (incluidos los anidados por grupo) aparecen con su
+          // default sin perder lo guardado.
+          const semilla = sembrarEstado();
+          const parametros = { ...semilla.parametros };
+          for (const grupo of Object.keys(semilla.parametros)) {
+            parametros[grupo] = { ...semilla.parametros[grupo], ...(cargado.parametros?.[grupo] ?? {}) };
+          }
+          estado = {
+            ...semilla,
+            ...cargado,
+            parametros,
+            preferencias: { ...semilla.preferencias, ...(cargado.preferencias ?? {}) },
+          };
         } else {
+          conservarGuardado = true;
+          try {
+            almacenamiento.setItem(`${CLAVE_ALMACEN}.respaldo`, crudo);
+          } catch {
+            // sin espacio para el respaldo: al menos no se toca la clave
+          }
           errores.push(
-            `Versión de esquema desconocida (${cargado?.version}); se siembran defaults sin tocar lo guardado previo.`
+            parseFallo
+              ? `Lo guardado en este navegador no se pudo leer (JSON dañado). Quedó respaldado en la clave ${CLAVE_ALMACEN}.respaldo y NO se tocará hasta que edites algo; se usan defaults.`
+              : `Versión de esquema desconocida (${cargado?.version}). Lo guardado quedó respaldado en la clave ${CLAVE_ALMACEN}.respaldo y NO se tocará hasta que edites algo; se usan defaults.`
           );
         }
       }
@@ -136,8 +166,12 @@ export function crearAlmacen({ backend = null, alFallarEscritura = null } = {}) 
     alFallarEscritura(new Error('localStorage no disponible'));
   }
 
-  // Primer arranque: siembra persistida de inmediato.
-  persistir();
+  // Primer arranque limpio: siembra persistida de inmediato. Si lo
+  // guardado no se pudo adoptar, NO se pisa: queda el respaldo y la
+  // clave original intacta hasta la primera edicion.
+  if (!conservarGuardado) {
+    persistir();
+  }
 
   return {
     get disponible() {
@@ -211,7 +245,7 @@ function validarParametros(parametrosImportados, parametrosActuales, rechazos) {
       const valor = grupoImportado[campo];
       const veredicto = validarValor(defCampo, valor);
       if (veredicto.ok) {
-        resultado[grupo][campo] = valor === '' ? null : valor;
+        resultado[grupo][campo] = valor === '' || valor === null ? null : (veredicto.numero ?? valor);
       } else {
         rechazos.push({ ruta: `parametros.${grupo}.${campo}`, mensaje: veredicto.mensaje });
       }
@@ -236,6 +270,8 @@ function validarColeccion(lista, cotas, nombre, rechazos, validadorExtra = null)
       if (!veredicto.ok) {
         rechazos.push({ ruta: `${nombre}[${indice}].${campo}`, mensaje: veredicto.mensaje });
         ok = false;
+      } else if (veredicto.numero !== undefined) {
+        elemento[campo] = veredicto.numero;
       }
     }
     if (ok && validadorExtra) {
@@ -272,14 +308,6 @@ function validarEquipo(equipo) {
   }
   return null;
 }
-
-const COTAS_BOQUILLA = {
-  caudalRefLmin: { min: 0.01, max: 200, unidad: 'L/min', etiqueta: 'Caudal de referencia' },
-  presionRefBar: { min: 0.1, max: 50, unidad: 'bar', etiqueta: 'Presión de referencia' },
-  presionMinBar: { min: 0.1, max: 50, unidad: 'bar', etiqueta: 'Presión mínima' },
-  presionMaxBar: { min: 0.1, max: 50, unidad: 'bar', etiqueta: 'Presión máxima' },
-  exponente: { min: 0.2, max: 0.8, unidad: '', etiqueta: 'Exponente presión-caudal' },
-};
 
 function validarBoquilla(boquilla) {
   if (boquilla.presionMinBar >= boquilla.presionMaxBar) {

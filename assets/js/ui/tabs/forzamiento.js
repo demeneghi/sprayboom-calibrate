@@ -57,8 +57,38 @@ export function render(panel, ctx) {
   const rotametro = ctx.rotametroActivo();
   const p0 = ctx.estado().parametros;
 
+  // Sin gas o sin rotametro activos (colecciones vacias) no hay circuito
+  // de inyeccion que calcular: alerta clara en lugar del TypeError,
+  // misma cortesia que la pestana Gas en ese estado.
+  if (!gas || !rotametro) {
+    const faltantes = [];
+    if (!gas) faltantes.push('un gas');
+    if (!rotametro) faltantes.push('un rotámetro');
+    panel.append(
+      tarjeta(
+        {
+          titulo: 'Forzamiento por percolación',
+          descripcion: 'El cálculo necesita el gas y el rotámetro activos del circuito.',
+        },
+        el(
+          'div',
+          { clase: 'alerta alerta--destructiva', role: 'alert' },
+          el(
+            'p',
+            { clase: 'alerta__descripcion' },
+            `Configura ${faltantes.join(' y ')} en Sistema, Configuración para poder calcular el forzamiento.`
+          )
+        )
+      )
+    );
+    return;
+  }
+
   const unidadVolAplicacion = unidad('volumenAplicacion', sistema);
   const unidadVolumen = unidad('volumen', sistema);
+  const unidadMasa = unidad('masa', sistema);
+  const unidadSuperficie = unidad('superficie', sistema);
+  const decMasa = sistema === 'imperial' ? 2 : 1;
 
   let modoDespeje = borrador.modoDespeje ?? 'scfm';
   let ultimoObjetivo = null; // resultado del sentido objetivo->ajuste listo para bitacora
@@ -361,15 +391,15 @@ export function render(panel, ctx) {
       reemplazar(
         zonaHectareas,
         pintarResultado({
-          etiqueta: 'Hectáreas por tabla (solo lectura)',
-          valor: ha,
-          unidad: 'ha',
+          etiqueta: 'Superficie por tabla (solo lectura)',
+          valor: aSistema('superficie', ha, sistema),
+          unidad: unidadSuperficie,
           decimales: 4,
         }),
         el(
           'p',
           { clase: 'ayuda' },
-          'Derivadas de la geometría configurada (largo de tabla por ancho de barra); se editan en Sistema, Configuración.'
+          'Derivada de la geometría configurada (largo de tabla por ancho de barra), que se edita en Sistema, Configuración.'
         )
       );
     } catch (error) {
@@ -445,9 +475,9 @@ export function render(panel, ctx) {
                 { estilo: rejilla },
                 pintarResultado({
                   etiqueta: 'Masa de etileno por tabla',
-                  valor: v.masaPorTablaG,
-                  unidad: 'g',
-                  decimales: 1,
+                  valor: aSistema('masa', v.masaPorTablaG, sistema),
+                  unidad: unidadMasa,
+                  decimales: decMasa,
                 }),
                 pintarResultado({
                   etiqueta: 'Agua por tabla',
@@ -630,9 +660,9 @@ export function render(panel, ctx) {
                 { estilo: rejilla },
                 pintarResultado({
                   etiqueta: 'Masa inyectada por tabla',
-                  valor: v.masaPorTablaG,
-                  unidad: 'g',
-                  decimales: 1,
+                  valor: aSistema('masa', v.masaPorTablaG, sistema),
+                  unidad: unidadMasa,
+                  decimales: decMasa,
                 }),
                 pintarResultado({
                   etiqueta: 'Concentración en tanque',

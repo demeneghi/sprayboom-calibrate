@@ -293,6 +293,32 @@ export const COTAS_GAS = {
   },
 };
 
+// Cotas de las fichas del catalogo de boquillas. Las comparten el
+// formulario de captura y la importacion JSON: mismo criterio y mismo
+// mensaje en ambos caminos.
+export const COTAS_BOQUILLA = {
+  caudalRefLmin: { min: 0.01, max: 200, unidad: 'L/min', etiqueta: 'Caudal de referencia' },
+  presionRefBar: { min: 0.1, max: 50, unidad: 'bar', etiqueta: 'Presión de referencia' },
+  presionMinBar: { min: 0.1, max: 50, unidad: 'bar', etiqueta: 'Presión mínima de operación' },
+  presionMaxBar: { min: 0.1, max: 50, unidad: 'bar', etiqueta: 'Presión máxima de operación' },
+  exponente: { min: 0.2, max: 0.8, unidad: '', etiqueta: 'Exponente presión-caudal' },
+  anguloGrados: { min: 10, max: 180, unidad: 'grados', etiqueta: 'Ángulo de aspersión' },
+};
+
+// Semilla del formulario "agregar boquilla": los valores de arranque de
+// una ficha nueva viven aqui (todo es parametro; la UI no incrusta
+// numeros de dominio). 3 bar es el estandar ISO de referencia; el rango
+// 1-4 bar y el exponente 0.5 son los tipicos de abanico convencional.
+export const BOQUILLA_NUEVA = {
+  tipoPatron: 'abanico-plano',
+  anguloGrados: 110,
+  presionRefBar: 3,
+  presionMinBar: 1,
+  presionMaxBar: 4,
+  exponente: 0.5,
+  material: 'polimero',
+};
+
 export const COTAS_ROTAMETRO = {
   escalaMin: { min: 0, max: 100, unidad: 'SCFM', etiqueta: 'Escala mínima' },
   escalaMax: { min: 0, max: 100, unidad: 'SCFM', etiqueta: 'Escala máxima' },

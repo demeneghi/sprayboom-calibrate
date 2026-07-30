@@ -107,24 +107,38 @@ self.addEventListener('fetch', (evento) => {
   const url = new URL(peticion.url);
   if (url.origin !== self.location.origin) return;
 
-  // Navegaciones: servir el shell cacheado (la app enruta por hash).
+  // Navegaciones: servir la pagina cacheada que corresponde a la RUTA
+  // pedida. El shell ('./index.html') solo se usa (y solo se
+  // revalida) para la raiz del sitio; otras paginas precacheadas
+  // (componentes.html, 404.html) responden y revalidan bajo SU clave,
+  // nunca bajo la del shell.
   if (peticion.mode === 'navigate') {
     evento.respondWith(
       (async () => {
         const cache = await caches.open(NOMBRE_CACHE);
-        const cacheado = await cache.match('./index.html');
+        const esShell = url.pathname.endsWith('/') || url.pathname.endsWith('/index.html');
+        const clave = esShell ? './index.html' : peticion;
+        const cacheado = await cache.match(clave);
+        const revalidar = fetch(peticion)
+          .then((respuesta) => {
+            if (respuesta.ok) cache.put(clave, respuesta.clone());
+            return respuesta;
+          })
+          .catch(() => null);
         if (cacheado) {
-          evento.waitUntil(
-            fetch(peticion)
-              .then((respuesta) => {
-                if (respuesta.ok) cache.put('./index.html', respuesta.clone());
-                return null;
-              })
-              .catch(() => null)
-          );
+          evento.waitUntil(revalidar);
           return cacheado;
         }
-        return fetch(peticion);
+        const red = await revalidar;
+        if (red) return red;
+        // Sin conexion y ruta desconocida: cae al shell (la app enruta
+        // por hash), que si esta precacheado.
+        const shell = await cache.match('./index.html');
+        if (shell) return shell;
+        return new Response('Sin conexion.', {
+          status: 503,
+          headers: { 'content-type': 'text/plain; charset=utf-8' },
+        });
       })()
     );
     return;

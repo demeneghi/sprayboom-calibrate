@@ -136,14 +136,18 @@ export function estadisticaCaptura({
         '%'
       )
     );
-    if (desgastePct > umbralAtipicasPct) {
+    if (Math.abs(desgastePct) > umbralAtipicasPct) {
       avisos.push(
         aviso(
           'advertencia',
-          'desgaste-excesivo',
-          `La media de la barra entrega ${redondeoLegible(desgastePct)} % más caudal que el ` +
-            'teórico de catálogo: las boquillas estan desgastadas. El desgaste es la causa más ' +
-            'comun de sobreaplicacion.',
+          desgastePct > 0 ? 'desgaste-excesivo' : 'caudal-bajo-teorico',
+          desgastePct > 0
+            ? `La media de la barra entrega ${redondeoLegible(desgastePct)} % más caudal que el ` +
+              'teórico de catálogo: las boquillas están desgastadas. El desgaste es la causa más ' +
+              'común de sobreaplicación.'
+            : `La media de la barra entrega ${redondeoLegible(Math.abs(desgastePct))} % MENOS caudal que el ` +
+              'teórico de catálogo: revisa taponamiento de boquillas o filtros, o una presión real ' +
+              'menor a la capturada.',
           { desgastePct }
         )
       );

@@ -75,7 +75,7 @@ export function pintarVerificacion(verificacion) {
     partes.map((parte) =>
       el(
         'p',
-        { clase: `verificación ${parte.ok ? 'verificacion--ok' : 'verificacion--fallo'}` },
+        { clase: `verificacion ${parte.ok ? 'verificacion--ok' : 'verificacion--fallo'}` },
         parte.texto
       )
     )

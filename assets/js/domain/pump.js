@@ -99,13 +99,20 @@ export function estadoBombaARegimen({
     // regulador sostiene presion y gasto por boquilla. Pero la velocidad
     // de avance si bajo: el volumen por hectarea SUBE sin que nada en el
     // manometro lo delate. Este es el error mas caro.
+    const partes = [];
+    if (presionEstimadaBar !== null && presionEstimadaBar !== undefined) {
+      partes.push(`presión = ${redondeoLegible(presionEstimadaBar)} bar`);
+    }
+    if (caudalEstimadoLmin !== null && caudalEstimadoLmin !== undefined) {
+      partes.push(`caudal = ${redondeoLegible(caudalEstimadoLmin)} L/min`);
+    }
     desglose.push(
       paso(
         'Bomba con presión sostenida',
         'presión y gasto por boquilla no cambian',
-        `presión = ${redondeoLegible(presionEstimadaBar)} bar, caudal = ${redondeoLegible(caudalEstimadoLmin)} L/min`,
+        partes.length > 0 ? partes.join(', ') : 'sin calibración de presión registrada',
         presionEstimadaBar,
-        'bar'
+        presionEstimadaBar === null || presionEstimadaBar === undefined ? '' : 'bar'
       )
     );
   } else {
