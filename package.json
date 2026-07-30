@@ -1,0 +1,12 @@
+{
+  "name": "sprayboom-calibrate",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Calibracion de aplicaciones agricolas en cultivo de pina MD2: velocidad y avance, gasto de agua y gas etileno por rotametro. Sitio estatico para GitHub Pages, uso en campo desde telefono.",
+  "scripts": {
+    "test": "node --test tests/",
+    "serve": "python3 -m http.server 8080"
+  },
+  "license": "UNLICENSED"
+}
