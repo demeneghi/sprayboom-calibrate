@@ -25,8 +25,8 @@ export function paso(descripcion, formula, sustitucion, resultado, unidad) {
 // ---------------------------------------------------------------------
 
 export function factorRegimen({ rpm, regimenNominal }) {
-  requierePositivo('el regimen del motor', rpm);
-  requierePositivo('el regimen nominal del tractor', regimenNominal);
+  requierePositivo('el régimen del motor', rpm);
+  requierePositivo('el régimen nominal del tractor', regimenNominal);
   return rpm / regimenNominal;
 }
 
@@ -38,15 +38,15 @@ export function velocidadEfectiva({ kmhNominal, rpm, regimenNominal }) {
 export function rpmParaVelocidad({ velocidadObjetivoKmh, kmhNominal, regimenNominal }) {
   requierePositivo('la velocidad objetivo', velocidadObjetivoKmh);
   requierePositivo('la velocidad nominal de la marcha', kmhNominal);
-  requierePositivo('el regimen nominal del tractor', regimenNominal);
+  requierePositivo('el régimen nominal del tractor', regimenNominal);
   return (regimenNominal * velocidadObjetivoKmh) / kmhNominal;
 }
 
 // Calibracion de una marcha desde una medicion de campo.
 export function calibrarMarcha({ velocidadMedidaKmh, rpmMedidas, regimenNominal }) {
   requierePositivo('la velocidad medida', velocidadMedidaKmh);
-  requierePositivo('el regimen medido', rpmMedidas);
-  requierePositivo('el regimen nominal del tractor', regimenNominal);
+  requierePositivo('el régimen medido', rpmMedidas);
+  requierePositivo('el régimen nominal del tractor', regimenNominal);
   return velocidadMedidaKmh * (regimenNominal / rpmMedidas);
 }
 
@@ -132,7 +132,7 @@ export function geometria({
 }) {
   requierePositivo('el largo de tabla', largoTabla);
   requierePositivo('el ancho de barra', anchoBarra);
-  requierePositivo('el numero de boquillas', numBoquillas);
+  requierePositivo('el número de boquillas', numBoquillas);
   requierePositivo('la distancia de referencia', distanciaReferencia);
 
   const areaM2 = largoTabla * anchoBarra;
@@ -162,9 +162,9 @@ export function geometria({
           'espaciamiento-discrepante',
           `El espaciamiento capturado (${redondeoLegible(espaciamientoCapturado)} m) difiere ` +
             `${redondeoLegible(discrepanciaEspaciamientoPct)} % del derivado del ancho entre el ` +
-            `numero de boquillas (${redondeoLegible(espaciamientoDerivado)} m). Es sintoma de que ` +
+            `número de boquillas (${redondeoLegible(espaciamientoDerivado)} m). Es síntoma de que ` +
             `el ancho efectivo no es el que se cree; revisa la barra en vez de confiar en uno de ` +
-            `los dos numeros.`,
+            `los dos números.`,
           { espaciamientoCapturado, espaciamientoDerivado, discrepanciaEspaciamientoPct }
         )
       );
@@ -181,7 +181,7 @@ export function geometria({
         'espaciamiento-sospechoso-cm',
         `El espaciamiento (${redondeoLegible(espaciamientoEfectivo)} m) es menor que ` +
           `${redondeoLegible(espaciamientoMinimoPlausible)} m. Parece capturado en centimetros: ` +
-          `con la constante 600 el espaciamiento va en METROS. Un error asi cambia el resultado ` +
+          `con la constante 600 el espaciamiento va en METROS. Un error así cambia el resultado ` +
           `dos ordenes de magnitud.`,
         { espaciamientoEfectivo, espaciamientoMinimoPlausible }
       )
@@ -200,15 +200,15 @@ export function geometria({
     },
     desglose: [
       paso(
-        'Area por tabla',
+        'Área por tabla',
         'largo_tabla * ancho_barra',
         `${redondeoLegible(largoTabla)} * ${redondeoLegible(anchoBarra)}`,
         areaM2,
         'm2'
       ),
       paso(
-        'Hectareas por tabla',
-        'area / 10000',
+        'Hectáreas por tabla',
+        'área / 10000',
         `${redondeoLegible(areaM2)} / ${M2_POR_HA}`,
         hectareasPorTabla,
         'ha'
@@ -281,7 +281,7 @@ export function marchasParaVelocidad({ tractor, velocidadObjetivoKmh }) {
 
 // Aviso de regimen fuera del rango de trabajo del tractor.
 export function validarRegimen({ rpm, tractor }) {
-  requierePositivo('el regimen del motor', rpm);
+  requierePositivo('el régimen del motor', rpm);
   const avisos = [];
   if (rpm < tractor.regimenMinimo || rpm > tractor.regimenMaximo) {
     avisos.push(
@@ -308,7 +308,7 @@ export function validarRegimen({ rpm, tractor }) {
 const TOLERANCIA_RPM_MEDICION = 0.5; // media rpm: coincidencia exacta practica
 
 export function factorDesviacion({ mediciones, rpm }) {
-  requierePositivo('el regimen del motor', rpm);
+  requierePositivo('el régimen del motor', rpm);
   const avisos = [];
   const lista = (mediciones ?? [])
     .filter((m) => Number.isFinite(m.rpm) && Number.isFinite(m.factor))
@@ -319,8 +319,8 @@ export function factorDesviacion({ mediciones, rpm }) {
       aviso(
         'advertencia',
         'sin-mediciones-desviacion',
-        'No hay mediciones de desviacion para este tractor: la velocidad mostrada es ' +
-          'teorica sin verificar (factor 1.0). El patinaje no se predice con formula; se mide.',
+        'No hay mediciones de desviación para este tractor: la velocidad mostrada es ' +
+          'teórica sin verificar (factor 1.0). El patinaje no se predice con fórmula; se mide.',
         null
       )
     );
@@ -353,9 +353,9 @@ export function factorDesviacion({ mediciones, rpm }) {
     aviso(
       'advertencia',
       'sin-medicion-en-rango',
-      `No hay medicion de desviacion que cubra ${redondeoLegible(rpm)} rpm ` +
+      `No hay medición de desviación que cubra ${redondeoLegible(rpm)} rpm ` +
         `(rango medido: ${lista[0].rpm} a ${lista[lista.length - 1].rpm} rpm). ` +
-        'No se extrapola: haz una medicion a ese regimen para poder corregir.',
+        'No se extrapola: haz una medición a ese régimen para poder corregir.',
       { rpm, rpmMinimoMedido: lista[0].rpm, rpmMaximoMedido: lista[lista.length - 1].rpm }
     )
   );
@@ -364,7 +364,7 @@ export function factorDesviacion({ mediciones, rpm }) {
 
 // Factor resultante de una medicion individual de campo.
 export function factorDeMedicion({ velocidadTeoricaKmh, velocidadMedidaKmh }) {
-  requierePositivo('la velocidad teorica', velocidadTeoricaKmh);
+  requierePositivo('la velocidad teórica', velocidadTeoricaKmh);
   requierePositivo('la velocidad medida', velocidadMedidaKmh);
   return velocidadMedidaKmh / velocidadTeoricaKmh;
 }
@@ -372,7 +372,7 @@ export function factorDeMedicion({ velocidadTeoricaKmh, velocidadMedidaKmh }) {
 // Velocidad teorica y corregida, siempre juntas, con porcentaje de
 // desviacion y alerta sobre umbral configurable.
 export function velocidadCorregida({ velocidadTeoricaKmh, factor, umbralDesviacionPct }) {
-  requierePositivo('la velocidad teorica', velocidadTeoricaKmh);
+  requierePositivo('la velocidad teórica', velocidadTeoricaKmh);
   const avisos = [];
   if (factor === null || factor === undefined) {
     return {
@@ -384,7 +384,7 @@ export function velocidadCorregida({ velocidadTeoricaKmh, factor, umbralDesviaci
       avisos,
     };
   }
-  requierePositivo('el factor de desviacion', factor);
+  requierePositivo('el factor de desviación', factor);
   const corregida = velocidadTeoricaKmh * factor;
   const desviacionPct = (1 - factor) * PORCIENTO;
   if (
@@ -395,9 +395,9 @@ export function velocidadCorregida({ velocidadTeoricaKmh, factor, umbralDesviaci
       aviso(
         'advertencia',
         'desviacion-excesiva',
-        `La desviacion entre velocidad teorica y medida es ${redondeoLegible(Math.abs(desviacionPct))} %, ` +
+        `La desviación entre velocidad teórica y medida es ${redondeoLegible(Math.abs(desviacionPct))} %, ` +
           `mayor que el umbral de ${redondeoLegible(umbralDesviacionPct)} %. El patinaje excesivo ` +
-          'tambien es un sintoma mecanico, no solo un numero a corregir.',
+          'también es un síntoma mecanico, no solo un número a corregir.',
         { desviacionPct, umbralDesviacionPct }
       )
     );

@@ -49,8 +49,8 @@ import {
 
 export const id = 'configuracion';
 
-const ETIQUETAS_BOMBA = { positiva: 'Desplazamiento positivo', centrifuga: 'Centrifuga', independiente: 'Motor independiente' };
-const ETIQUETAS_ACCIONAMIENTO = { tdf: 'Toma de fuerza', hidraulico: 'Hidraulico', 'motor-propio': 'Motor propio' };
+const ETIQUETAS_BOMBA = { positiva: 'Desplazamiento positivo', centrifuga: 'Centrífuga', independiente: 'Motor independiente' };
+const ETIQUETAS_ACCIONAMIENTO = { tdf: 'Toma de fuerza', hidraulico: 'Hidráulico', 'motor-propio': 'Motor propio' };
 
 function seccion(props, ...hijos) {
   return tarjeta(props, ...hijos);
@@ -72,10 +72,10 @@ export function render(panel, ctx) {
     opciones: [
       { valor: 'claro', texto: 'Claro' },
       { valor: 'oscuro', texto: 'Oscuro' },
-      { valor: 'auto', texto: 'Automatico (segun el sistema)' },
+      { valor: 'auto', texto: 'Automático (según el sistema)' },
     ],
     valorInicial: estado0.preferencias.tema,
-    ayuda: 'A pleno sol en campo el tema claro puede ser mas legible; el oscuro es el default.',
+    ayuda: 'A pleno sol en campo el tema claro puede ser más legible; el oscuro es el default.',
     alCambiar: (valor) =>
       almacen.actualizar((estado) => {
         estado.preferencias.tema = valor;
@@ -84,11 +84,11 @@ export function render(panel, ctx) {
   const selectUnidades = crearCampoSelect({
     etiqueta: 'Sistema de unidades',
     opciones: [
-      { valor: 'metrico', texto: 'Metrico (L/ha, km/h, bar)' },
+      { valor: 'metrico', texto: 'Métrico (L/ha, km/h, bar)' },
       { valor: 'imperial', texto: 'Imperial (GPA, mph, psi)' },
     ],
     valorInicial: estado0.preferencias.unidades,
-    ayuda: 'El calculo interno siempre es metrico; la conversion ocurre solo al mostrar y capturar.',
+    ayuda: 'El cálculo interno siempre es métrico; la conversión ocurre solo al mostrar y capturar.',
     alCambiar: (valor) =>
       almacen.actualizar((estado) => {
         estado.preferencias.unidades = valor;
@@ -123,8 +123,8 @@ export function render(panel, ctx) {
         );
       reemplazar(
         zonaDerivados,
-        fila('Area por tabla', g.valores.areaM2, 'm2', 2),
-        fila('Hectareas por tabla', g.valores.hectareasPorTabla, 'ha', 6),
+        fila('Área por tabla', g.valores.areaM2, 'm2', 2),
+        fila('Hectáreas por tabla', g.valores.hectareasPorTabla, 'ha', 6),
         fila('Tramos por tabla', g.valores.tramosPorTabla, '', 2),
         fila('Espaciamiento derivado', g.valores.espaciamientoDerivado, 'm', 4)
       );
@@ -176,7 +176,7 @@ export function render(panel, ctx) {
           el('li', {}, `${def.etiqueta}: ${actuales[campo] ?? 'vacio'} pasa a ${def.valor ?? 'vacio'}`)
         );
       if (cambios.length === 0) {
-        mostrarToast('Este grupo ya esta en sus defaults.');
+        mostrarToast('Este grupo ya está en sus defaults.');
         return;
       }
       const ok = await confirmar({
@@ -227,7 +227,7 @@ export function render(panel, ctx) {
       nodos.push(
         el('div', { clase: 'alerta alerta--advertencia', role: 'alert' },
           el('p', { clase: 'alerta__descripcion' },
-            `El regimen nominal de este tractor esta PENDIENTE de confirmar contra el manual. ${tractor.regimenNominalOrigen ?? ''}`))
+            `El régimen nominal de este tractor está PENDIENTE de confirmar contra el manual. ${tractor.regimenNominalOrigen ?? ''}`))
       );
     }
 
@@ -319,7 +319,7 @@ export function render(panel, ctx) {
               ? el('span', { clase: 'badge' }, 'calibrado')
               : fila.origen === 'capturado'
                 ? el('span', { clase: 'badge badge--contorno' }, 'capturado')
-                : el('span', { clase: 'badge badge--secundario' }, 'estimacion');
+                : el('span', { clase: 'badge badge--secundario' }, 'estimación');
         filasTabla.push(
           el('tr', {},
             el('td', {}, etiqueta),
@@ -329,9 +329,9 @@ export function render(panel, ctx) {
       }
     }
     nodos.push(
-      el('h3', { clase: 'etiqueta' }, 'Velocidades por marcha (km/h al regimen nominal)'),
+      el('h3', { clase: 'etiqueta' }, 'Velocidades por marcha (km/h al régimen nominal)'),
       el('p', { clase: 'ayuda' },
-        'Todos los defaults son estimaciones no verificadas contra el manual. La bandera distingue estimacion, capturado y calibrado; el boton de calibrar esta en la pestana Avance.'),
+        'Todos los defaults son estimaciones no verificadas contra el manual. La bandera distingue estimación, capturado y calibrado; el botón de calibrar está en la pestaña Avance.'),
       el('div', { clase: 'scroll-x' },
         el('table', { clase: 'tabla' },
           el('thead', {}, el('tr', {}, el('th', {}, 'Marcha'), el('th', {}, 'km/h nominal'), el('th', {}, 'Origen'))),
@@ -343,7 +343,7 @@ export function render(panel, ctx) {
     botonAlta.addEventListener('click', async () => {
       const ok = await confirmar({
         titulo: 'Agregar tractor',
-        descripcion: 'Se crea con la plantilla del JD 6603 (transmision 3x3); ajusta sus datos despues.',
+        descripcion: 'Se crea con la plantilla del JD 6603 (transmision 3x3); ajusta sus datos después.',
         confirmarTexto: 'Agregar',
       });
       if (!ok) return;
@@ -367,7 +367,7 @@ export function render(panel, ctx) {
       }
       const ok = await confirmar({
         titulo: `Eliminar ${tractor.nombre}`,
-        descripcion: 'Sus velocidades y seleccion se pierden; la bitacora historica no se toca.',
+        descripcion: 'Sus velocidades y selección se pierden; la bitácora histórica no se toca.',
         confirmarTexto: 'Eliminar',
         destructivo: true,
       });
@@ -418,7 +418,7 @@ export function render(panel, ctx) {
         etiqueta: 'Tipo de bomba',
         opciones: TIPOS_BOMBA.map((t) => ({ valor: t, texto: ETIQUETAS_BOMBA[t] })),
         valorInicial: equipo.tipoBomba,
-        ayuda: 'Positiva con regulador sostiene presion al bajar regimen (el volumen por hectarea SUBE); centrifuga sin regulacion se autocompensa. Hasta 40 puntos de dosis de diferencia.',
+        ayuda: 'Positiva con regulador sostiene presión al bajar régimen (el volumen por hectárea SUBE); centrífuga sin regulacion se autocompensa. Hasta 40 puntos de dosis de diferencia.',
         alCambiar: (valor) =>
           almacen.actualizar((e) => {
             e.equipos.find((x) => x.id === equipo.id).tipoBomba = valor;
@@ -434,7 +434,7 @@ export function render(panel, ctx) {
           }, 'contexto'),
       }).elemento,
       crearInterruptor({
-        etiqueta: 'Con regulador de presion',
+        etiqueta: 'Con regulador de presión',
         valorInicial: equipo.conRegulador,
         alCambiar: (valor) =>
           almacen.actualizar((e) => {
@@ -480,7 +480,7 @@ export function render(panel, ctx) {
         etiqueta: 'Boquilla instalada',
         opciones: opcionesBoquilla,
         valorInicial: equipo.boquillaId ?? '',
-        ayuda: 'La pestana de gasto de agua la precarga como boquilla del equipo.',
+        ayuda: 'La pestaña de gasto de agua la precarga como boquilla del equipo.',
         alCambiar: (valor) =>
           almacen.actualizar((e) => {
             e.equipos.find((x) => x.id === equipo.id).boquillaId = valor || null;
@@ -551,7 +551,7 @@ export function render(panel, ctx) {
           zonaDerivado,
           el('div', { clase: 'resultado' },
             el('span', { clase: 'resultado__etiqueta' },
-              `Masa por pie cubico estandar (${efectivo.valores.anulado ? 'ANULADA manualmente' : 'derivada'})`),
+              `Masa por pie cúbico estándar (${efectivo.valores.anulado ? 'ANULADA manualmente' : 'derivada'})`),
             el('span', { clase: 'resultado__valor', estilo: { fontSize: '1.2rem' } },
               `${formatear(efectivo.valores.gPorScf, 4)} g/SCF`)),
           ...pintarAvisos(efectivo.avisos)
@@ -568,8 +568,8 @@ export function render(panel, ctx) {
         valorInicial: gas[campo],
         ayuda:
           campo === 'gPorScfManual'
-            ? 'Cuando esta llena gana sobre el valor derivado; al vaciarla vuelve a derivarse del peso molecular.'
-            : `Cotas: ${cota.min} a ${cota.max} ${cota.unidad}. La presion estandar es la de la escala del tubo; la atmosferica local va en el grupo Sitio.`,
+            ? 'Cuando está llena gana sobre el valor derivado; al vaciarla vuelve a derivarse del peso molecular.'
+            : `Cotas: ${cota.min} a ${cota.max} ${cota.unidad}. La presión estándar es la de la escala del tubo; la atmosférica local va en el grupo Sitio.`,
         alCambiar: (valor, texto) => {
           if (texto.trim() === '' && cota.opcional) {
             entrada.fijarError(null);
@@ -605,7 +605,7 @@ export function render(panel, ctx) {
     const rotametro = ctx.rotametroActivo();
     const nodos = [];
     const selector = crearCampoSelect({
-      etiqueta: 'Rotametro a editar',
+      etiqueta: 'Rotámetro a editar',
       opciones: estado.rotametros.map((r) => ({ valor: r.id, texto: r.modelo })),
       valorInicial: rotametro.id,
       alCambiar: (valor) =>
@@ -619,7 +619,7 @@ export function render(panel, ctx) {
         etiqueta: cota.etiqueta,
         unidad: cota.unidad,
         valorInicial: rotametro[campo],
-        ayuda: 'La escala solo alimenta advertencias y el dibujo del tubo; nunca recorta un calculo.',
+        ayuda: 'La escala solo alimenta advertencias y el dibujo del tubo; nunca recorta un cálculo.',
         alCambiar: (valor) => {
           const veredicto = validarValor(cota, valor);
           if (!veredicto.ok) {
@@ -646,7 +646,7 @@ export function render(panel, ctx) {
     const estado = ctx.estado();
     const filas = estado.factoresDesviacion.map((medicion) => {
       const tractor = estado.tractores.find((t) => t.id === medicion.tractorId);
-      const botonBorrar = el('button', { clase: 'boton boton--fantasma boton--sm', 'aria-label': 'Eliminar medicion' }, 'Quitar');
+      const botonBorrar = el('button', { clase: 'boton boton--fantasma boton--sm', 'aria-label': 'Eliminar medición' }, 'Quitar');
       botonBorrar.addEventListener('click', () => {
         almacen.actualizar((e) => {
           e.factoresDesviacion = e.factoresDesviacion.filter((m) => m.id !== medicion.id);
@@ -661,7 +661,7 @@ export function render(panel, ctx) {
         el('td', {}, botonBorrar));
     });
 
-    const botonAlta = el('button', { clase: 'boton boton--contorno boton--sm' }, 'Agregar medicion de campo');
+    const botonAlta = el('button', { clase: 'boton boton--contorno boton--sm' }, 'Agregar medición de campo');
     botonAlta.addEventListener('click', async () => {
       const estadoActual = ctx.estado();
       const selectorTractor = crearCampoSelect({
@@ -677,10 +677,10 @@ export function render(panel, ctx) {
         selectorTractor.elemento, campoRpm.elemento, campoTeorica.elemento, campoMedida.elemento,
         el('div', { clase: 'campo' }, el('label', { clase: 'etiqueta' }, 'Condiciones'), campoCondiciones));
       const ok = await confirmar({
-        titulo: 'Medicion de desviacion',
-        descripcion: 'factor = velocidad medida / velocidad teorica. Se aplica exacto en su regimen y se interpola entre mediciones; nunca se extrapola.',
+        titulo: 'Medición de desviación',
+        descripcion: 'factor = velocidad medida / velocidad teórica. Se aplica exacto en su régimen y se interpola entre mediciones; nunca se extrapola.',
         cuerpo,
-        confirmarTexto: 'Guardar medicion',
+        confirmarTexto: 'Guardar medición',
       });
       if (!ok) return;
       const rpm = campoRpm.obtener();
@@ -712,7 +712,7 @@ export function render(panel, ctx) {
           });
         }, 'datos');
         pintarFactores();
-        mostrarToast(`Medicion guardada: factor ${formatear(factor, 4)}.`);
+        mostrarToast(`Medición guardada: factor ${formatear(factor, 4)}.`);
       } catch (error) {
         mostrarToast(String(error.message ?? error), { tipo: 'destructivo' });
       }
@@ -721,7 +721,7 @@ export function render(panel, ctx) {
     reemplazar(
       zonaFactores,
       el('p', { clase: 'ayuda' },
-        'Patinaje y tacometro no se predicen con formula: se corrigen con estas mediciones por tractor y regimen. Sin mediciones, la velocidad mostrada es teorica y asi se marca.'),
+        'Patinaje y tacómetro no se predicen con fórmula: se corrigen con estas mediciones por tractor y régimen. Sin mediciones, la velocidad mostrada es teórica y así se marca.'),
       filas.length === 0
         ? el('p', { clase: 'texto-suave' }, 'Sin mediciones capturadas.')
         : el('div', { clase: 'scroll-x' },
@@ -771,21 +771,21 @@ export function render(panel, ctx) {
       valorInicial: b.tipoPatron,
     });
     const campoTamano = crearCampoSelect({
-      etiqueta: 'Tamano ISO (deriva el color)',
-      opciones: [{ valor: '', texto: 'Sin tamano ISO' }].concat(
+      etiqueta: 'Tamaño ISO (deriva el color)',
+      opciones: [{ valor: '', texto: 'Sin tamaño ISO' }].concat(
         TABLA_ISO_10625.map((f) => ({ valor: f.tamano, texto: `${f.tamano} (${f.caudalLmin} L/min a 3 bar)` }))
       ),
       valorInicial: b.tamanoIso ?? '',
     });
-    const campoAngulo = crearCampoNumerico({ etiqueta: 'Angulo de aspersion', unidad: 'grados', valorInicial: b.anguloGrados });
+    const campoAngulo = crearCampoNumerico({ etiqueta: 'Angulo de aspersión', unidad: 'grados', valorInicial: b.anguloGrados });
     const campoCaudal = crearCampoNumerico({ etiqueta: 'Caudal de referencia', unidad: 'L/min', valorInicial: b.caudalRefLmin });
-    const campoPresionRef = crearCampoNumerico({ etiqueta: 'Presion de referencia', unidad: 'bar', valorInicial: b.presionRefBar, ayuda: '3 bar es el estandar ISO.' });
-    const campoPresionMin = crearCampoNumerico({ etiqueta: 'Presion minima de operacion', unidad: 'bar', valorInicial: b.presionMinBar });
-    const campoPresionMax = crearCampoNumerico({ etiqueta: 'Presion maxima de operacion', unidad: 'bar', valorInicial: b.presionMaxBar });
+    const campoPresionRef = crearCampoNumerico({ etiqueta: 'Presión de referencia', unidad: 'bar', valorInicial: b.presionRefBar, ayuda: '3 bar es el estándar ISO.' });
+    const campoPresionMin = crearCampoNumerico({ etiqueta: 'Presión mínima de operación', unidad: 'bar', valorInicial: b.presionMinBar });
+    const campoPresionMax = crearCampoNumerico({ etiqueta: 'Presión máxima de operación', unidad: 'bar', valorInicial: b.presionMaxBar });
     const campoExponente = crearCampoNumerico({
-      etiqueta: 'Exponente presion-caudal',
+      etiqueta: 'Exponente presión-caudal',
       valorInicial: b.exponente,
-      ayuda: '0.5 para boquillas hidraulicas convencionales; induccion de aire y patron regulable pueden desviarse.',
+      ayuda: '0.5 para boquillas hidráulicas convencionales; inducción de aire y patron regulable pueden desviarse.',
     });
     const campoMaterial = crearCampoSelect({
       etiqueta: 'Material',
@@ -793,7 +793,7 @@ export function render(panel, ctx) {
       valorInicial: MATERIALES.includes(b.material) ? b.material : 'polimero',
     });
     const campoEdicion = crearCampoSelect({
-      etiqueta: 'Edicion del estandar de gota',
+      etiqueta: 'Edición del estándar de gota',
       opciones: [{ valor: '', texto: 'Sin clasificar' }].concat(
         EDICIONES_S572.map((e) => ({ valor: e, texto: e }))
       ),
@@ -809,8 +809,8 @@ export function render(panel, ctx) {
       reemplazar(
         listaClases,
         clases.map((rango, i) => {
-          const min = el('input', { clase: 'entrada', inputmode: 'decimal', value: rango.presionMinBar, estilo: { width: '4.2rem', height: '2.2rem' }, 'aria-label': 'Presion minima del rango' });
-          const max = el('input', { clase: 'entrada', inputmode: 'decimal', value: rango.presionMaxBar, estilo: { width: '4.2rem', height: '2.2rem' }, 'aria-label': 'Presion maxima del rango' });
+          const min = el('input', { clase: 'entrada', inputmode: 'decimal', value: rango.presionMinBar, estilo: { width: '4.2rem', height: '2.2rem' }, 'aria-label': 'Presión mínima del rango' });
+          const max = el('input', { clase: 'entrada', inputmode: 'decimal', value: rango.presionMaxBar, estilo: { width: '4.2rem', height: '2.2rem' }, 'aria-label': 'Presión máxima del rango' });
           const clase = el('select', { 'aria-label': 'Clase de gota' }, ORDEN_CLASES.map((c) => el('option', { value: c, selected: c === rango.clase || null }, c)));
           min.addEventListener('change', () => { clases[i].presionMinBar = Number(min.value.replace(',', '.')); });
           max.addEventListener('change', () => { clases[i].presionMaxBar = Number(max.value.replace(',', '.')); });
@@ -836,7 +836,7 @@ export function render(panel, ctx) {
       campoPatron.elemento, campoTamano.elemento, campoAngulo.elemento, campoCaudal.elemento,
       campoPresionRef.elemento, campoPresionMin.elemento, campoPresionMax.elemento,
       campoExponente.elemento, campoMaterial.elemento, campoEdicion.elemento,
-      el('h3', { clase: 'etiqueta' }, 'Clase de gota por rango de presion'), listaClases, agregarClase,
+      el('h3', { clase: 'etiqueta' }, 'Clase de gota por rango de presión'), listaClases, agregarClase,
       el('div', { clase: 'campo' }, el('label', { clase: 'etiqueta' }, 'Notas'), campoNotas));
 
     return {
@@ -863,15 +863,15 @@ export function render(panel, ctx) {
         if (!nueva.modelo) return { error: 'Falta el modelo de la boquilla.' };
         for (const [valor, etiqueta] of [
           [nueva.caudalRefLmin, 'el caudal de referencia'],
-          [nueva.presionRefBar, 'la presion de referencia'],
-          [nueva.presionMinBar, 'la presion minima'],
-          [nueva.presionMaxBar, 'la presion maxima'],
+          [nueva.presionRefBar, 'la presión de referencia'],
+          [nueva.presionMinBar, 'la presión mínima'],
+          [nueva.presionMaxBar, 'la presión máxima'],
           [nueva.exponente, 'el exponente'],
         ]) {
           if (valor === null || !(valor > 0)) return { error: `Falta o es invalido ${etiqueta}.` };
         }
         if (nueva.presionMinBar >= nueva.presionMaxBar) {
-          return { error: 'La presion minima debe ser menor que la maxima.' };
+          return { error: 'La presión mínima debe ser menor que la máxima.' };
         }
         return { boquilla: nueva };
       },
@@ -881,7 +881,7 @@ export function render(panel, ctx) {
   async function abrirFormularioBoquilla(boquilla = null) {
     const formulario = formularioBoquilla(boquilla);
     const ok = await confirmar({
-      titulo: boquilla ? `Editar ${boquilla.modelo}` : 'Agregar boquilla al catalogo',
+      titulo: boquilla ? `Editar ${boquilla.modelo}` : 'Agregar boquilla al catálogo',
       descripcion: 'No inventes datos: captura la ficha del fabricante y cita la fuente en las notas.',
       cuerpo: formulario.cuerpo,
       confirmarTexto: 'Guardar',
@@ -913,7 +913,7 @@ export function render(panel, ctx) {
       if (indice >= 0) e.catalogo[indice] = nueva;
       else e.catalogo.push(nueva);
     }, 'contexto');
-    mostrarToast('Boquilla guardada en el catalogo.');
+    mostrarToast('Boquilla guardada en el catálogo.');
   }
 
   function pintarCatalogo() {
@@ -925,7 +925,7 @@ export function render(panel, ctx) {
       const botonBorrar = el('button', { clase: 'boton boton--fantasma boton--sm' }, 'Quitar');
       botonBorrar.addEventListener('click', async () => {
         const ok = await confirmar({
-          titulo: `Quitar ${b.modelo} del catalogo`,
+          titulo: `Quitar ${b.modelo} del catálogo`,
           confirmarTexto: 'Quitar',
           destructivo: true,
         });
@@ -950,7 +950,7 @@ export function render(panel, ctx) {
     reemplazar(
       zonaCatalogo,
       el('p', { clase: 'ayuda' },
-        `${estado.catalogo.length} boquillas. El caudal de catalogo es el de boquilla NUEVA: el desgaste solo se detecta con prueba de captura. Al capturar, si el caudal se desvia del tamano ISO declarado mas alla de la tolerancia, la aplicacion lo advierte sin bloquear.`),
+        `${estado.catalogo.length} boquillas. El caudal de catálogo es el de boquilla NUEVA: el desgaste solo se detecta con prueba de captura. Al capturar, si el caudal se desvia del tamaño ISO declarado más allá de la tolerancia, la aplicación lo advierte sin bloquear.`),
       el('div', { clase: 'scroll-x' },
         el('table', { clase: 'tabla' },
           el('thead', {}, el('tr', {},
@@ -971,13 +971,13 @@ export function render(panel, ctx) {
     if (!resultado.ok) {
       reemplazar(zonaRechazos,
         el('div', { clase: 'alerta alerta--destructiva', role: 'alert' },
-          el('p', { clase: 'alerta__titulo' }, 'Importacion rechazada'),
+          el('p', { clase: 'alerta__titulo' }, 'Importación rechazada'),
           ...resultado.errores.map((e) => el('p', { clase: 'alerta__descripcion' }, e))));
       return;
     }
     almacen.reemplazarEstado(resultado.estado, 'contexto');
     const nodos = [el('div', { clase: 'alerta', role: 'status' },
-      el('p', { clase: 'alerta__descripcion' }, 'Importacion aplicada.'))];
+      el('p', { clase: 'alerta__descripcion' }, 'Importación aplicada.'))];
     if (resultado.rechazos.length > 0) {
       nodos.push(
         el('div', { clase: 'alerta alerta--advertencia', role: 'alert' },
@@ -1002,26 +1002,26 @@ export function render(panel, ctx) {
     entradaImportarCatalogo.value = '';
   });
 
-  const botonExportar = el('button', { clase: 'boton' }, 'Exportar configuracion (JSON)');
+  const botonExportar = el('button', { clase: 'boton' }, 'Exportar configuración (JSON)');
   botonExportar.addEventListener('click', async () => {
     const resultado = await descargarOCompartir('sprayboom-configuracion.json', exportarJSON(ctx.estado()), 'application/json');
-    if (resultado !== 'cancelado') mostrarToast('Configuracion exportada.');
+    if (resultado !== 'cancelado') mostrarToast('Configuración exportada.');
   });
-  const botonExportarCatalogo = el('button', { clase: 'boton boton--secundario' }, 'Exportar catalogo (JSON)');
+  const botonExportarCatalogo = el('button', { clase: 'boton boton--secundario' }, 'Exportar catálogo (JSON)');
   botonExportarCatalogo.addEventListener('click', async () => {
     const resultado = await descargarOCompartir('sprayboom-catalogo.json', exportarCatalogoJSON(ctx.estado()), 'application/json');
-    if (resultado !== 'cancelado') mostrarToast('Catalogo exportado.');
+    if (resultado !== 'cancelado') mostrarToast('Catálogo exportado.');
   });
-  const botonImportar = el('button', { clase: 'boton boton--contorno' }, 'Importar configuracion');
+  const botonImportar = el('button', { clase: 'boton boton--contorno' }, 'Importar configuración');
   botonImportar.addEventListener('click', () => entradaImportar.click());
-  const botonImportarCatalogo = el('button', { clase: 'boton boton--contorno' }, 'Importar catalogo');
+  const botonImportarCatalogo = el('button', { clase: 'boton boton--contorno' }, 'Importar catálogo');
   botonImportarCatalogo.addEventListener('click', () => entradaImportarCatalogo.click());
 
   const botonRestaurarTodo = el('button', { clase: 'boton boton--destructivo' }, 'Restaurar TODO a defaults');
   botonRestaurarTodo.addEventListener('click', async () => {
     const ok = await confirmar({
-      titulo: 'Restaurar toda la aplicacion',
-      descripcion: 'Parametros, tractores, equipos, gases, rotametros y catalogo vuelven a la siembra. La bitacora y las pruebas de captura NO se tocan. Exporta antes si tienes dudas.',
+      titulo: 'Restaurar toda la aplicación',
+      descripcion: 'Parámetros, tractores, equipos, gases, rotámetros y catálogo vuelven a la siembra. La bitácora y las pruebas de captura NO se tocan. Exporta antes si tienes dudas.',
       confirmarTexto: 'Restaurar todo',
       destructivo: true,
     });
@@ -1032,7 +1032,7 @@ export function render(panel, ctx) {
     semilla.pruebasCaptura = actual.pruebasCaptura;
     semilla.preferencias = actual.preferencias;
     almacen.reemplazarEstado(semilla, 'contexto');
-    mostrarToast('Aplicacion restaurada a la siembra (bitacora conservada).');
+    mostrarToast('Aplicacion restaurada a la siembra (bitácora conservada).');
   });
 
   // ----------------------------------------------------------------
@@ -1043,7 +1043,7 @@ export function render(panel, ctx) {
       {
         titulo: 'Respaldo de datos',
         descripcion:
-          'Los datos viven en este navegador y en este dispositivo. Si borras los datos del sitio o cambias de telefono, se pierden. Exporta con regularidad: es el unico respaldo.',
+          'Los datos viven en este navegador y en este dispositivo. Si borras los datos del sitio o cambias de telefono, se pierden. Exporta con regularidad: es el único respaldo.',
       },
       el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.5rem' } },
         botonExportar, botonExportarCatalogo, botonImportar, botonImportarCatalogo),
@@ -1054,14 +1054,14 @@ export function render(panel, ctx) {
     seccion({ titulo: 'Preferencias' }, selectTema.elemento, selectUnidades.elemento),
     ...Object.entries(PARAMETROS).map(([nombre, def]) => tarjetaGrupo(nombre, def)),
     seccion(
-      { titulo: 'Tractores', descripcion: 'La cuadricula de marchas y la tabla de velocidades se generan desde el numero de rangos y marchas: otra transmision funciona sin cambios de codigo.' },
+      { titulo: 'Tractores', descripcion: 'La cuadricula de marchas y la tabla de velocidades se generan desde el número de rangos y marchas: otra transmision funciona sin cambios de código.' },
       zonaTractor
     ),
-    seccion({ titulo: 'Equipos de aplicacion' }, zonaEquipo),
+    seccion({ titulo: 'Equipos de aplicación' }, zonaEquipo),
     seccion({ titulo: 'Gases' }, zonaGas),
     seccion({ titulo: 'Rotametros' }, zonaRotametro),
-    seccion({ titulo: 'Factores de desviacion medidos' }, zonaFactores),
-    seccion({ titulo: 'Catalogo de boquillas' }, zonaCatalogo),
+    seccion({ titulo: 'Factores de desviación medidos' }, zonaFactores),
+    seccion({ titulo: 'Catálogo de boquillas' }, zonaCatalogo),
     seccion({ titulo: 'Zona de riesgo' }, botonRestaurarTodo)
   );
 

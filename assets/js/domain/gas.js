@@ -13,9 +13,9 @@ import { gPorScfRutaSI, compararRutas, TOLERANCIA_REDUNDANTE_GAS } from './verif
 // resultado tres ordenes de magnitud abajo.
 export function gPorScfDerivado({ pesoMolecular, presionEstandarPsia, temperaturaEstandarF }) {
   requierePositivo('el peso molecular', pesoMolecular);
-  requierePositivo('la presion estandar de calibracion', presionEstandarPsia);
+  requierePositivo('la presión estándar de calibración', presionEstandarPsia);
   requierePositivo(
-    'la temperatura estandar en Rankine',
+    'la temperatura estándar en Rankine',
     temperaturaEstandarF + OFFSET_RANKINE
   );
 
@@ -34,7 +34,7 @@ export function gPorScfDerivado({ pesoMolecular, presionEstandarPsia, temperatur
         aviso(
           'error',
           'calculo-no-verificado',
-          'Las dos rutas de calculo de g/SCF no coinciden: el resultado no esta verificado ' +
+          'Las dos rutas de cálculo de g/SCF no coinciden: el resultado no está verificado ' +
             'y no debe usarse. Reporta este error.',
           redundante
         ),
@@ -51,14 +51,14 @@ export function gPorScfDerivado({ pesoMolecular, presionEstandarPsia, temperatur
         'R'
       ),
       paso(
-        'Libras-mol por pie cubico',
+        'Libras-mol por pie cúbico',
         'P_estandar / (R_GAS * T_Rankine)',
         `${redondeoLegible(presionEstandarPsia)} / (${R_GAS} * ${redondeoLegible(temperaturaRankine)})`,
         lbmolPorFt3,
         'lbmol/ft3'
       ),
       paso(
-        'Gramos por pie cubico estandar',
+        'Gramos por pie cúbico estándar',
         'lbmol_por_ft3 * 453.592 * peso_molecular',
         `${redondeoLegible(lbmolPorFt3)} * ${LBMOL_A_MOL} * ${redondeoLegible(pesoMolecular)}`,
         gPorScf,
@@ -75,12 +75,12 @@ export function gPorScfDerivado({ pesoMolecular, presionEstandarPsia, temperatur
 // vuelve a derivarse.
 export function gPorScfEfectivo({ gas }) {
   if (gas.gPorScfManual !== null && gas.gPorScfManual !== undefined) {
-    requierePositivo('la masa por pie cubico manual', gas.gPorScfManual);
+    requierePositivo('la masa por pie cúbico manual', gas.gPorScfManual);
     return {
       valores: { gPorScf: gas.gPorScfManual, anulado: true },
       desglose: [
         paso(
-          'Masa por pie cubico estandar (anulacion manual)',
+          'Masa por pie cúbico estándar (anulación manual)',
           'valor de tabla del proveedor',
           `${redondeoLegible(gas.gPorScfManual)}`,
           gas.gPorScfManual,
@@ -91,7 +91,7 @@ export function gPorScfEfectivo({ gas }) {
         aviso(
           'info',
           'g-scf-anulado',
-          'La masa por pie cubico estandar esta anulada manualmente con un valor de tabla ' +
+          'La masa por pie cúbico estándar está anulada manualmente con un valor de tabla ' +
             'del proveedor; el valor derivado del peso molecular no se esta usando.',
           { gPorScfManual: gas.gPorScfManual }
         ),

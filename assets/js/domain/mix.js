@@ -14,13 +14,13 @@ export const MODOS_DOSIS = ['por-ha', 'por-100L'];
 // dosis: { modo: 'por-ha' | 'por-100L', cantidad, unidad: 'L' | 'kg' }
 export function mezclaTanque({ volumenTanqueL, lhaAplicacion, dosis = null, areaObjetivoHa = null }) {
   requierePositivo('el volumen del tanque', volumenTanqueL);
-  requierePositivo('el volumen de aplicacion', lhaAplicacion);
+  requierePositivo('el volumen de aplicación', lhaAplicacion);
 
   const hectareasPorCarga = volumenTanqueL / lhaAplicacion;
   const avisos = [];
   const desglose = [
     paso(
-      'Hectareas por carga',
+      'Hectáreas por carga',
       'volumen_tanque / L_por_ha',
       `${redondeoLegible(volumenTanqueL)} / ${redondeoLegible(lhaAplicacion)}`,
       hectareasPorCarga,
@@ -68,7 +68,7 @@ export function mezclaTanque({ volumenTanqueL, lhaAplicacion, dosis = null, area
       productoPorCarga = dosisPorHa * hectareasPorCarga;
       desglose.push(
         paso(
-          'Equivalente por hectarea',
+          'Equivalente por hectárea',
           'dosis_por_100L * L_por_ha / 100',
           `${redondeoLegible(dosisPor100L)} * ${redondeoLegible(lhaAplicacion)} / ${BASE_DOSIS_100L}`,
           dosisPorHa,
@@ -95,7 +95,7 @@ export function mezclaTanque({ volumenTanqueL, lhaAplicacion, dosis = null, area
         aviso(
           'error',
           'calculo-no-verificado',
-          'Las dos rutas del producto por carga no coinciden: el resultado no esta ' +
+          'Las dos rutas del producto por carga no coinciden: el resultado no está ' +
             'verificado y no debe usarse. Reporta este error.',
           redundante
         )
@@ -122,7 +122,7 @@ export function mezclaTanque({ volumenTanqueL, lhaAplicacion, dosis = null, area
         aviso(
           'info',
           'producto-solido',
-          'La dosis esta en unidades de masa: el volumen que desplaza el producto en el ' +
+          'La dosis está en unidades de masa: el volumen que desplaza el producto en el ' +
             'tanque se desprecia y el agua por carga es el tanque completo.',
           null
         )
@@ -134,7 +134,7 @@ export function mezclaTanque({ volumenTanqueL, lhaAplicacion, dosis = null, area
           'advertencia',
           'producto-excede-tanque',
           'El producto por carga iguala o excede el volumen del tanque: revisa la dosis o ' +
-            'el volumen de aplicacion.',
+            'el volumen de aplicación.',
           { productoPorCarga, volumenTanqueL }
         )
       );
@@ -144,7 +144,7 @@ export function mezclaTanque({ volumenTanqueL, lhaAplicacion, dosis = null, area
   // Carga parcial para el area objetivo.
   let plan = null;
   if (areaObjetivoHa !== null && areaObjetivoHa !== undefined) {
-    requierePositivo('el area objetivo', areaObjetivoHa);
+    requierePositivo('el área objetivo', areaObjetivoHa);
     const caldoTotalL = lhaAplicacion * areaObjetivoHa;
     const cargasCompletas = Math.floor(caldoTotalL / volumenTanqueL);
     const caldoParcialL = caldoTotalL - cargasCompletas * volumenTanqueL;
@@ -160,7 +160,7 @@ export function mezclaTanque({ volumenTanqueL, lhaAplicacion, dosis = null, area
     };
     desglose.push(
       paso(
-        'Caldo total para el area objetivo',
+        'Caldo total para el área objetivo',
         'L_por_ha * area_objetivo',
         `${redondeoLegible(lhaAplicacion)} * ${redondeoLegible(areaObjetivoHa)}`,
         caldoTotalL,
@@ -194,7 +194,7 @@ export function mezclaTanque({ volumenTanqueL, lhaAplicacion, dosis = null, area
 // Utilidad para mostrar juntas las dos formas de dosis.
 export function equivalenciaDosis({ modo, cantidad, lhaAplicacion }) {
   requierePositivo('la dosis', cantidad);
-  requierePositivo('el volumen de aplicacion', lhaAplicacion);
+  requierePositivo('el volumen de aplicación', lhaAplicacion);
   if (modo === 'por-ha') {
     return { porHa: cantidad, por100L: (cantidad / lhaAplicacion) * BASE_DOSIS_100L };
   }

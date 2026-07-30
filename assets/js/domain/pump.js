@@ -14,9 +14,9 @@ import { lhaPorBoquilla } from './water.js';
 
 // TDF resultante a un regimen de motor dado.
 export function tdfRpm({ tdfNominal, rpmMotor, rpmMotorTdfNominal }) {
-  requierePositivo('el regimen nominal de la TDF', tdfNominal);
-  requierePositivo('el regimen del motor', rpmMotor);
-  requierePositivo('el regimen del motor para TDF nominal', rpmMotorTdfNominal);
+  requierePositivo('el régimen nominal de la TDF', tdfNominal);
+  requierePositivo('el régimen del motor', rpmMotor);
+  requierePositivo('el régimen del motor para TDF nominal', rpmMotorTdfNominal);
   const rpm = tdfNominal * (rpmMotor / rpmMotorTdfNominal);
   const porcentajeNominal = (rpmMotor / rpmMotorTdfNominal) * PORCIENTO;
   return {
@@ -49,7 +49,7 @@ export function estadoBombaARegimen({
   presionCalibracionBar,
   caudalCalibracionLmin,
 }) {
-  requierePositivo('el regimen del motor', rpmMotor);
+  requierePositivo('el régimen del motor', rpmMotor);
   const avisos = [];
 
   if (rpmCalibracion === null || rpmCalibracion === undefined) {
@@ -57,9 +57,9 @@ export function estadoBombaARegimen({
       aviso(
         'advertencia',
         'sin-calibracion-de-presion',
-        'No hay registrado el regimen del motor de la ultima calibracion de presion: no se ' +
-          'puede estimar el efecto del regimen sobre el gasto. Captura la calibracion en la ' +
-          'configuracion del equipo.',
+        'No hay registrado el régimen del motor de la última calibración de presión: no se ' +
+          'puede estimar el efecto del régimen sobre el gasto. Captura la calibración en la ' +
+          'configuración del equipo.',
         null
       )
     );
@@ -74,7 +74,7 @@ export function estadoBombaARegimen({
       avisos,
     };
   }
-  requierePositivo('el regimen de calibracion', rpmCalibracion);
+  requierePositivo('el régimen de calibración', rpmCalibracion);
 
   const razonRegimen = rpmMotor / rpmCalibracion;
   const presionSostenida = tipoBomba === 'independiente' || conRegulador === true;
@@ -86,7 +86,7 @@ export function estadoBombaARegimen({
   let caudalEstimadoLmin = caudalCalibracionLmin ?? null;
   const desglose = [
     paso(
-      'Razon de regimen',
+      'Razón de régimen',
       'rpm_motor / rpm_calibracion',
       `${redondeoLegible(rpmMotor)} / ${redondeoLegible(rpmCalibracion)}`,
       razonRegimen,
@@ -101,9 +101,9 @@ export function estadoBombaARegimen({
     // manometro lo delate. Este es el error mas caro.
     desglose.push(
       paso(
-        'Bomba con presion sostenida',
-        'presion y gasto por boquilla no cambian',
-        `presion = ${redondeoLegible(presionEstimadaBar)} bar, caudal = ${redondeoLegible(caudalEstimadoLmin)} L/min`,
+        'Bomba con presión sostenida',
+        'presión y gasto por boquilla no cambian',
+        `presión = ${redondeoLegible(presionEstimadaBar)} bar, caudal = ${redondeoLegible(caudalEstimadoLmin)} L/min`,
         presionEstimadaBar,
         'bar'
       )
@@ -113,7 +113,7 @@ export function estadoBombaARegimen({
       presionEstimadaBar = presionCalibracionBar * razonRegimen ** 2;
       desglose.push(
         paso(
-          'Presion estimada (centrifuga sin regulacion)',
+          'Presión estimada (centrífuga sin regulacion)',
           'presion_calibracion * razon_regimen^2',
           `${redondeoLegible(presionCalibracionBar)} * ${redondeoLegible(razonRegimen)}^2`,
           presionEstimadaBar,
@@ -125,7 +125,7 @@ export function estadoBombaARegimen({
       caudalEstimadoLmin = caudalCalibracionLmin * razonRegimen;
       desglose.push(
         paso(
-          'Gasto estimado (centrifuga sin regulacion)',
+          'Gasto estimado (centrífuga sin regulacion)',
           'gasto_calibracion * razon_regimen',
           `${redondeoLegible(caudalCalibracionLmin)} * ${redondeoLegible(razonRegimen)}`,
           caudalEstimadoLmin,
@@ -140,10 +140,10 @@ export function estadoBombaARegimen({
       aviso(
         'advertencia',
         'regimen-distinto-a-calibracion',
-        `El regimen capturado (${redondeoLegible(rpmMotor)} rpm) se aparta del regimen de la ` +
-          `ultima calibracion de presion (${redondeoLegible(rpmCalibracion)} rpm). El efecto ` +
-          'sobre el gasto depende del tipo de bomba; el aforo al regimen real de trabajo tiene ' +
-          'prioridad sobre esta estimacion.',
+        `El régimen capturado (${redondeoLegible(rpmMotor)} rpm) se aparta del régimen de la ` +
+          `última calibración de presión (${redondeoLegible(rpmCalibracion)} rpm). El efecto ` +
+          'sobre el gasto depende del tipo de bomba; el aforo al régimen real de trabajo tiene ' +
+          'prioridad sobre esta estimación.',
         { rpmMotor, rpmCalibracion, razonRegimen }
       )
     );
@@ -170,7 +170,7 @@ export function contrasteVolumenPorRegimen({
   regimenNominalTractor,
   espaciamientoM,
 }) {
-  requierePositivo('el caudal de calibracion', caudalCalibracionLmin);
+  requierePositivo('el caudal de calibración', caudalCalibracionLmin);
 
   const velocidadCalibracion = velocidadEfectiva({
     kmhNominal: kmhNominalMarcha,
@@ -213,9 +213,9 @@ export function contrasteVolumenPorRegimen({
     aviso(
       'info',
       'modelo-aproximado-bomba',
-      'Estos son modelos aproximados del comportamiento de la bomba. La verificacion por ' +
-        'aforo al regimen real de trabajo tiene prioridad sobre cualquiera de los dos ' +
-        'escenarios: si puedes aforar a ese regimen, ese dato manda.',
+      'Estos son modelos aproximados del comportamiento de la bomba. La verificación por ' +
+        'aforo al régimen real de trabajo tiene prioridad sobre cualquiera de los dos ' +
+        'escenarios: si puedes aforar a ese régimen, ese dato manda.',
       null
     )
   );
@@ -238,7 +238,7 @@ export function contrasteVolumenPorRegimen({
       ...volumenCalibracion.desglose,
       ...volumenTrabajo.desglose,
       paso(
-        'Cambio de volumen por hectarea',
+        'Cambio de volumen por hectárea',
         'volumen_trabajo / volumen_calibracion',
         `${redondeoLegible(b)} / ${redondeoLegible(a)}`,
         factorVolumen,

@@ -32,7 +32,7 @@ export function estadisticaCaptura({
   espaciamientoM = null,
   lhaObjetivo = null,
 }) {
-  requierePositivo('el umbral de atipicas', umbralAtipicasPct);
+  requierePositivo('el umbral de atípicas', umbralAtipicasPct);
 
   let caudales = caudalesLmin;
   if (caudales === null || caudales === undefined) {
@@ -71,7 +71,7 @@ export function estadisticaCaptura({
         'info',
         'cv-indefinido',
         'Con una sola boquilla capturada no existe dispersion que medir: el coeficiente de ' +
-          'variacion no esta definido. Captura mas boquillas para evaluar la uniformidad de la barra.',
+          'variacion no está definido. Captura más boquillas para evaluar la uniformidad de la barra.',
         null
       )
     );
@@ -83,7 +83,7 @@ export function estadisticaCaptura({
     cvMuestralPct = (deMuestral / media) * PORCIENTO;
     desglose.push(
       paso(
-        'Desviacion estandar (poblacional)',
+        'Desviación estándar (poblacional)',
         'raiz(suma((x - media)^2) / n)',
         `raiz(${redondeoLegible(sumaCuadrados)} / ${n})`,
         dePoblacional,
@@ -115,7 +115,7 @@ export function estadisticaCaptura({
       aviso(
         'advertencia',
         'boquillas-atipicas',
-        `${atipicas.length} boquilla(s) se desvian mas de ${redondeoLegible(umbralAtipicasPct)} % ` +
+        `${atipicas.length} boquilla(s) se desvian más de ${redondeoLegible(umbralAtipicasPct)} % ` +
           'de la media de la barra. Se recomienda reemplazarlas.',
         { indices: atipicas.map((b) => b.indice) }
       )
@@ -125,11 +125,11 @@ export function estadisticaCaptura({
   // Desgaste implicito contra el caudal teorico de catalogo.
   let desgastePct = null;
   if (caudalTeoricoLmin !== null && caudalTeoricoLmin !== undefined) {
-    requierePositivo('el caudal teorico', caudalTeoricoLmin);
+    requierePositivo('el caudal teórico', caudalTeoricoLmin);
     desgastePct = ((media - caudalTeoricoLmin) / caudalTeoricoLmin) * PORCIENTO;
     desglose.push(
       paso(
-        'Desgaste implicito contra catalogo',
+        'Desgaste implicito contra catálogo',
         '(media - caudal_teorico) / caudal_teorico * 100',
         `(${redondeoLegible(media)} - ${redondeoLegible(caudalTeoricoLmin)}) / ${redondeoLegible(caudalTeoricoLmin)} * 100`,
         desgastePct,
@@ -141,8 +141,8 @@ export function estadisticaCaptura({
         aviso(
           'advertencia',
           'desgaste-excesivo',
-          `La media de la barra entrega ${redondeoLegible(desgastePct)} % mas caudal que el ` +
-            'teorico de catalogo: las boquillas estan desgastadas. El desgaste es la causa mas ' +
+          `La media de la barra entrega ${redondeoLegible(desgastePct)} % más caudal que el ` +
+            'teórico de catálogo: las boquillas estan desgastadas. El desgaste es la causa más ' +
             'comun de sobreaplicacion.',
           { desgastePct }
         )

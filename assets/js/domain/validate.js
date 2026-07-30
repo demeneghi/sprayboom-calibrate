@@ -17,10 +17,10 @@ export function validarValor(def, valor) {
   }
   const numero = typeof valor === 'number' ? valor : Number(valor);
   if (!Number.isFinite(numero)) {
-    return { ok: false, mensaje: `${etiqueta}: debe ser un numero.` };
+    return { ok: false, mensaje: `${etiqueta}: debe ser un número.` };
   }
   if (def.entero && !Number.isInteger(numero)) {
-    return { ok: false, mensaje: `${etiqueta}: debe ser un numero entero.` };
+    return { ok: false, mensaje: `${etiqueta}: debe ser un número entero.` };
   }
   if (numero < def.min || numero > def.max) {
     return {
@@ -48,7 +48,7 @@ export function validarObjeto(defs, objeto) {
 
 export function requiereFinito(nombre, valor) {
   if (typeof valor !== 'number' || !Number.isFinite(valor)) {
-    throw new Error(`No se puede calcular: ${nombre} debe ser un numero.`);
+    throw new Error(`No se puede calcular: ${nombre} debe ser un número.`);
   }
   return valor;
 }

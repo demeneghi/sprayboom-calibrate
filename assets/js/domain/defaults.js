@@ -18,7 +18,7 @@
 // ---------------------------------------------------------------------
 export const PARAMETROS = {
   geometria: {
-    etiqueta: 'Geometria de tabla y barra',
+    etiqueta: 'Geometría de tabla y barra',
     campos: {
       largoTabla: {
         valor: 646,
@@ -31,16 +31,16 @@ export const PARAMETROS = {
       },
       anchoBarra: {
         valor: 15.47,
-        etiqueta: 'Ancho de barra de aplicacion',
+        etiqueta: 'Ancho de barra de aplicación',
         unidad: 'm',
         magnitud: 'distancia',
         min: 0.5,
         max: 100,
-        origen: 'Ancho efectivo de la barra de aspersion.',
+        origen: 'Ancho efectivo de la barra de aspersión.',
       },
       numBoquillas: {
         valor: 24,
-        etiqueta: 'Numero de boquillas instaladas',
+        etiqueta: 'Número de boquillas instaladas',
         unidad: '',
         magnitud: null,
         min: 1,
@@ -68,13 +68,13 @@ export const PARAMETROS = {
         max: 10,
         opcional: true,
         origen:
-          'Captura directa para barras con boquillas no uniformes. Si difiere del derivado (ancho entre numero de boquillas), la aplicacion lo advierte en vez de elegir uno en silencio.',
+          'Captura directa para barras con boquillas no uniformes. Si difiere del derivado (ancho entre número de boquillas), la aplicación lo advierte en vez de elegir uno en silencio.',
       },
     },
   },
 
   caldo: {
-    etiqueta: 'Caldo de aplicacion',
+    etiqueta: 'Caldo de aplicación',
     campos: {
       densidadRelativa: {
         valor: 1.0,
@@ -84,7 +84,7 @@ export const PARAMETROS = {
         min: 0.8,
         max: 2.0,
         origen:
-          'Agua = 1.0. Un caldo mas denso sale mas despacio por la misma boquilla a la misma presion: q_caldo = q_agua / raiz(densidad relativa).',
+          'Agua = 1.0. Un caldo más denso sale más despacio por la misma boquilla a la misma presión: q_caldo = q_agua / raiz(densidad relativa).',
       },
     },
   },
@@ -94,19 +94,19 @@ export const PARAMETROS = {
     campos: {
       presionAtmosfericaLocal: {
         valor: 14.7,
-        etiqueta: 'Presion atmosferica local',
+        etiqueta: 'Presión atmosférica local',
         unidad: 'psia',
         magnitud: null,
         min: 8,
         max: 16,
         origen:
-          'Presion absoluta del sitio. Cerca del nivel del mar coincide con la estandar de calibracion del rotametro; a mayor altitud dejan de coincidir y el despeje de presion debe restar la local.',
+          'Presión absoluta del sitio. Cerca del nivel del mar coincide con la estándar de calibración del rotámetro; a mayor altitud dejan de coincidir y el despeje de presión debe restar la local.',
       },
     },
   },
 
   agronomicos: {
-    etiqueta: 'Parametros agronomicos de forzamiento',
+    etiqueta: 'Parámetros agronómicos de forzamiento',
     campos: {
       dosisEtilenoReferencia: {
         valor: 2272,
@@ -136,7 +136,7 @@ export const PARAMETROS = {
         min: 0,
         max: 20000,
         origen:
-          'Decision del rancho tras calibrar por pesaje del cilindro. El pesaje tiene prioridad sobre cualquier calculo teorico.',
+          'Decision del rancho tras calibrar por pesaje del cilindro. El pesaje tiene prioridad sobre cualquier cálculo teórico.',
       },
       volumenAguaObjetivo: {
         valor: null,
@@ -157,7 +157,7 @@ export const PARAMETROS = {
         min: 1,
         max: 100,
         origen:
-          'Desviacion respecto a la dosis objetivo a partir de la cual el forzamiento levanta alerta.',
+          'Desviación respecto a la dosis objetivo a partir de la cual el forzamiento levanta alerta.',
       },
     },
   },
@@ -167,23 +167,23 @@ export const PARAMETROS = {
     campos: {
       umbralAtipicas: {
         valor: 10,
-        etiqueta: 'Umbral de boquilla atipica',
+        etiqueta: 'Umbral de boquilla atípica',
         unidad: '%',
         magnitud: null,
         min: 1,
         max: 50,
         origen:
-          'Criterio de la literatura de extension: desviacion respecto a la media de la barra a partir de la cual se recomienda reemplazo.',
+          'Criterio de la literatura de extensión: desviación respecto a la media de la barra a partir de la cual se recomienda reemplazo.',
       },
       umbralDesviacionVelocidad: {
         valor: 8,
-        etiqueta: 'Umbral de desviacion de velocidad',
+        etiqueta: 'Umbral de desviación de velocidad',
         unidad: '%',
         magnitud: null,
         min: 1,
         max: 100,
         origen:
-          'Desviacion entre velocidad teorica y medida a partir de la cual se alerta: patinaje excesivo tambien es sintoma mecanico.',
+          'Desviación entre velocidad teórica y medida a partir de la cual se alerta: patinaje excesivo también es síntoma mecanico.',
       },
       toleranciaIso: {
         valor: 5,
@@ -196,23 +196,23 @@ export const PARAMETROS = {
       },
       umbralDiscrepanciaMetodos: {
         valor: 1,
-        etiqueta: 'Umbral de discrepancia entre metodos',
+        etiqueta: 'Umbral de discrepancia entre métodos',
         unidad: '%',
         magnitud: null,
         min: 0.1,
         max: 20,
         origen:
-          'Propio de la aplicacion: diferencia entre el metodo por boquilla y por barra que amerita advertencia; indica inconsistencia fisica entre espaciamiento, numero de boquillas y ancho.',
+          'Propio de la aplicación: diferencia entre el método por boquilla y por barra que amerita advertencia; indica inconsistencia física entre espaciamiento, número de boquillas y ancho.',
       },
       espaciamientoMinimoPlausible: {
         valor: 0.05,
-        etiqueta: 'Espaciamiento minimo plausible',
+        etiqueta: 'Espaciamiento mínimo plausible',
         unidad: 'm',
         magnitud: 'distanciaCorta',
         min: 0.01,
         max: 1,
         origen:
-          'Debajo de este valor el espaciamiento parece capturado en centimetros por error (la formula del 600 lo pide en metros).',
+          'Debajo de este valor el espaciamiento parece capturado en centimetros por error (la fórmula del 600 lo pide en metros).',
       },
       tiempoPruebaCaptura: {
         valor: 60,
@@ -221,7 +221,7 @@ export const PARAMETROS = {
         magnitud: null,
         min: 5,
         max: 600,
-        origen: 'Tiempo tipico de aforo por boquilla en la practica de extension.',
+        origen: 'Tiempo típico de aforo por boquilla en la práctica de extensión.',
       },
     },
   },
@@ -233,11 +233,11 @@ export const PARAMETROS = {
 // validate.js las usa para formularios e importacion por igual.
 // ---------------------------------------------------------------------
 export const COTAS_TRACTOR = {
-  regimenNominal: { min: 500, max: 5000, unidad: 'rpm', etiqueta: 'Regimen nominal' },
-  regimenMinimo: { min: 400, max: 5000, unidad: 'rpm', etiqueta: 'Regimen minimo de trabajo' },
-  regimenMaximo: { min: 500, max: 5000, unidad: 'rpm', etiqueta: 'Regimen maximo admisible' },
-  regimenHabitual: { min: 400, max: 5000, unidad: 'rpm', etiqueta: 'Regimen habitual de trabajo' },
-  numRangos: { min: 1, max: 6, entero: true, unidad: '', etiqueta: 'Numero de rangos' },
+  regimenNominal: { min: 500, max: 5000, unidad: 'rpm', etiqueta: 'Régimen nominal' },
+  regimenMinimo: { min: 400, max: 5000, unidad: 'rpm', etiqueta: 'Régimen mínimo de trabajo' },
+  regimenMaximo: { min: 500, max: 5000, unidad: 'rpm', etiqueta: 'Régimen máximo admisible' },
+  regimenHabitual: { min: 400, max: 5000, unidad: 'rpm', etiqueta: 'Régimen habitual de trabajo' },
+  numRangos: { min: 1, max: 6, entero: true, unidad: '', etiqueta: 'Número de rangos' },
   marchasPorRango: { min: 1, max: 8, entero: true, unidad: '', etiqueta: 'Marchas por rango' },
 };
 
@@ -246,26 +246,26 @@ export const COTAS_VELOCIDAD_MARCHA = {
 };
 
 export const COTAS_EQUIPO = {
-  tdfNominal: { min: 300, max: 1200, unidad: 'rpm', etiqueta: 'Regimen de TDF nominal' },
+  tdfNominal: { min: 300, max: 1200, unidad: 'rpm', etiqueta: 'Régimen de TDF nominal' },
   rpmMotorTdfNominal: {
     min: 500,
     max: 5000,
     unidad: 'rpm',
-    etiqueta: 'Regimen del motor para TDF nominal',
+    etiqueta: 'Régimen del motor para TDF nominal',
   },
   rpmCalibracion: {
     min: 400,
     max: 5000,
     unidad: 'rpm',
     opcional: true,
-    etiqueta: 'Regimen del motor en la ultima calibracion',
+    etiqueta: 'Régimen del motor en la última calibración',
   },
   presionCalibracion: {
     min: 0.1,
     max: 50,
     unidad: 'bar',
     opcional: true,
-    etiqueta: 'Presion de la ultima calibracion',
+    etiqueta: 'Presión de la última calibración',
   },
   volumenTanque: { min: 1, max: 50000, unidad: 'L', etiqueta: 'Volumen del tanque' },
 };
@@ -276,32 +276,32 @@ export const COTAS_GAS = {
     min: 5,
     max: 20,
     unidad: 'psia',
-    etiqueta: 'Presion estandar de calibracion',
+    etiqueta: 'Presión estándar de calibración',
   },
   temperaturaEstandarF: {
     min: 32,
     max: 120,
     unidad: 'F',
-    etiqueta: 'Temperatura estandar de calibracion',
+    etiqueta: 'Temperatura estándar de calibración',
   },
   gPorScfManual: {
     min: 1,
     max: 200,
     unidad: 'g/SCF',
     opcional: true,
-    etiqueta: 'Masa por pie cubico estandar (anulacion manual)',
+    etiqueta: 'Masa por pie cúbico estándar (anulación manual)',
   },
 };
 
 export const COTAS_ROTAMETRO = {
-  escalaMin: { min: 0, max: 100, unidad: 'SCFM', etiqueta: 'Escala minima' },
-  escalaMax: { min: 0, max: 100, unidad: 'SCFM', etiqueta: 'Escala maxima' },
-  resolucion: { min: 0.01, max: 5, unidad: 'SCFM', etiqueta: 'Resolucion legible' },
+  escalaMin: { min: 0, max: 100, unidad: 'SCFM', etiqueta: 'Escala mínima' },
+  escalaMax: { min: 0, max: 100, unidad: 'SCFM', etiqueta: 'Escala máxima' },
+  resolucion: { min: 0.01, max: 5, unidad: 'SCFM', etiqueta: 'Resolución legible' },
 };
 
 export const COTAS_FACTOR_DESVIACION = {
-  rpm: { min: 400, max: 5000, unidad: 'rpm', etiqueta: 'Regimen de la medicion' },
-  velocidadTeorica: { min: 0.1, max: 60, unidad: 'km/h', etiqueta: 'Velocidad teorica' },
+  rpm: { min: 400, max: 5000, unidad: 'rpm', etiqueta: 'Régimen de la medición' },
+  velocidadTeorica: { min: 0.1, max: 60, unidad: 'km/h', etiqueta: 'Velocidad teórica' },
   velocidadMedida: { min: 0.1, max: 60, unidad: 'km/h', etiqueta: 'Velocidad medida' },
 };
 
@@ -378,7 +378,7 @@ export const ACCIONAMIENTOS = ['tdf', 'hidraulico', 'motor-propio'];
 export const EQUIPOS_SIEMBRA = [
   {
     id: 'barra-principal',
-    nombre: 'Barra de aspersion principal',
+    nombre: 'Barra de aspersión principal',
     tipoBomba: 'positiva',
     accionamiento: 'tdf',
     tdfNominal: 540,

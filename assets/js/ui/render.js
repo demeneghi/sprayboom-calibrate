@@ -56,8 +56,8 @@ export function pintarVerificacion(verificacion) {
     partes.push({
       ok: verificacion.redundante.ok,
       texto: verificacion.redundante.ok
-        ? `Verificado por dos rutas de calculo (error relativo ${verificacion.redundante.errorRelativo.toExponential(1)})`
-        : 'FALLO la verificacion por dos rutas: no uses este resultado.',
+        ? `Verificado por dos rutas de cálculo (error relativo ${verificacion.redundante.errorRelativo.toExponential(1)})`
+        : 'FALLO la verificación por dos rutas: no uses este resultado.',
     });
   }
   if (verificacion.idaVuelta) {
@@ -75,7 +75,7 @@ export function pintarVerificacion(verificacion) {
     partes.map((parte) =>
       el(
         'p',
-        { clase: `verificacion ${parte.ok ? 'verificacion--ok' : 'verificacion--fallo'}` },
+        { clase: `verificación ${parte.ok ? 'verificacion--ok' : 'verificacion--fallo'}` },
         parte.texto
       )
     )
@@ -114,7 +114,7 @@ export function pintarResultadoNoVerificado(etiqueta) {
     el(
       'span',
       { clase: 'resultado__valor' },
-      'Calculo no verificado: las dos rutas no coinciden. No uses este numero; reporta el error.'
+      'Cálculo no verificado: las dos rutas no coinciden. No uses este número; reporta el error.'
     )
   );
 }

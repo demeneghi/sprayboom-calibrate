@@ -53,7 +53,7 @@ function tj(id, serie, modelo, tamanoIso, angulo, tipoPatron, material, caudal3b
     edicionEstandar: 'S572.1',
     clasesGota,
     notas,
-    fuente: 'TeeJet Catalog 51A-M (metrico), tabla de la serie; clase de gota ASABE S572.1.',
+    fuente: 'TeeJet Catalog 51A-M (métrico), tabla de la serie; clase de gota ASABE S572.1.',
   };
 }
 
@@ -155,22 +155,22 @@ export const CATALOGO_SIEMBRA = [
   // Tamanos propios de TeeJet, NO ISO. Uso tipico a 3 bar o mas.
   tj('txvk6', 'TX', 'TX-VK6', null, 80, 'cono-hueco', 'ceramica', 0.393, 2, 20,
     rangos([2, 3.5, 'F'], [3.5, 20, 'VF']),
-    'Tamano propio TeeJet (no ISO). Angulo 80 grados a 7 bar.'),
+    'Tamaño propio TeeJet (no ISO). Angulo 80 grados a 7 bar.'),
   tj('txvk8', 'TX', 'TX-VK8', null, 80, 'cono-hueco', 'ceramica', 0.525, 2, 20,
     rangos([2, 3.5, 'F'], [3.5, 20, 'VF']),
-    'Tamano propio TeeJet (no ISO). Angulo 80 grados a 7 bar.'),
+    'Tamaño propio TeeJet (no ISO). Angulo 80 grados a 7 bar.'),
   tj('txvk10', 'TX', 'TX-VK10', null, 80, 'cono-hueco', 'ceramica', 0.657, 2, 20,
     rangos([2, 4.5, 'F'], [4.5, 20, 'VF']),
-    'Tamano propio TeeJet (no ISO). Angulo 80 grados a 7 bar.'),
+    'Tamaño propio TeeJet (no ISO). Angulo 80 grados a 7 bar.'),
   tj('txvk12', 'TX', 'TX-VK12', null, 80, 'cono-hueco', 'ceramica', 0.788, 2, 20,
     rangos([2, 4.5, 'F'], [4.5, 20, 'VF']),
-    'Tamano propio TeeJet (no ISO). Angulo 80 grados a 7 bar.'),
+    'Tamaño propio TeeJet (no ISO). Angulo 80 grados a 7 bar.'),
   tj('txvk18', 'TX', 'TX-VK18', null, 80, 'cono-hueco', 'ceramica', 1.18, 2, 20,
     rangos([2, 6.5, 'F'], [6.5, 20, 'VF']),
-    'Tamano propio TeeJet (no ISO). Angulo 80 grados a 7 bar.'),
+    'Tamaño propio TeeJet (no ISO). Angulo 80 grados a 7 bar.'),
   tj('txvk26', 'TX', 'TX-VK26', null, 80, 'cono-hueco', 'ceramica', 1.71, 2, 20,
     rangos([2, 7.5, 'F'], [7.5, 20, 'VF']),
-    'Tamano propio TeeJet (no ISO). Angulo 80 grados a 7 bar.'),
+    'Tamaño propio TeeJet (no ISO). Angulo 80 grados a 7 bar.'),
 
   // ----- TXA ConeJet (cono hueco ceramico con codigo ISO, 80 grados) -----
   tj('txa800050', 'TXA', 'TXA800050VK', '0050', 80, 'cono-hueco', 'ceramica', 0.196, 2, 20,
@@ -208,10 +208,10 @@ function atr(id, color, caudal10bar, exponente) {
     edicionEstandar: null,
     clasesGota: [],
     notas:
-      'Codigo de color europeo, NO ISO. Angulo 80 grados a 5 bar; presion recomendada 10 bar. ' +
-      'La ficha describe gota fina pero no publica clase por presion. Exponente ajustado a la ' +
+      'Código de color europeo, NO ISO. Angulo 80 grados a 5 bar; presión recomendada 10 bar. ' +
+      'La ficha describe gota fina pero no publica clase por presión. Exponente ajustado a la ' +
       'tabla del fabricante (5-20 bar).',
-    fuente: 'Albuz, ficha ATR 80 catalogo 2024 (albuz-spray.com).',
+    fuente: 'Albuz, ficha ATR 80 catálogo 2024 (albuz-spray.com).',
   };
 }
 

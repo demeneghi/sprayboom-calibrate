@@ -18,11 +18,11 @@ import { despejeScfm, despejePresion, despejeTiempo, masaGas } from './flowmeter
 export const AVISO_SOLUBILIDAD = aviso(
   'info',
   'solubilidad-etileno',
-  'El etileno es poco soluble en agua. El rotametro mide gas inyectado, no gas retenido ' +
-    'en solucion, y buena parte se escapa por la superficie del tanque. La relacion entre ' +
+  'El etileno es poco soluble en agua. El rotámetro mide gas inyectado, no gas retenido ' +
+    'en solución, y buena parte se escapa por la superficie del tanque. La relación entre ' +
     'lo inyectado y lo aplicado depende del difusor, de la temperatura del agua y del ' +
-    'tiempo entre la carga y la aplicacion. El pesaje del cilindro y la respuesta ' +
-    'agronomica observada tienen prioridad sobre cualquier numero calculado aqui.',
+    'tiempo entre la carga y la aplicación. El pesaje del cilindro y la respuesta ' +
+    'agronómica observada tienen prioridad sobre cualquier número calculado aquí.',
   null
 );
 
@@ -45,7 +45,7 @@ export function forzamientoDesdeObjetivo({
   toleranciaAlertaPct = null,
 }) {
   requierePositivo('la dosis objetivo', dosisObjetivoGha);
-  requierePositivo('las hectareas por tabla', hectareasPorTabla);
+  requierePositivo('las hectáreas por tabla', hectareasPorTabla);
 
   const masaPorTablaG = dosisObjetivoGha * hectareasPorTabla;
   const avisos = [AVISO_SOLUBILIDAD];
@@ -74,7 +74,7 @@ export function forzamientoDesdeObjetivo({
         'L'
       ),
       paso(
-        'Concentracion en tanque',
+        'Concentración en tanque',
         'masa_por_tabla / volumen_agua_por_tabla',
         `${redondeoLegible(masaPorTablaG)} / ${redondeoLegible(volumenAguaPorTablaL)}`,
         concentracionGL,
@@ -86,8 +86,8 @@ export function forzamientoDesdeObjetivo({
       aviso(
         'info',
         'volumen-agua-pendiente',
-        'El volumen de agua objetivo propio esta pendiente de capturar: sin el no se ' +
-          'calcula la concentracion en tanque. Capturalo en la configuracion agronomica.',
+        'El volumen de agua objetivo propio está pendiente de capturar: sin el no se ' +
+          'calcula la concentración en tanque. Capturalo en la configuración agronómica.',
         null
       )
     );
@@ -149,7 +149,7 @@ export function forzamientoDesdeObjetivo({
           'dosis-fuera-de-referencia',
           `La dosis objetivo (${redondeoLegible(dosisObjetivoGha)} g/ha) se aparta ` +
             `${redondeoLegible(Math.abs(desviacionContraReferenciaPct))} % de la referencia de la ` +
-            `literatura (${redondeoLegible(dosisReferenciaGha)} g/ha), mas que la tolerancia de ` +
+            `literatura (${redondeoLegible(dosisReferenciaGha)} g/ha), más que la tolerancia de ` +
             `${redondeoLegible(toleranciaAlertaPct)} %.`,
           { dosisObjetivoGha, dosisReferenciaGha, desviacionContraReferenciaPct }
         )
@@ -186,7 +186,7 @@ export function forzamientoDesdeAjuste({
   dosisObjetivoGha = null,
   toleranciaAlertaPct = null,
 }) {
-  requierePositivo('las hectareas por tabla', hectareasPorTabla);
+  requierePositivo('las hectáreas por tabla', hectareasPorTabla);
 
   const consumo = masaGas({
     scfm,
@@ -218,7 +218,7 @@ export function forzamientoDesdeAjuste({
     concentracionGL = masaPorTablaG / volumenPorTabla;
     desglose.push(
       paso(
-        'Concentracion en tanque',
+        'Concentración en tanque',
         'masa_por_tabla / (L_por_ha * hectareas_por_tabla)',
         `${redondeoLegible(masaPorTablaG)} / ${redondeoLegible(volumenPorTabla)}`,
         concentracionGL,
@@ -243,7 +243,7 @@ export function forzamientoDesdeAjuste({
           'dosis-fuera-de-objetivo',
           `La dosis resultante (${redondeoLegible(dosisGha)} g/ha) se aparta ` +
             `${redondeoLegible(Math.abs(desviacionContraObjetivoPct))} % del objetivo ` +
-            `(${redondeoLegible(dosisObjetivoGha)} g/ha), mas que la tolerancia de ` +
+            `(${redondeoLegible(dosisObjetivoGha)} g/ha), más que la tolerancia de ` +
             `${redondeoLegible(toleranciaAlertaPct)} %.`,
           { dosisGha, dosisObjetivoGha, desviacionContraObjetivoPct }
         )

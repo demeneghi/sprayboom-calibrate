@@ -10,6 +10,7 @@
 import { el, reemplazar } from '../dom.js';
 import { tarjeta, pintarAvisos, pintarDesglose, pintarResultado } from '../render.js';
 import { crearCampoNumerico } from '../campos.js';
+import { crearCronometro } from '../cronometro.js';
 import { formatear, formatearTiempo, formatearPorcentaje } from '../formato.js';
 import { confirmar } from '../dialog.js';
 import { mostrarToast } from '../toast.js';
@@ -104,10 +105,10 @@ export function render(panel, ctx) {
   }
 
   const campoRpm = crearCampoNumerico({
-    etiqueta: 'Regimen del motor',
+    etiqueta: 'Régimen del motor',
     unidad: 'rpm',
     valorInicial: borrador.rpm ?? tractor.regimenHabitual,
-    ayuda: `Se precarga el regimen habitual de trabajo (${tractor.regimenHabitual} rpm), no el nominal: este rancho opera entre 1500 y 1800 rpm.`,
+    ayuda: `Se precarga el régimen habitual de trabajo (${tractor.regimenHabitual} rpm), no el nominal: este rancho opera entre 1500 y 1800 rpm.`,
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { rpm: valor });
       recalcular();
@@ -117,7 +118,7 @@ export function render(panel, ctx) {
   const botonCalibrarMarcha = el(
     'button',
     { clase: 'boton boton--contorno' },
-    'Calibrar esta marcha con una medicion'
+    'Calibrar esta marcha con una medición'
   );
   botonCalibrarMarcha.addEventListener('click', () => abrirCalibracion());
 
@@ -134,13 +135,29 @@ export function render(panel, ctx) {
     etiqueta: 'Segundos por tramo',
     unidad: 's',
     valorInicial: borrador.segundosPorTramo ?? null,
-    ayuda: 'Tiempo medido para recorrer la distancia de referencia. El reporte de campo es siempre mas confiable que la marcha teorica.',
+    ayuda: 'Tiempo medido para recorrer la distancia de referencia. El reporte de campo es siempre más confiable que la marcha teórica.',
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { segundosPorTramo: valor });
       recalcular();
     },
   });
-  const zonaCronometro = el('div', {}); // el cronometro se monta aqui (fase de opcionales)
+  // Cronómetro integrado: mide los segundos por tramo en campo y los
+  // pasa directo al cálculo.
+  const zonaCronometro = el('div', {});
+  const cronometro = crearCronometro({
+    modo: 'cronometro',
+    etiquetaUsar: 'Usar como segundos por tramo',
+    alUsar: (segundos) => {
+      const redondeado = Math.round(segundos * 10) / 10;
+      campoSegundos.fijar(redondeado);
+      ctx.guardarBorrador(id, { segundosPorTramo: redondeado });
+      recalcular();
+    },
+  });
+  zonaCronometro.append(
+    el('p', { clase: 'ayuda' }, 'Cronómetro: arranca al entrar al tramo y para al salir.'),
+    cronometro.elemento
+  );
   const zonaMarchasQueReproducen = el('div', {});
   const zonaReporte = el(
     'div',
@@ -186,7 +203,7 @@ export function render(panel, ctx) {
           : null;
         if (!fila || fila.kmhNominal === null || rpm === null) {
           nodos.push(
-            el('p', { clase: 'texto-suave' }, 'Elige una marcha y captura el regimen para calcular.')
+            el('p', { clase: 'texto-suave' }, 'Elige una marcha y captura el régimen para calcular.')
           );
         } else {
           nodos.push(...pintarAvisos(validarRegimen({ rpm, tractor })));
@@ -198,7 +215,7 @@ export function render(panel, ctx) {
                 el(
                   'p',
                   { clase: 'alerta__descripcion' },
-                  'La velocidad nominal de esta marcha es una ESTIMACION no verificada contra el manual: calibrala en campo antes de confiar en la aplicacion calculada.'
+                  'La velocidad nominal de esta marcha es una ESTIMACIÓN no verificada contra el manual: calibrala en campo antes de confiar en la aplicación calculada.'
                 )
               )
             );
@@ -246,12 +263,12 @@ export function render(panel, ctx) {
               : factor.estado === 'interpolado'
                 ? 'factor interpolado'
                 : factor.estado === 'sin-mediciones'
-                  ? 'teorica sin verificar'
-                  : 'sin medicion en este regimen';
+                  ? 'teórica sin verificar'
+                  : 'sin medición en este régimen';
 
           nodos.push(
             pintarResultado({
-              etiqueta: `Velocidad teorica (${origenVelocidad?.etiqueta ?? ''})`,
+              etiqueta: `Velocidad teórica (${origenVelocidad?.etiqueta ?? ''})`,
               valor: aSistema('velocidad', velocidadTeorica, sistema),
               unidad: unidadVelocidad,
               decimales: 2,
@@ -270,8 +287,8 @@ export function render(panel, ctx) {
               'p',
               { clase: 'ayuda' },
               corregida.valores.desviacionPct === null
-                ? 'Sin factor aplicable: se usa la teorica. El patinaje no se predice con formula; se mide en campo.'
-                : `Desviacion aplicada: ${formatearPorcentaje(Math.abs(corregida.valores.desviacionPct))} (factor ${formatear(factor.factor, 4)}). Teorica y corregida se muestran siempre juntas.`
+                ? 'Sin factor aplicable: se usa la teórica. El patinaje no se predice con fórmula; se mide en campo.'
+                : `Desviación aplicada: ${formatearPorcentaje(Math.abs(corregida.valores.desviacionPct))} (factor ${formatear(factor.factor, 4)}). Teorica y corregida se muestran siempre juntas.`
             )
           );
           if (corregida.valores.velocidadCorregidaKmh !== null) {
@@ -405,18 +422,18 @@ export function render(panel, ctx) {
     const rpm = modo === 'marcha' ? campoRpm.obtener() : null;
     const nodos = [];
     if (!equipo) {
-      nodos.push(el('p', { clase: 'texto-suave' }, 'Sin equipo de aplicacion configurado.'));
+      nodos.push(el('p', { clase: 'texto-suave' }, 'Sin equipo de aplicación configurado.'));
     } else if (equipo.accionamiento !== 'tdf') {
       nodos.push(
         el(
           'p',
           { clase: 'texto-suave' },
-          'La bomba de este equipo no es de TDF: su velocidad no depende del regimen del motor.'
+          'La bomba de este equipo no es de TDF: su velocidad no depende del régimen del motor.'
         )
       );
     } else if (rpm === null) {
       nodos.push(
-        el('p', { clase: 'texto-suave' }, 'Captura el regimen en el modo de marcha para ver la TDF.')
+        el('p', { clase: 'texto-suave' }, 'Captura el régimen en el modo de marcha para ver la TDF.')
       );
     } else {
       const resultado = tdfRpm({
@@ -451,7 +468,7 @@ export function render(panel, ctx) {
             el(
               'p',
               { clase: 'alerta__descripcion' },
-              'No hay registrado el regimen de la ultima calibracion de presion. Capturalo en Configuracion para que la aplicacion pueda advertir el efecto del regimen sobre el gasto de la barra.'
+              'No hay registrado el régimen de la última calibración de presión. Capturalo en Configuración para que la aplicación pueda advertir el efecto del régimen sobre el gasto de la barra.'
             )
           )
         );
@@ -463,7 +480,7 @@ export function render(panel, ctx) {
             el(
               'p',
               { clase: 'alerta__descripcion' },
-              `Estas operando a ${formatear(rpm, 0)} rpm y la ultima calibracion de presion fue a ${formatear(equipo.rpmCalibracion, 0)} rpm. El efecto sobre el gasto depende del tipo de bomba: revisa el contraste en Gasto de agua. El aforo al regimen real manda.`
+              `Estás operando a ${formatear(rpm, 0)} rpm y la última calibración de presión fue a ${formatear(equipo.rpmCalibracion, 0)} rpm. El efecto sobre el gasto depende del tipo de bomba: revisa el contraste en Gasto de agua. El aforo al régimen real manda.`
             )
           )
         );
@@ -479,9 +496,9 @@ export function render(panel, ctx) {
       el(
         'div',
         { estilo: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' } },
-        pintarResultado({ etiqueta: 'Area por tabla', valor: g.valores.areaM2, unidad: 'm2', decimales: 2 }),
+        pintarResultado({ etiqueta: 'Área por tabla', valor: g.valores.areaM2, unidad: 'm2', decimales: 2 }),
         pintarResultado({
-          etiqueta: 'Hectareas por tabla',
+          etiqueta: 'Hectáreas por tabla',
           valor: g.valores.hectareasPorTabla,
           unidad: 'ha',
           decimales: 4,
@@ -503,7 +520,7 @@ export function render(panel, ctx) {
       el(
         'p',
         { clase: 'ayuda' },
-        'Derivados de la geometria configurada; se editan en Sistema, Configuracion.'
+        'Derivados de la geometría configurada; se editan en Sistema, Configuración.'
       )
     );
   }
@@ -524,15 +541,15 @@ export function render(panel, ctx) {
       unidad: 's',
     });
     const campoRpmMedidas = crearCampoNumerico({
-      etiqueta: 'Regimen durante la medicion',
+      etiqueta: 'Régimen durante la medición',
       unidad: 'rpm',
       valorInicial: campoRpm.obtener() ?? tractor.regimenHabitual,
     });
     const vista = el('div', {}, campoSegundosMedidos.elemento, campoRpmMedidas.elemento);
     const ok = await confirmar({
-      titulo: `Calibrar ${fila.etiqueta} desde una medicion de campo`,
+      titulo: `Calibrar ${fila.etiqueta} desde una medición de campo`,
       descripcion:
-        'La velocidad nominal de la marcha se recalcula al regimen nominal del tractor y la fila queda marcada como calibrada.',
+        'La velocidad nominal de la marcha se recalcula al régimen nominal del tractor y la fila queda marcada como calibrada.',
       cuerpo: vista,
       confirmarTexto: 'Calibrar',
     });
@@ -540,7 +557,7 @@ export function render(panel, ctx) {
     const segundos = campoSegundosMedidos.obtener();
     const rpmMedidas = campoRpmMedidas.obtener();
     if (segundos === null || rpmMedidas === null) {
-      mostrarToast('Faltan la medicion o el regimen: no se calibro nada.', { tipo: 'destructivo' });
+      mostrarToast('Faltan la medición o el régimen: no se calibró nada.', { tipo: 'destructivo' });
       return;
     }
     try {
@@ -585,11 +602,11 @@ export function render(panel, ctx) {
     tarjeta(
       {
         titulo: 'Toma de fuerza y bomba',
-        descripcion: 'Si la bomba es de TDF, su velocidad cae con el regimen del motor.',
+        descripcion: 'Si la bomba es de TDF, su velocidad cae con el régimen del motor.',
       },
       zonaTdf
     ),
-    tarjeta({ titulo: 'Geometria derivada' }, zonaGeometria)
+    tarjeta({ titulo: 'Geometría derivada' }, zonaGeometria)
   );
 
   pintarModo();

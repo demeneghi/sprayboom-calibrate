@@ -12,18 +12,18 @@ import { paso, redondeoLegible } from './speed.js';
 // caudal_2 = caudal_1 * (presion_2 / presion_1) ^ exponente
 export function caudalAPresion({ caudalRef, presionRef, presion, exponente }) {
   requierePositivo('el caudal de referencia', caudalRef);
-  requierePositivo('la presion de referencia', presionRef);
-  requierePositivo('la presion', presion);
-  requierePositivo('el exponente presion-caudal', exponente);
+  requierePositivo('la presión de referencia', presionRef);
+  requierePositivo('la presión', presion);
+  requierePositivo('el exponente presión-caudal', exponente);
   return caudalRef * (presion / presionRef) ** exponente;
 }
 
 // Despeje: presion que produce un caudal dado.
 export function presionParaCaudal({ caudalRef, presionRef, caudal, exponente }) {
   requierePositivo('el caudal de referencia', caudalRef);
-  requierePositivo('la presion de referencia', presionRef);
+  requierePositivo('la presión de referencia', presionRef);
   requierePositivo('el caudal requerido', caudal);
-  requierePositivo('el exponente presion-caudal', exponente);
+  requierePositivo('el exponente presión-caudal', exponente);
   return presionRef * (caudal / caudalRef) ** (1 / exponente);
 }
 
@@ -48,7 +48,7 @@ export function volumenEquivalenteEnAgua({ volumenCaldoLha, densidadRelativa }) 
 // boquilla.clasesGota = [{ presionMinBar, presionMaxBar, clase }]
 // junto con boquilla.edicionEstandar ('S572.1' | 'S572.3').
 export function clasificarGota({ boquilla, presionBar }) {
-  requierePositivo('la presion', presionBar);
+  requierePositivo('la presión', presionBar);
   const rangos = boquilla.clasesGota ?? [];
   const encontrado = rangos.find(
     (r) => presionBar >= r.presionMinBar && presionBar <= r.presionMaxBar
@@ -59,9 +59,9 @@ export function clasificarGota({ boquilla, presionBar }) {
 // Que tan lejos del centro de su rango de presion trabajaria la
 // boquilla: 0 = centro exacto, 1 = en el borde, > 1 = fuera de rango.
 export function distanciaAlCentroDeRango({ presion, presionMin, presionMax }) {
-  requierePositivo('la presion', presion);
-  requierePositivo('la presion minima', presionMin);
-  requierePositivo('la presion maxima', presionMax);
+  requierePositivo('la presión', presion);
+  requierePositivo('la presión mínima', presionMin);
+  requierePositivo('la presión máxima', presionMax);
   const centro = (presionMin + presionMax) / 2;
   const medioAncho = (presionMax - presionMin) / 2;
   if (medioAncho <= 0) return presion === centro ? 0 : Infinity;
@@ -130,9 +130,9 @@ export function seleccionarBoquillas({
       aviso(
         'advertencia',
         'sin-candidatas',
-        'Ninguna boquilla del catalogo logra el caudal requerido dentro de su rango de ' +
-          'presion. Cambiar de tamano de boquilla es mas efectivo que forzar la presion; ' +
-          'tambien puedes bajar la velocidad o cerrar el espaciamiento para reducir el ' +
+        'Ninguna boquilla del catálogo logra el caudal requerido dentro de su rango de ' +
+          'presión. Cambiar de tamaño de boquilla es más efectivo que forzar la presión; ' +
+          'también puedes bajar la velocidad o cerrar el espaciamiento para reducir el ' +
           'caudal requerido por boquilla.',
         { caudalRequeridoLmin }
       )
@@ -156,7 +156,7 @@ export function validarContraIso({
   presionNominalIsoBar,
 }) {
   requierePositivo('el caudal de referencia', caudalRefLmin);
-  requierePositivo('la presion de referencia', presionRefBar);
+  requierePositivo('la presión de referencia', presionRefBar);
   const fila = (tablaIso ?? []).find((f) => f.tamano === tamanoIso);
   if (!fila) {
     return {
@@ -165,7 +165,7 @@ export function validarContraIso({
         aviso(
           'info',
           'tamano-iso-desconocido',
-          `El tamano ISO ${tamanoIso} no esta en la tabla de referencia; no se puede validar el caudal.`,
+          `El tamaño ISO ${tamanoIso} no está en la tabla de referencia; no se puede validar el caudal.`,
           { tamanoIso }
         ),
       ],
@@ -189,10 +189,10 @@ export function validarContraIso({
           'caudal-fuera-de-tolerancia-iso',
           `El caudal declarado (${redondeoLegible(caudalRefLmin)} L/min a ` +
             `${redondeoLegible(presionRefBar)} bar) se desvia ${redondeoLegible(desviacionPct)} % ` +
-            `del que corresponde al tamano ISO ${tamanoIso} ` +
+            `del que corresponde al tamaño ISO ${tamanoIso} ` +
             `(${redondeoLegible(esperado)} L/min); la tolerancia de la norma es ` +
             `${redondeoLegible(toleranciaPct)} %. Hay boquillas legitimas fuera de norma, pero ` +
-            'revisa que el tamano declarado sea el correcto.',
+            'revisa que el tamaño declarado sea el correcto.',
           { tamanoIso, esperado, desviacionPct, toleranciaPct }
         ),
       ];
@@ -204,7 +204,7 @@ export function validarContraIso({
 // Demuestra que ISO y US son consistentes entre si.
 export function caudalDesdeConvencionUs({ gpm, psiReferencia, presionObjetivoBar, exponente }) {
   requierePositivo('el caudal en GPM', gpm);
-  requierePositivo('la presion de referencia en psi', psiReferencia);
+  requierePositivo('la presión de referencia en psi', psiReferencia);
   const caudalRefLmin = gpm * L_POR_GALON_US;
   const presionRefBar = psiReferencia / PSI_POR_BAR;
   const caudal = caudalAPresion({
@@ -224,14 +224,14 @@ export function caudalDesdeConvencionUs({ gpm, psiReferencia, presionObjetivoBar
         'L/min'
       ),
       paso(
-        'Presion de referencia en bar',
+        'Presión de referencia en bar',
         'psi / 14.5037738',
         `${redondeoLegible(psiReferencia)} / ${PSI_POR_BAR}`,
         presionRefBar,
         'bar'
       ),
       paso(
-        'Caudal escalado a la presion objetivo',
+        'Caudal escalado a la presión objetivo',
         'caudal_ref * (presion_objetivo / presion_ref) ^ exponente',
         `${redondeoLegible(caudalRefLmin)} * (${redondeoLegible(presionObjetivoBar)} / ` +
           `${redondeoLegible(presionRefBar)}) ^ ${exponente}`,

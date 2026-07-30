@@ -23,7 +23,7 @@ export function crearTabs({ id, tabs, activoId, idPanel, alCambiar }) {
 
   const lista = el(
     'div',
-    { clase: 'tabs__lista', role: 'tablist', 'aria-label': 'Pestanas de la seccion' },
+    { clase: 'tabs__lista', role: 'tablist', 'aria-label': 'Pestañas de la sección' },
     botones
   );
 

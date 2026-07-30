@@ -122,11 +122,11 @@ test('division entre cero: mensaje claro, no Infinity', () => {
 });
 
 test('campos vacios o no numericos: rechazo con mensaje, sin NaN', () => {
-  assert.throws(() => requierePositivo('la velocidad', NaN), /debe ser un numero/);
-  assert.throws(() => requierePositivo('la velocidad', null), /debe ser un numero/);
+  assert.throws(() => requierePositivo('la velocidad', NaN), /debe ser un número/);
+  assert.throws(() => requierePositivo('la velocidad', null), /debe ser un número/);
   const def = { etiqueta: 'Velocidad', unidad: 'km/h', min: 0.1, max: 60 };
   assert.equal(validarValor(def, 'abc').ok, false);
-  assert.match(validarValor(def, 'abc').mensaje, /debe ser un numero/);
+  assert.match(validarValor(def, 'abc').mensaje, /debe ser un número/);
   assert.equal(validarValor(def, '').ok, false, 'vacio no opcional es obligatorio');
 });
 

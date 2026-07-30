@@ -16,7 +16,7 @@ function avisoRedundante(comparacion) {
   return aviso(
     'error',
     'calculo-no-verificado',
-    'Las dos rutas de calculo no coinciden: el resultado no esta verificado y no debe ' +
+    'Las dos rutas de cálculo no coinciden: el resultado no está verificado y no debe ' +
       'usarse. Reporta este error.',
     comparacion
   );
@@ -38,7 +38,7 @@ export function lhaPorBoquilla({ caudalLmin, velocidadKmh, espaciamientoM }) {
     valores: { lha },
     desglose: [
       paso(
-        'L/ha por el metodo por boquilla',
+        'L/ha por el método por boquilla',
         'caudal_boquilla * 600 / (velocidad * espaciamiento)',
         `${redondeoLegible(caudalLmin)} * ${FACTOR_LHA} / (${redondeoLegible(velocidadKmh)} * ${redondeoLegible(espaciamientoM)})`,
         lha,
@@ -71,7 +71,7 @@ export function lhaPorBarra({ caudalTotalLmin, velocidadKmh, anchoBarraM }) {
     valores: { lha },
     desglose: [
       paso(
-        'L/ha por el metodo por barra',
+        'L/ha por el método por barra',
         'caudal_total * 600 / (velocidad * ancho_barra)',
         `${redondeoLegible(caudalTotalLmin)} * ${FACTOR_LHA} / (${redondeoLegible(velocidadKmh)} * ${redondeoLegible(anchoBarraM)})`,
         lha,
@@ -96,7 +96,7 @@ export function ambosMetodos({
   anchoBarraM,
   umbralDiscrepanciaPct,
 }) {
-  requierePositivo('el numero de boquillas', numBoquillas);
+  requierePositivo('el número de boquillas', numBoquillas);
   const total =
     caudalTotalLmin === null || caudalTotalLmin === undefined
       ? caudalBoquillaLmin * numBoquillas
@@ -115,10 +115,10 @@ export function ambosMetodos({
       aviso(
         'advertencia',
         'metodos-discrepantes',
-        `Los dos metodos difieren ${redondeoLegible(discrepanciaPct)} %: por boquilla ` +
+        `Los dos métodos difieren ${redondeoLegible(discrepanciaPct)} %: por boquilla ` +
           `${redondeoLegible(a)} L/ha contra por barra ${redondeoLegible(b)} L/ha. El ` +
-          `espaciamiento por el numero de boquillas no cuadra con el ancho de barra: hay una ` +
-          'inconsistencia fisica en el equipo o en los datos capturados.',
+          `espaciamiento por el número de boquillas no cuadra con el ancho de barra: hay una ` +
+          'inconsistencia física en el equipo o en los datos capturados.',
         { porBoquilla: a, porBarra: b, discrepanciaPct }
       )
     );
@@ -178,7 +178,7 @@ export function caudalTotalRequerido({ lhaObjetivo, velocidadKmh, anchoBarraM, n
   requierePositivo('el ancho de barra', anchoBarraM);
 
   const total = (lhaObjetivo * velocidadKmh * anchoBarraM) / FACTOR_LHA;
-  const porBoquilla = numBoquillas ? total / requierePositivo('el numero de boquillas', numBoquillas) : null;
+  const porBoquilla = numBoquillas ? total / requierePositivo('el número de boquillas', numBoquillas) : null;
   const reproducido = lhaPorBarra({ caudalTotalLmin: total, velocidadKmh, anchoBarraM });
   const idaVuelta = verificarIdaVuelta(lhaObjetivo, reproducido.valores.lha);
 
@@ -300,11 +300,11 @@ export function presionRequerida({ lhaObjetivo, velocidadKmh, espaciamientoM, bo
       aviso(
         'advertencia',
         'presion-fuera-de-rango',
-        `La presion requerida (${redondeoLegible(presion)} bar) queda fuera del rango de ` +
-          `operacion de la boquilla (${redondeoLegible(boquilla.presionMinBar)} a ` +
+        `La presión requerida (${redondeoLegible(presion)} bar) queda fuera del rango de ` +
+          `operación de la boquilla (${redondeoLegible(boquilla.presionMinBar)} a ` +
           `${redondeoLegible(boquilla.presionMaxBar)} bar). Aunque el caudal salga exacto, el ` +
-          'patron de aspersion y el tamano de gota serian defectuosos. Cambiar de tamano de ' +
-          'boquilla es mejor palanca que forzar la presion.',
+          'patron de aspersión y el tamaño de gota serian defectuosos. Cambiar de tamaño de ' +
+          'boquilla es mejor palanca que forzar la presión.',
         {
           presionRequeridaBar: presion,
           presionMinBar: boquilla.presionMinBar,
@@ -323,7 +323,7 @@ export function presionRequerida({ lhaObjetivo, velocidadKmh, espaciamientoM, bo
     desglose: [
       ...caudal.desglose,
       paso(
-        'Presion requerida',
+        'Presión requerida',
         'presion_ref * (caudal_requerido / caudal_ref) ^ (1 / exponente)',
         `${redondeoLegible(boquilla.presionRefBar)} * (${redondeoLegible(caudal.valores.caudalLmin)} / ` +
           `${redondeoLegible(boquilla.caudalRefLmin)}) ^ (1 / ${boquilla.exponente})`,

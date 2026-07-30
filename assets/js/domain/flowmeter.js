@@ -15,7 +15,7 @@ function avisoRedundante(datos) {
   return aviso(
     'error',
     'calculo-no-verificado',
-    'Las dos rutas de calculo no coinciden: el resultado no esta verificado y no debe ' +
+    'Las dos rutas de cálculo no coinciden: el resultado no está verificado y no debe ' +
       'usarse. Reporta este error.',
     datos
   );
@@ -23,11 +23,11 @@ function avisoRedundante(datos) {
 
 // Factor de correccion por presion del rotametro.
 export function factorPresion({ psiManometrica, presionAtmosfericaLocal, presionEstandarCalibracion }) {
-  requiereFinito('la presion manometrica', psiManometrica);
-  requierePositivo('la presion atmosferica local', presionAtmosfericaLocal);
-  requierePositivo('la presion estandar de calibracion', presionEstandarCalibracion);
+  requiereFinito('la presión manométrica', psiManometrica);
+  requierePositivo('la presión atmosférica local', presionAtmosfericaLocal);
+  requierePositivo('la presión estándar de calibración', presionEstandarCalibracion);
   const presionAbsoluta = psiManometrica + presionAtmosfericaLocal;
-  requierePositivo('la presion absoluta resultante', presionAbsoluta);
+  requierePositivo('la presión absoluta resultante', presionAbsoluta);
   return Math.sqrt(presionAbsoluta / presionEstandarCalibracion);
 }
 
@@ -42,7 +42,7 @@ export function masaGas({
 }) {
   requierePositivo('la lectura del flotador', scfm);
   requierePositivo('el tiempo', tiempoS);
-  requierePositivo('la masa por pie cubico estandar', gPorScf);
+  requierePositivo('la masa por pie cúbico estándar', gPorScf);
 
   const factor = factorPresion({ psiManometrica, presionAtmosfericaLocal, presionEstandarCalibracion });
   const masaG = scfm * factor * gPorScf * (tiempoS / SEG_POR_MIN);
@@ -64,7 +64,7 @@ export function masaGas({
     valores: { masaG, factor },
     desglose: [
       paso(
-        'Factor de correccion por presion',
+        'Factor de corrección por presión',
         'raiz((psi_manometrica + presion_atmosferica_local) / presion_estandar)',
         `raiz((${redondeoLegible(psiManometrica)} + ${redondeoLegible(presionAtmosfericaLocal)}) / ${redondeoLegible(presionEstandarCalibracion)})`,
         factor,
@@ -100,9 +100,9 @@ export function despejePresion({
   requierePositivo('la masa objetivo', masaObjetivoG);
   requierePositivo('la lectura del flotador', scfm);
   requierePositivo('el tiempo', tiempoS);
-  requierePositivo('la masa por pie cubico estandar', gPorScf);
-  requierePositivo('la presion estandar de calibracion', presionEstandarCalibracion);
-  requierePositivo('la presion atmosferica local', presionAtmosfericaLocal);
+  requierePositivo('la masa por pie cúbico estándar', gPorScf);
+  requierePositivo('la presión estándar de calibración', presionEstandarCalibracion);
+  requierePositivo('la presión atmosférica local', presionAtmosfericaLocal);
 
   const factorRequerido = masaObjetivoG / (scfm * gPorScf * (tiempoS / SEG_POR_MIN));
   const psi = presionEstandarCalibracion * factorRequerido ** 2 - presionAtmosfericaLocal;
@@ -114,8 +114,8 @@ export function despejePresion({
       aviso(
         'advertencia',
         'objetivo-bajo-atmosferica',
-        `El objetivo exigiria una presion de ${redondeoLegible(psi)} psi, por debajo de la ` +
-          'atmosferica local: con esa lectura y ese tiempo ya se excede el consumo objetivo ' +
+        `El objetivo exigiría una presión de ${redondeoLegible(psi)} psi, por debajo de la ` +
+          'atmosférica local: con esa lectura y ese tiempo ya se excede el consumo objetivo ' +
           'sin presurizar. Baja la lectura del flotador o acorta el tiempo.',
         { psiRequerida: psi }
       )
@@ -144,7 +144,7 @@ export function despejePresion({
         ''
       ),
       paso(
-        'Presion manometrica requerida',
+        'Presión manométrica requerida',
         'presion_estandar * factor^2 - presion_atmosferica_local',
         `${redondeoLegible(presionEstandarCalibracion)} * ${redondeoLegible(factorRequerido)}^2 - ${redondeoLegible(presionAtmosfericaLocal)}`,
         psi,
@@ -167,7 +167,7 @@ export function despejeTiempo({
 }) {
   requierePositivo('la masa objetivo', masaObjetivoG);
   requierePositivo('la lectura del flotador', scfm);
-  requierePositivo('la masa por pie cubico estandar', gPorScf);
+  requierePositivo('la masa por pie cúbico estándar', gPorScf);
 
   const factor = factorPresion({ psiManometrica, presionAtmosfericaLocal, presionEstandarCalibracion });
   const tiempoS = (masaObjetivoG / (scfm * factor * gPorScf)) * SEG_POR_MIN;
@@ -213,7 +213,7 @@ export function despejeScfm({
 }) {
   requierePositivo('la masa objetivo', masaObjetivoG);
   requierePositivo('el tiempo', tiempoS);
-  requierePositivo('la masa por pie cubico estandar', gPorScf);
+  requierePositivo('la masa por pie cúbico estándar', gPorScf);
 
   const factor = factorPresion({ psiManometrica, presionAtmosfericaLocal, presionEstandarCalibracion });
   const scfm = masaObjetivoG / (factor * gPorScf * (tiempoS / SEG_POR_MIN));
@@ -236,8 +236,8 @@ export function despejeScfm({
         'fuera-de-escala-rotametro',
         `La lectura requerida (${redondeoLegible(scfm)} SCFM) cae fuera de la escala del ` +
           `${rotametro.modelo} (${redondeoLegible(rotametro.escalaMin)} a ` +
-          `${redondeoLegible(rotametro.escalaMax)} SCFM). El numero mostrado es el real, no ` +
-          'recortado; ajusta presion o tiempo para entrar en escala.',
+          `${redondeoLegible(rotametro.escalaMax)} SCFM). El número mostrado es el real, no ` +
+          'recortado; ajusta presión o tiempo para entrar en escala.',
         { scfm, escalaMin: rotametro.escalaMin, escalaMax: rotametro.escalaMax }
       )
     );

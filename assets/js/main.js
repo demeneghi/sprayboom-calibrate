@@ -7,6 +7,12 @@ import { crearAlmacen } from './storage.js';
 import { el, limpiar } from './ui/dom.js';
 import { crearTabs } from './ui/tabs.js';
 import { mostrarAvisoPersistente, mostrarToast } from './ui/toast.js';
+import { confirmar } from './ui/dialog.js';
+import {
+  armarUrlCompartir,
+  compartirUrl,
+  decodificarEstadoCompartido,
+} from './ui/compartir.js';
 
 import * as tabAvance from './ui/tabs/avance.js';
 import * as tabGasto from './ui/tabs/gasto.js';
@@ -39,15 +45,15 @@ export const SECCIONES = [
     etiqueta: 'Registrar',
     tabs: [
       { id: 'captura', etiqueta: 'Prueba de captura', modulo: tabCaptura },
-      { id: 'bitacora', etiqueta: 'Bitacora', modulo: tabBitacora },
+      { id: 'bitacora', etiqueta: 'Bitácora', modulo: tabBitacora },
     ],
   },
   {
     id: 'sistema',
     etiqueta: 'Sistema',
     tabs: [
-      { id: 'configuracion', etiqueta: 'Configuracion', modulo: tabConfiguracion },
-      { id: 'metodologia', etiqueta: 'Metodologia', modulo: tabMetodologia },
+      { id: 'configuracion', etiqueta: 'Configuración', modulo: tabConfiguracion },
+      { id: 'metodologia', etiqueta: 'Metodología', modulo: tabMetodologia },
     ],
   },
 ];
@@ -81,7 +87,7 @@ const almacen = crearAlmacen({
     if (franja) franja.classList.remove('oculto');
     mostrarAvisoPersistente(
       'No se pudo guardar en este navegador (almacenamiento lleno o modo privado). ' +
-        'La aplicacion sigue funcionando en memoria: exporta tus datos antes de cerrar.'
+        'La aplicación sigue funcionando en memoria: exporta tus datos antes de cerrar.'
     );
   },
 });
@@ -246,6 +252,104 @@ almacen.suscribir(({ tipo }) => {
   }
 });
 
+// ---------------------------------------------------------------------
+// Compartir por URL: el estado de la pantalla activa viaja en el hash
+// ---------------------------------------------------------------------
+const botonCompartir = document.getElementById('boton-compartir');
+if (botonCompartir) {
+  botonCompartir.addEventListener('click', async () => {
+    const estado = almacen.obtener();
+    const url = armarUrlCompartir({
+      seccion: rutaActual.seccion,
+      tab: rutaActual.tab,
+      borrador: estado.borradores?.[rutaActual.tab] ?? {},
+      contexto: {
+        tractorActivoId: estado.tractorActivoId,
+        equipoActivoId: estado.equipoActivoId,
+        unidades: estado.preferencias.unidades,
+      },
+    });
+    const resultado = await compartirUrl(url, 'Calibracion agricola MD2');
+    if (resultado === 'copiado') {
+      mostrarToast('Enlace copiado al portapapeles: pegalo en un mensaje.');
+    } else if (resultado === 'sin-soporte') {
+      mostrarToast(url, { duracionMs: 12000 });
+    }
+  });
+}
+
+async function aplicarEstadoCompartido(consulta) {
+  const parametros = new URLSearchParams(consulta);
+  const codigo = parametros.get('e');
+  if (!codigo) return;
+  const carga = decodificarEstadoCompartido(codigo);
+  if (!carga) {
+    mostrarToast('El enlace compartido no se pudo leer.', { tipo: 'destructivo' });
+    escribirHash(rutaActual.seccion, rutaActual.tab);
+    return;
+  }
+  const ok = await confirmar({
+    titulo: 'Cargar calibración compartida',
+    descripcion:
+      'Este enlace trae los valores capturados de una pantalla y su contexto (tractor, equipo y unidades). Se cargan en la pantalla correspondiente; tu configuración guardada no se toca.',
+    confirmarTexto: 'Cargar',
+  });
+  if (ok) {
+    almacen.actualizar((estado) => {
+      estado.borradores[carga.tab] = carga.borrador ?? {};
+      const contexto = carga.contexto ?? {};
+      if (contexto.tractorActivoId && estado.tractores.some((t) => t.id === contexto.tractorActivoId)) {
+        estado.tractorActivoId = contexto.tractorActivoId;
+      }
+      if (contexto.equipoActivoId && estado.equipos.some((e) => e.id === contexto.equipoActivoId)) {
+        estado.equipoActivoId = contexto.equipoActivoId;
+      }
+      if (contexto.unidades === 'metrico' || contexto.unidades === 'imperial') {
+        estado.preferencias.unidades = contexto.unidades;
+      }
+    }, 'contexto');
+  }
+  // Limpia el parametro del hash conservando la ruta.
+  history.replaceState(null, '', `#/${carga.seccion}/${carga.tab}`);
+  rutaActual = leerHash();
+  llenarSelectoresEncabezado();
+  renderizar();
+}
+
+// ---------------------------------------------------------------------
+// Service worker: sitio completo sin conexion tras la primera carga
+// ---------------------------------------------------------------------
+function registrarServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker
+    .register('./sw.js')
+    .then((registro) => {
+      registro.addEventListener('updatefound', () => {
+        const nuevo = registro.installing;
+        if (!nuevo) return;
+        nuevo.addEventListener('statechange', () => {
+          if (nuevo.state === 'installed' && navigator.serviceWorker.controller) {
+            mostrarToast('Hay una versión nueva de la aplicación.', {
+              duracionMs: 0,
+              accionTexto: 'Actualizar',
+              alAccionar: () => nuevo.postMessage('SALTAR_ESPERA'),
+            });
+          }
+        });
+      });
+      let recargando = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (recargando) return;
+        recargando = true;
+        location.reload();
+      });
+    })
+    .catch(() => {
+      // Sin service worker la aplicacion funciona igual; solo pierde el
+      // uso sin conexion.
+    });
+}
+
 // Arranque
 llenarSelectoresEncabezado();
 if (!location.hash) {
@@ -253,3 +357,7 @@ if (!location.hash) {
 }
 rutaActual = leerHash();
 renderizar();
+if (rutaActual.consulta) {
+  aplicarEstadoCompartido(rutaActual.consulta);
+}
+registrarServiceWorker();

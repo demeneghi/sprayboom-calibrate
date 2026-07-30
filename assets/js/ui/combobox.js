@@ -46,7 +46,7 @@ export function crearCombobox({ id, opciones, placeholder = 'Buscar...', alSelec
   function pintar() {
     limpiar(lista);
     if (filtradas.length === 0) {
-      lista.append(el('li', { clase: 'combobox__vacio' }, 'Sin coincidencias en el catalogo.'));
+      lista.append(el('li', { clase: 'combobox__vacio' }, 'Sin coincidencias en el catálogo.'));
       return;
     }
     filtradas.forEach((opcion, i) => {

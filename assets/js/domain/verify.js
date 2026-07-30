@@ -11,7 +11,7 @@
 //     de constants.js, duplicado a proposito.
 //
 // Si ambas rutas no coinciden dentro de la tolerancia, la interfaz NO
-// muestra el numero: muestra "calculo no verificado". Ademas, todo
+// muestra el numero: muestra "cálculo no verificado". Ademas, todo
 // despeje inverso se verifica en ida y vuelta contra la formula directa.
 
 import {

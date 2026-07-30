@@ -93,7 +93,7 @@ export function crearAlmacen({ backend = null, alFallarEscritura = null } = {}) 
           estado = { ...sembrarEstado(), ...cargado };
         } else {
           errores.push(
-            `Version de esquema desconocida (${cargado?.version}); se siembran defaults sin tocar lo guardado previo.`
+            `Versión de esquema desconocida (${cargado?.version}); se siembran defaults sin tocar lo guardado previo.`
           );
         }
       }
@@ -275,15 +275,15 @@ function validarEquipo(equipo) {
 
 const COTAS_BOQUILLA = {
   caudalRefLmin: { min: 0.01, max: 200, unidad: 'L/min', etiqueta: 'Caudal de referencia' },
-  presionRefBar: { min: 0.1, max: 50, unidad: 'bar', etiqueta: 'Presion de referencia' },
-  presionMinBar: { min: 0.1, max: 50, unidad: 'bar', etiqueta: 'Presion minima' },
-  presionMaxBar: { min: 0.1, max: 50, unidad: 'bar', etiqueta: 'Presion maxima' },
-  exponente: { min: 0.2, max: 0.8, unidad: '', etiqueta: 'Exponente presion-caudal' },
+  presionRefBar: { min: 0.1, max: 50, unidad: 'bar', etiqueta: 'Presión de referencia' },
+  presionMinBar: { min: 0.1, max: 50, unidad: 'bar', etiqueta: 'Presión mínima' },
+  presionMaxBar: { min: 0.1, max: 50, unidad: 'bar', etiqueta: 'Presión máxima' },
+  exponente: { min: 0.2, max: 0.8, unidad: '', etiqueta: 'Exponente presión-caudal' },
 };
 
 function validarBoquilla(boquilla) {
   if (boquilla.presionMinBar >= boquilla.presionMaxBar) {
-    return 'La presion minima debe ser menor que la maxima.';
+    return 'La presión mínima debe ser menor que la máxima.';
   }
   return null;
 }
@@ -294,16 +294,16 @@ export function importarJSON(texto, estadoActual) {
   try {
     datos = JSON.parse(texto);
   } catch {
-    return { ok: false, errores: ['El archivo no es JSON valido; no se importo nada.'] };
+    return { ok: false, errores: ['El archivo no es JSON valido; no se importó nada.'] };
   }
   if (!datos || datos.tipo !== 'sprayboom-configuracion') {
-    return { ok: false, errores: ['El archivo no es una configuracion de esta aplicacion.'] };
+    return { ok: false, errores: ['El archivo no es una configuración de esta aplicación.'] };
   }
   if (datos.version !== VERSION_ESQUEMA) {
     return {
       ok: false,
       errores: [
-        `Version de esquema desconocida (${datos.version}); esta aplicacion usa la version ${VERSION_ESQUEMA}. No se importo nada.`,
+        `Versión de esquema desconocida (${datos.version}); esta aplicación usa la versión ${VERSION_ESQUEMA}. No se importo nada.`,
       ],
     };
   }
@@ -344,15 +344,15 @@ export function importarCatalogoJSON(texto, estadoActual) {
   try {
     datos = JSON.parse(texto);
   } catch {
-    return { ok: false, errores: ['El archivo no es JSON valido; no se importo nada.'] };
+    return { ok: false, errores: ['El archivo no es JSON valido; no se importó nada.'] };
   }
   if (!datos || datos.tipo !== 'sprayboom-catalogo') {
-    return { ok: false, errores: ['El archivo no es un catalogo de boquillas de esta aplicacion.'] };
+    return { ok: false, errores: ['El archivo no es un catálogo de boquillas de esta aplicación.'] };
   }
   if (datos.version !== VERSION_ESQUEMA) {
     return {
       ok: false,
-      errores: [`Version de esquema desconocida (${datos.version}). No se importo nada.`],
+      errores: [`Versión de esquema desconocida (${datos.version}). No se importo nada.`],
     };
   }
   const catalogo = validarColeccion(datos.catalogo, COTAS_BOQUILLA, 'catalogo', rechazos, validarBoquilla);

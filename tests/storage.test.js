@@ -114,7 +114,7 @@ test('importacion: JSON corrupto o de version desconocida se rechaza completo', 
   const otro = { tipo: 'sprayboom-configuracion', version: 42, exportado: {} };
   const resultado = importarJSON(JSON.stringify(otro), estado);
   assert.equal(resultado.ok, false);
-  assert.match(resultado.errores[0], /Version de esquema desconocida/);
+  assert.match(resultado.errores[0], /Versión de esquema desconocida/);
   const ajeno = { tipo: 'otra-cosa', version: 1 };
   assert.equal(importarJSON(JSON.stringify(ajeno), estado).ok, false);
 });

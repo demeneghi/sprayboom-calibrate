@@ -29,7 +29,7 @@ export const SISTEMAS = ['metrico', 'imperial'];
 // factor: imperial = metrico * factor
 export const MAGNITUDES = {
   volumenAplicacion: {
-    etiqueta: 'Volumen de aplicacion',
+    etiqueta: 'Volumen de aplicación',
     metrico: 'L/ha',
     imperial: 'gal/acre',
     factor: HA_POR_ACRE / L_POR_GALON_US,

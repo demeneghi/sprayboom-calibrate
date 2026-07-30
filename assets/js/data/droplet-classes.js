@@ -29,7 +29,7 @@ export const EDICIONES_S572 = ['S572.1', 'S572.3'];
 
 export const CLASES_S572_1 = {
   edicion: 'S572.1',
-  nota: 'Colores: C azul y VC verde. Muchos catalogos de fabricante siguen publicando con esta edicion.',
+  nota: 'Colores: C azul y VC verde. Muchos catalogos de fabricante siguen publicando con esta edición.',
   categorias: [
     { simbolo: 'XF', nombre: 'Extremadamente fina', color: 'morado', vmdMinUm: null, vmdMaxUm: 60 },
     { simbolo: 'VF', nombre: 'Muy fina', color: 'rojo', vmdMinUm: 61, vmdMaxUm: 105 },
@@ -73,8 +73,8 @@ export const ORDEN_CLASES = ['XF', 'VF', 'F', 'M', 'C', 'VC', 'XC', 'UC'];
 // contacto. La decision depende del producto y de las condiciones del
 // dia, que la aplicacion no conoce.
 export const GUIA_USO_GOTA = {
-  F: 'Mejor cobertura y retencion; mayor riesgo de deriva.',
-  M: 'El punto medio mas usado cuando la etiqueta no especifica.',
-  C: 'Menos deriva; tipica para sistemicos.',
+  F: 'Mejor cobertura y retención; mayor riesgo de deriva.',
+  M: 'El punto medio más usado cuando la etiqueta no especifica.',
+  C: 'Menos deriva; típica para sistémicos.',
   VC: 'Poca deriva; puede comprometer cobertura de contacto.',
 };
