@@ -1,0 +1,840 @@
+/* Componentes: reproduccion de la anatomia shadcn en CSS nativo.
+   Sin librerias. Areas tactiles minimas de 44px aunque el control
+   visual mida 36px (se extiende el area de toque con ::after). */
+
+/* ------------------------------------------------------------------ */
+/* Card                                                                */
+/* ------------------------------------------------------------------ */
+.card {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.card__encabezado {
+  padding: 1rem 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.card__titulo {
+  font-size: 1.07rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.card__descripcion {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.93rem;
+}
+
+.card__contenido {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Button                                                              */
+/* ------------------------------------------------------------------ */
+.boton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.57rem; /* 36px con base 14 */
+  padding: 0 1rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  transition: background-color 120ms ease, opacity 120ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Area tactil minima de 44px sin agrandar el control visual */
+.boton::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+}
+
+.boton:active {
+  opacity: 0.85;
+}
+
+.boton:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.boton--secundario {
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+}
+
+.boton--contorno {
+  background-color: transparent;
+  border-color: hsl(var(--input));
+  color: hsl(var(--foreground));
+}
+
+.boton--fantasma {
+  background-color: transparent;
+  color: hsl(var(--foreground));
+}
+
+.boton--fantasma:active,
+.boton--contorno:active {
+  background-color: hsl(var(--accent));
+  opacity: 1;
+}
+
+.boton--destructivo {
+  background-color: hsl(var(--destructive));
+  color: hsl(var(--destructive-foreground));
+}
+
+.boton--sm {
+  height: 2.29rem; /* 32px */
+  padding: 0 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.93rem;
+}
+
+.boton--icono {
+  width: 2.57rem;
+  padding: 0;
+}
+
+.boton--bloque {
+  width: 100%;
+}
+
+/* ------------------------------------------------------------------ */
+/* Label e Input                                                       */
+/* ------------------------------------------------------------------ */
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.etiqueta {
+  font-size: 0.93rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.entrada {
+  height: 2.57rem; /* 36px */
+  width: 100%;
+  padding: 0 0.75rem;
+  border: 1px solid hsl(var(--input));
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  color: hsl(var(--foreground));
+}
+
+.entrada::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Solo lectura: campo de resultado activo, visualmente distinto del
+   deshabilitado (no esta inactivo, solo no se captura) */
+.entrada[readonly] {
+  background-color: hsl(var(--muted) / 0.5);
+  border-style: dashed;
+}
+
+.entrada:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.entrada[aria-invalid='true'] {
+  border-color: hsl(var(--destructive));
+}
+
+.campo__error {
+  color: hsl(var(--destructive-texto));
+  font-size: 0.86rem;
+}
+
+/* Ayuda contextual visible bajo el campo: en telefono no hay cursor,
+   asi que el texto del tooltip vive aqui, siempre visible. */
+.ayuda {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+/* ------------------------------------------------------------------ */
+/* Select nativo estilizado                                            */
+/* ------------------------------------------------------------------ */
+.selector {
+  position: relative;
+  display: block;
+}
+
+.selector select {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 2.57rem;
+  width: 100%;
+  padding: 0 2.2rem 0 0.75rem;
+  border: 1px solid hsl(var(--input));
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  color: hsl(var(--foreground));
+}
+
+.selector select:disabled {
+  opacity: 0.5;
+}
+
+.selector::after {
+  content: '';
+  position: absolute;
+  right: 0.85rem;
+  top: 50%;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid hsl(var(--muted-foreground));
+  border-bottom: 2px solid hsl(var(--muted-foreground));
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+.selector select option {
+  background-color: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+}
+
+/* ------------------------------------------------------------------ */
+/* Tabs (subnavegacion)                                                */
+/* ------------------------------------------------------------------ */
+.tabs__lista {
+  display: flex;
+  gap: 0.25rem;
+  background-color: hsl(var(--muted));
+  border-radius: var(--radius);
+  padding: 0.25rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.tabs__lista::-webkit-scrollbar {
+  display: none;
+}
+
+.tabs__disparador {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  padding: 0.5rem 0.8rem;
+  min-height: 2.5rem;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  font-size: 0.95rem;
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tabs__disparador[aria-selected='true'] {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  box-shadow: var(--shadow-sm);
+}
+
+/* ------------------------------------------------------------------ */
+/* Tabla                                                               */
+/* ------------------------------------------------------------------ */
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.93rem;
+}
+
+.tabla th {
+  color: hsl(var(--muted-foreground));
+  font-weight: 500;
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid hsl(var(--border));
+  white-space: nowrap;
+}
+
+.tabla td {
+  padding: 0.55rem 0.6rem;
+  border-bottom: 1px solid hsl(var(--border));
+  vertical-align: middle;
+}
+
+.tabla tbody tr:active {
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+.tabla--numerica td.numero,
+.tabla td.numero {
+  text-align: right;
+  font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ */
+/* Badge                                                               */
+/* ------------------------------------------------------------------ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  padding: 0.1rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.4;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  white-space: nowrap;
+}
+
+.badge--secundario {
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+}
+
+.badge--contorno {
+  background-color: transparent;
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.badge--destructivo {
+  background-color: hsl(var(--destructive));
+  color: hsl(var(--destructive-foreground));
+}
+
+.badge--advertencia {
+  background-color: hsl(var(--warning));
+  color: hsl(var(--warning-foreground));
+}
+
+/* Badge de color ISO: el fondo y el texto se asignan EN LINEA desde
+   data/iso-colors.js (los colores son datos); aqui solo la forma. */
+.badge--iso {
+  border-color: hsl(var(--border));
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.muestra-color {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 0.2rem;
+  border: 1px solid hsl(var(--border));
+  flex: 0 0 auto;
+}
+
+/* ------------------------------------------------------------------ */
+/* Alert                                                               */
+/* ------------------------------------------------------------------ */
+.alerta {
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  background-color: hsl(var(--card));
+}
+
+.alerta__titulo {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.alerta__descripcion {
+  font-size: 0.9rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.alerta--destructiva {
+  border-color: hsl(var(--destructive) / 0.6);
+  color: hsl(var(--destructive-texto));
+}
+
+.alerta--destructiva .alerta__descripcion {
+  color: hsl(var(--destructive-texto) / 0.9);
+}
+
+.alerta--advertencia {
+  border-color: hsl(var(--warning) / 0.7);
+}
+
+.alerta--advertencia .alerta__titulo {
+  color: hsl(var(--warning));
+}
+
+/* ------------------------------------------------------------------ */
+/* Dialog nativo                                                       */
+/* ------------------------------------------------------------------ */
+dialog.dialogo {
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  background-color: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  padding: 1.25rem;
+  width: min(92vw, 26rem);
+  max-height: 85dvh;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+}
+
+dialog.dialogo::backdrop {
+  background: rgb(0 0 0 / 0.6);
+}
+
+.dialogo__titulo {
+  font-size: 1.07rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.dialogo__descripcion {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.93rem;
+  margin-bottom: 0.9rem;
+}
+
+.dialogo__acciones {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Toast                                                               */
+/* ------------------------------------------------------------------ */
+.toasts {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(6.5rem + env(safe-area-inset-bottom));
+  width: min(92vw, 26rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  background-color: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  padding: 0.7rem 0.9rem;
+  font-size: 0.93rem;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.3);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.toast--destructivo {
+  border-color: hsl(var(--destructive) / 0.6);
+  color: hsl(var(--destructive-texto));
+}
+
+/* ------------------------------------------------------------------ */
+/* Switch y Checkbox                                                   */
+/* ------------------------------------------------------------------ */
+.switch {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 2.8rem;
+  height: 1.6rem;
+  border-radius: 9999px;
+  background-color: hsl(var(--input));
+  position: relative;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+  flex: 0 0 auto;
+}
+
+.switch::before {
+  content: '';
+  position: absolute;
+  top: 0.17rem;
+  left: 0.17rem;
+  width: 1.26rem;
+  height: 1.26rem;
+  border-radius: 50%;
+  background-color: hsl(var(--background));
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  transition: transform 150ms ease;
+}
+
+.switch:checked {
+  background-color: hsl(var(--primary));
+}
+
+.switch:checked::before {
+  transform: translateX(1.2rem);
+}
+
+.casilla {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 1px solid hsl(var(--input));
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  cursor: pointer;
+  display: inline-grid;
+  place-content: center;
+  flex: 0 0 auto;
+}
+
+.casilla:checked {
+  background-color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+}
+
+.casilla:checked::before {
+  content: '';
+  width: 0.35rem;
+  height: 0.65rem;
+  border-right: 2px solid hsl(var(--primary-foreground));
+  border-bottom: 2px solid hsl(var(--primary-foreground));
+  transform: rotate(45deg) translateY(-1px);
+}
+
+.fila-control {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.75rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Combobox filtrable (para el catalogo de boquillas)                  */
+/* ------------------------------------------------------------------ */
+.combobox {
+  position: relative;
+}
+
+.combobox__lista {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  max-height: 16rem;
+  overflow-y: auto;
+  background-color: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+  z-index: 50;
+  padding: 0.25rem;
+}
+
+.combobox__opcion {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.6rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  min-height: 2.75rem;
+  font-size: 0.95rem;
+}
+
+.combobox__opcion[aria-selected='true'],
+.combobox__opcion:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+.combobox__detalle {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.83rem;
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.combobox__vacio {
+  padding: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.9rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Resultados y desglose                                               */
+/* ------------------------------------------------------------------ */
+.resultado {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px dashed hsl(var(--border));
+  border-radius: var(--radius-md);
+  background-color: hsl(var(--muted) / 0.35);
+}
+
+.resultado__etiqueta {
+  font-size: 0.86rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.resultado__valor {
+  font-size: 1.55rem;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.resultado__unidad {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: hsl(var(--muted-foreground));
+}
+
+.resultado--principal .resultado__valor {
+  font-size: 2rem;
+}
+
+.resultado--error .resultado__valor {
+  color: hsl(var(--destructive-texto));
+  font-size: 1rem;
+}
+
+.desglose {
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+}
+
+.desglose summary {
+  padding: 0.6rem 0.75rem;
+  cursor: pointer;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 2.75rem;
+}
+
+.desglose summary::after {
+  content: '';
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 2px solid hsl(var(--muted-foreground));
+  border-bottom: 2px solid hsl(var(--muted-foreground));
+  transform: rotate(45deg);
+  transition: transform 150ms ease;
+}
+
+.desglose[open] summary::after {
+  transform: rotate(-135deg);
+}
+
+.desglose__cuerpo {
+  padding: 0 0.75rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.desglose__paso {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  border-left: 2px solid hsl(var(--border));
+  padding-left: 0.6rem;
+}
+
+.desglose__descripcion {
+  font-weight: 500;
+}
+
+.desglose__formula {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.83rem;
+}
+
+.desglose__sustitucion {
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.verificacion {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.83rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.verificacion--ok::before {
+  content: '';
+  width: 0.32rem;
+  height: 0.6rem;
+  border-right: 2px solid hsl(140 60% 45%);
+  border-bottom: 2px solid hsl(140 60% 45%);
+  transform: rotate(45deg);
+  flex: 0 0 auto;
+}
+
+.verificacion--fallo {
+  color: hsl(var(--destructive-texto));
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------ */
+/* Cuadricula de marchas: comoda de tocar con guantes                  */
+/* ------------------------------------------------------------------ */
+.cuadricula-marchas {
+  display: grid;
+  grid-template-columns: repeat(var(--marchas-por-rango, 3), 1fr);
+  gap: 0.5rem;
+}
+
+.marcha {
+  min-height: 3.6rem;
+  border: 1px solid hsl(var(--input));
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  color: hsl(var(--foreground));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.marcha__nombre {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.marcha__velocidad {
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+  font-variant-numeric: tabular-nums;
+}
+
+.marcha[aria-pressed='true'] {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.marcha[aria-pressed='true'] .marcha__velocidad {
+  color: hsl(var(--primary-foreground) / 0.75);
+}
+
+/* ------------------------------------------------------------------ */
+/* Navegacion inferior fija (3 secciones) + subnavegacion              */
+/* ------------------------------------------------------------------ */
+.nav-inferior {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(100%, 480px);
+  background-color: hsl(var(--background) / 0.92);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid hsl(var(--border));
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom));
+  z-index: 40;
+}
+
+.nav-inferior__boton {
+  border: 0;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  min-height: 3.15rem;
+  border-radius: var(--radius-md);
+  font-size: 0.86rem;
+  font-weight: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-inferior__boton[aria-current='true'] {
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--accent));
+}
+
+.nav-inferior__icono {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+/* Encabezado con selectores siempre visibles */
+.encabezado {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background-color: hsl(var(--background) / 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid hsl(var(--border));
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.encabezado__fila {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.encabezado__fila .selector {
+  flex: 1;
+  min-width: 0;
+}
+
+.encabezado__fila .selector select {
+  height: 2.4rem;
+  font-size: 0.9rem;
+}
+
+/* Aviso persistente (p. ej. almacenamiento no disponible) */
+.franja-aviso {
+  background-color: hsl(var(--warning));
+  color: hsl(var(--warning-foreground));
+  font-size: 0.86rem;
+  padding: 0.4rem 0.75rem;
+  text-align: center;
+}
