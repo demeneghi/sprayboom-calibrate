@@ -78,6 +78,10 @@ export const LBMOL_A_MOL = 453.592; // mol por lbmol
 // ---------------------------------------------------------------------
 export const PORCIENTO = 100;
 
+// Base de la dosis expresada "por cada 100 L de caldo" que usan algunas
+// etiquetas de producto.
+export const BASE_DOSIS_100L = 100;
+
 // =====================================================================
 // Grupo SI para la ruta redundante de calculo (domain/verify.js).
 //
