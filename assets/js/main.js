@@ -1,0 +1,255 @@
+// Arranque de la aplicacion: almacen, encabezado con selectores
+// siempre visibles (tractor, equipo, unidades), navegacion inferior de
+// tres secciones con subnavegacion por tabs, y enrutado por hash
+// (#/seccion/tab) porque GitHub Pages no tiene rewrites de servidor.
+
+import { crearAlmacen } from './storage.js';
+import { el, limpiar } from './ui/dom.js';
+import { crearTabs } from './ui/tabs.js';
+import { mostrarAvisoPersistente, mostrarToast } from './ui/toast.js';
+
+import * as tabAvance from './ui/tabs/avance.js';
+import * as tabGasto from './ui/tabs/gasto.js';
+import * as tabBoquillas from './ui/tabs/boquillas.js';
+import * as tabGas from './ui/tabs/gas.js';
+import * as tabForzamiento from './ui/tabs/forzamiento.js';
+import * as tabMezcla from './ui/tabs/mezcla.js';
+import * as tabCaptura from './ui/tabs/captura.js';
+import * as tabBitacora from './ui/tabs/bitacora.js';
+import * as tabConfiguracion from './ui/tabs/configuracion.js';
+import * as tabMetodologia from './ui/tabs/metodologia.js';
+
+// Propuesta de navegacion aprobada: tres secciones de primer nivel con
+// subnavegacion, porque diez tabs no caben en una barra de telefono.
+export const SECCIONES = [
+  {
+    id: 'calibrar',
+    etiqueta: 'Calibrar',
+    tabs: [
+      { id: 'avance', etiqueta: 'Avance', modulo: tabAvance },
+      { id: 'gasto', etiqueta: 'Gasto de agua', modulo: tabGasto },
+      { id: 'boquillas', etiqueta: 'Boquillas', modulo: tabBoquillas },
+      { id: 'gas', etiqueta: 'Gas etileno', modulo: tabGas },
+      { id: 'forzamiento', etiqueta: 'Forzamiento', modulo: tabForzamiento },
+      { id: 'mezcla', etiqueta: 'Mezcla', modulo: tabMezcla },
+    ],
+  },
+  {
+    id: 'registrar',
+    etiqueta: 'Registrar',
+    tabs: [
+      { id: 'captura', etiqueta: 'Prueba de captura', modulo: tabCaptura },
+      { id: 'bitacora', etiqueta: 'Bitacora', modulo: tabBitacora },
+    ],
+  },
+  {
+    id: 'sistema',
+    etiqueta: 'Sistema',
+    tabs: [
+      { id: 'configuracion', etiqueta: 'Configuracion', modulo: tabConfiguracion },
+      { id: 'metodologia', etiqueta: 'Metodologia', modulo: tabMetodologia },
+    ],
+  },
+];
+
+const RUTA_DEFAULT = { seccion: 'calibrar', tab: 'avance' };
+
+function leerHash() {
+  const hash = location.hash.replace(/^#\/?/, '');
+  const [ruta, consulta = ''] = hash.split('?');
+  const [seccionId, tabId] = ruta.split('/');
+  const seccion = SECCIONES.find((s) => s.id === seccionId);
+  if (!seccion) return { ...RUTA_DEFAULT, consulta };
+  const tab = seccion.tabs.find((t) => t.id === tabId) ?? seccion.tabs[0];
+  return { seccion: seccion.id, tab: tab.id, consulta };
+}
+
+function escribirHash(seccionId, tabId) {
+  const nuevo = `#/${seccionId}/${tabId}`;
+  if (location.hash !== nuevo) {
+    location.hash = nuevo;
+  }
+}
+
+// ---------------------------------------------------------------------
+// Almacen y contexto compartido de las pestanas
+// ---------------------------------------------------------------------
+const franja = document.getElementById('franja-almacen');
+
+const almacen = crearAlmacen({
+  alFallarEscritura: () => {
+    if (franja) franja.classList.remove('oculto');
+    mostrarAvisoPersistente(
+      'No se pudo guardar en este navegador (almacenamiento lleno o modo privado). ' +
+        'La aplicacion sigue funcionando en memoria: exporta tus datos antes de cerrar.'
+    );
+  },
+});
+
+if (!almacen.disponible && franja) {
+  franja.classList.remove('oculto');
+}
+for (const error of almacen.erroresDeCarga) {
+  mostrarToast(error, { tipo: 'destructivo', duracionMs: 8000 });
+}
+
+export const ctx = {
+  almacen,
+  estado: () => almacen.obtener(),
+  sistema: () => almacen.obtener().preferencias.unidades,
+  tractorActivo() {
+    const estado = almacen.obtener();
+    return estado.tractores.find((t) => t.id === estado.tractorActivoId) ?? estado.tractores[0];
+  },
+  equipoActivo() {
+    const estado = almacen.obtener();
+    return estado.equipos.find((e) => e.id === estado.equipoActivoId) ?? estado.equipos[0];
+  },
+  gasActivo() {
+    const estado = almacen.obtener();
+    return estado.gases.find((g) => g.id === estado.gasActivoId) ?? estado.gases[0];
+  },
+  rotametroActivo() {
+    const estado = almacen.obtener();
+    return (
+      estado.rotametros.find((r) => r.id === estado.rotametroActivoId) ?? estado.rotametros[0]
+    );
+  },
+  navegarA(seccionId, tabId) {
+    escribirHash(seccionId, tabId);
+  },
+  // Autosave de capturas en curso: los navegadores moviles matan
+  // pestanas sin avisar. Cada tab guarda su borrador con debounce.
+  borrador(tabId) {
+    return almacen.obtener().borradores?.[tabId] ?? {};
+  },
+  guardarBorrador(tabId, datos) {
+    almacen.actualizar((estado) => {
+      estado.borradores[tabId] = { ...(estado.borradores[tabId] ?? {}), ...datos };
+    }, 'borrador');
+  },
+};
+
+// ---------------------------------------------------------------------
+// Tema
+// ---------------------------------------------------------------------
+function aplicarTema() {
+  document.documentElement.dataset.theme = almacen.obtener().preferencias.tema;
+}
+aplicarTema();
+
+// ---------------------------------------------------------------------
+// Encabezado: selectores siempre visibles; cambiar recalcula en vivo
+// ---------------------------------------------------------------------
+const selectTractor = document.getElementById('selector-tractor');
+const selectEquipo = document.getElementById('selector-equipo');
+const selectUnidades = document.getElementById('selector-unidades');
+
+function llenarSelectoresEncabezado() {
+  const estado = almacen.obtener();
+  limpiar(selectTractor);
+  for (const tractor of estado.tractores) {
+    selectTractor.append(el('option', { value: tractor.id }, tractor.nombre));
+  }
+  selectTractor.value = estado.tractorActivoId;
+
+  limpiar(selectEquipo);
+  for (const equipo of estado.equipos) {
+    selectEquipo.append(el('option', { value: equipo.id }, equipo.nombre));
+  }
+  selectEquipo.value = estado.equipoActivoId;
+
+  selectUnidades.value = estado.preferencias.unidades;
+}
+
+selectTractor.addEventListener('change', () => {
+  almacen.actualizar((estado) => {
+    estado.tractorActivoId = selectTractor.value;
+  }, 'contexto');
+});
+selectEquipo.addEventListener('change', () => {
+  almacen.actualizar((estado) => {
+    estado.equipoActivoId = selectEquipo.value;
+  }, 'contexto');
+});
+selectUnidades.addEventListener('change', () => {
+  almacen.actualizar((estado) => {
+    estado.preferencias.unidades = selectUnidades.value;
+  }, 'contexto');
+});
+
+// ---------------------------------------------------------------------
+// Navegacion inferior y subnavegacion
+// ---------------------------------------------------------------------
+const botonesSeccion = Array.from(document.querySelectorAll('.nav-inferior__boton'));
+const zonaSubnav = document.getElementById('subnav');
+const panel = document.getElementById('panel');
+
+let rutaActual = leerHash();
+let tabsActuales = null;
+
+function renderizar() {
+  const seccion = SECCIONES.find((s) => s.id === rutaActual.seccion);
+  const tab = seccion.tabs.find((t) => t.id === rutaActual.tab);
+
+  for (const boton of botonesSeccion) {
+    const activo = boton.dataset.seccion === seccion.id;
+    boton.setAttribute('aria-current', activo ? 'true' : 'false');
+  }
+
+  limpiar(zonaSubnav);
+  tabsActuales = crearTabs({
+    id: `subnav-${seccion.id}`,
+    tabs: seccion.tabs,
+    activoId: tab.id,
+    idPanel: 'panel',
+    alCambiar: (tabId) => escribirHash(seccion.id, tabId),
+  });
+  zonaSubnav.append(tabsActuales.elemento);
+
+  panel.setAttribute('aria-labelledby', `subnav-${seccion.id}-tab-${tab.id}`);
+  limpiar(panel);
+  try {
+    tab.modulo.render(panel, ctx);
+  } catch (error) {
+    panel.append(
+      el(
+        'div',
+        { clase: 'alerta alerta--destructiva', role: 'alert' },
+        el('p', { clase: 'alerta__titulo' }, 'Esta pantalla no pudo pintarse'),
+        el('p', { clase: 'alerta__descripcion' }, String(error?.message ?? error))
+      )
+    );
+  }
+  window.scrollTo({ top: 0 });
+}
+
+for (const boton of botonesSeccion) {
+  boton.addEventListener('click', () => {
+    const seccion = SECCIONES.find((s) => s.id === boton.dataset.seccion);
+    escribirHash(seccion.id, seccion.tabs[0].id);
+  });
+}
+
+window.addEventListener('hashchange', () => {
+  rutaActual = leerHash();
+  renderizar();
+});
+
+// Cambios de contexto (tractor, equipo, unidades, tema) recalculan todo
+// en vivo re-pintando la pestana activa. Los borradores no re-pintan.
+almacen.suscribir(({ tipo }) => {
+  if (tipo === 'contexto') {
+    aplicarTema();
+    llenarSelectoresEncabezado();
+    renderizar();
+  }
+});
+
+// Arranque
+llenarSelectoresEncabezado();
+if (!location.hash) {
+  escribirHash(RUTA_DEFAULT.seccion, RUTA_DEFAULT.tab);
+}
+rutaActual = leerHash();
+renderizar();
