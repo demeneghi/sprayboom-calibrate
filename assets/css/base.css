@@ -46,7 +46,11 @@
 }
 
 html {
-  /* Tamano base 14px, el de shadcn */
+  /* Tamano base 14px, el de shadcn. NO es el tamano del texto de la
+     aplicacion: eso lo fija `body` con `--text-base` (16px). La raiz
+     se queda en 14px porque es la referencia de los `rem` de
+     ESPACIADO que ya estan repartidos por el sistema; el texto salio
+     de los `rem` y vive en la escala tipografica de `tokens.css`. */
   font-size: 14px;
   -webkit-text-size-adjust: 100%;
 }
@@ -55,7 +59,10 @@ body {
   font-family: var(--font-body);
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
-  line-height: 1.5;
+  /* Cuerpo de la aplicacion: 16px. Todo lo que no declare tamano
+     hereda de aqui, incluidos boton, campo y opcion de select. */
+  font-size: var(--text-base);
+  line-height: var(--leading-cuerpo);
   -webkit-font-smoothing: antialiased;
   min-height: 100dvh;
 }
@@ -87,14 +94,14 @@ textarea {
   color: inherit;
 }
 
-/* En pantallas tactiles los campos de captura van a 16px: iOS Safari
-   hace zoom automatico al enfocar campos menores de 16px. */
-@media (pointer: coarse) {
-  input,
-  select,
-  textarea {
-    font-size: 16px;
-  }
+/* Piso de 16px en los campos de captura, en toda pantalla y no solo en
+   la tactil: es el cuerpo de la aplicacion y ademas es lo que evita que
+   iOS Safari haga zoom automatico al enfocar un campo mas chico.
+   `max()` deja que una superficie suba el tamano, nunca que lo baje. */
+input,
+select,
+textarea {
+  font-size: max(16px, var(--text-base));
 }
 
 /* Toques sin retardo de doble tap, sin bloquear el pinch-zoom */
@@ -125,7 +132,7 @@ h1,
 h2,
 h3,
 h4 {
-  line-height: 1.25;
+  line-height: var(--leading-titulo);
   font-weight: 600;
 }
 
@@ -184,18 +191,22 @@ body {
   color: hsl(var(--muted-foreground));
 }
 
+/* Utilidades de la escala tipografica. NINGUN tamano de texto se
+   escribe suelto en el consumidor: se declara una de estas clases o se
+   usa el token en el componente. Solo fijan `font-size`; el
+   interlineado sigue viniendo de su contexto. */
 .texto-chico {
-  font-size: 0.86rem;
+  font-size: var(--text-sm);
 }
 
-/* Escala compacta con nombre (Sherman: `text-micro` / `text-meta`).
-   Por debajo de 12px NO se escriben tamanos sueltos en el consumidor:
-   si hace falta otro escalon se declara aqui como token. Solo fijan
-   `font-size`; el interlineado sigue viniendo de su contexto. */
 .texto-meta {
   font-size: var(--text-meta);
 }
 
 .texto-micro {
   font-size: var(--text-micro);
+}
+
+.texto-grande {
+  font-size: var(--text-lg);
 }

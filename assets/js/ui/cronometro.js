@@ -19,19 +19,17 @@ export function crearCronometro({
 
   const pantalla = el('div', {
     clase: 'resultado__valor mono',
-    estilo: { fontSize: '2.4rem', textAlign: 'center' },
+    estilo: { fontSize: 'var(--text-cifra-xl)', textAlign: 'center' },
     role: 'timer',
     'aria-live': 'off',
   });
 
-  const botonArrancar = el('button', { clase: 'boton', estilo: { minHeight: '3.15rem', flex: '1' } }, 'Arrancar');
-  const botonReiniciar = el(
-    'button',
-    { clase: 'boton boton--contorno', estilo: { minHeight: '3.15rem' } },
-    'Reiniciar'
-  );
+  // El alto lo manda el piso tactil de `components.css`; el consumidor
+  // no parchea `min-height` (regla dura del sistema de diseno).
+  const botonArrancar = el('button', { clase: 'boton', estilo: { flex: '1' } }, 'Arrancar');
+  const botonReiniciar = el('button', { clase: 'boton boton--contorno' }, 'Reiniciar');
   const botonUsar = alUsar
-    ? el('button', { clase: 'boton boton--secundario', estilo: { minHeight: '3.15rem' } }, etiquetaUsar)
+    ? el('button', { clase: 'boton boton--secundario' }, etiquetaUsar)
     : null;
 
   function transcurridoS() {

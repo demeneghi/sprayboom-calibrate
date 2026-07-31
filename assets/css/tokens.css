@@ -131,10 +131,37 @@
   --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
 
-  /* Escala compacta con nombre (equivale a `text-micro` / `text-meta`
-     de Sherman): por debajo de 12px no se escriben tamanos sueltos. */
-  --text-micro: 11px;
-  --text-meta: 12px;
+  /* ESCALA TIPOGRAFICA COMPLETA, en px y con nombre.
+     Ningun tamano de texto se escribe suelto en un componente: se
+     elige un escalon de esta escala. Antes cada componente traia su
+     propio `rem` (0.83, 0.86, 0.9, 0.93, 0.95, 1.07, 1.1, 1.55, 2) y
+     no habia forma de subir la letra de la aplicacion sin recorrer
+     ochenta reglas.
+
+     Los valores estan calibrados para LEER EN CAMPO: sol de frente,
+     pantalla sucia, a la distancia del brazo y con lentes de lectura.
+     Presbicia a partir de los 40 anos es la norma entre quienes
+     calibran el equipo, asi que el piso absoluto sube a 12px, el
+     cuerpo a 16px y la cifra del resultado a 34px. Cada escalon
+     crecio entre 1 y 6px respecto de la escala anterior.
+
+     Van en px, no en `rem`, por la misma razon que la geometria: la
+     raiz de este proyecto mide 14px y un `rem` no mide aqui lo que
+     mide en Sherman. */
+  --text-micro: 12px;  /* piso absoluto; nada baja de aqui */
+  --text-meta: 13px;   /* metadato, formula, unidad al margen */
+  --text-sm: 15px;     /* apoyo: ayuda, error, etiqueta, tabla */
+  --text-base: 16px;   /* cuerpo, boton, campo de captura */
+  --text-lg: 18px;     /* titulo de tarjeta y de dialogo */
+  --text-xl: 21px;     /* dato corto que se toca (marcha) */
+  --text-cifra: 26px;  /* resultado secundario */
+  --text-cifra-lg: 34px;  /* resultado principal de la pantalla */
+  --text-cifra-xl: 40px;  /* lectura a distancia de brazo (cronometro) */
+
+  /* Interlineado: el cuerpo va mas suelto que el 1.5 de Sherman
+     porque el renglon largo se pierde mas facil con lentes. */
+  --leading-cuerpo: 1.55;
+  --leading-titulo: 1.25;
 
   /* ---------------------------------------------------------------- */
   /* Geometria (en px: la raiz de este proyecto mide 14px)             */
@@ -146,8 +173,17 @@
 
   /* Alto nominal de los controles de una linea (input, select,
      boton). Sherman usa 32px en escritorio denso; aqui la aplicacion
-     es solo de telefono y el valor vigente del proyecto son 36px. */
-  --control-h: 36px;
+     es solo de telefono y el texto del control mide 16px, asi que
+     36px dejaban la letra rozando el borde. 44px es el area tactil
+     clasica: un campo de captura no es un objetivo de un solo toque
+     —por eso sigue por DEBAJO del piso tactil de campo (48px)— pero
+     tiene que dar de si para la letra grande. */
+  --control-h: 44px;
+
+  /* Alto del boton compacto (`.boton--sm`): la accion de fila dentro
+     de una tabla o de un editor, donde 44px repetidos veinte veces
+     dejarian la lista sin sitio. */
+  --control-h-sm: 36px;
 
   /* Anillo de foco. Se pinta FUERA del control y no ocupa lugar en el
      flujo: nada lo empuja, asi que es el apilado quien tiene que
@@ -178,12 +214,12 @@
      suben un escalon en el bloque de mas abajo. El chip es el unico
      consumidor de estos tokens: cambiar el escalon de una superficie
      es declarar los tokens, nunca repetir tamanos en el consumidor. */
-  --badge-h: 20px;
-  --badge-px: 8px;
-  --badge-gap: 4px;
-  --badge-text: 12px;
-  --badge-leading: 16px;
-  --badge-icon: 12px;
+  --badge-h: 22px;
+  --badge-px: 10px;
+  --badge-gap: 6px;
+  --badge-text: var(--text-meta);
+  --badge-leading: 18px;
+  --badge-icon: 13px;
 
   /* Sombras */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -324,14 +360,18 @@
    nunca repetir `min-height` en el consumidor. */
 @media (pointer: coarse), (width < 640px) {
   :root {
-    --touch-floor: 44px;
+    /* 48px, no los 44px clasicos: aqui se toca de pie, con guantes,
+       sobre un tractor que vibra y mirando por la parte baja de unos
+       lentes de lectura. Los 4px extra son la diferencia entre acertar
+       y volver a intentar. */
+    --touch-floor: 48px;
 
-    --badge-h: 24px;
-    --badge-px: 10px;
-    --badge-gap: 6px;
-    --badge-text: 14px;
+    --badge-h: 28px;
+    --badge-px: 12px;
+    --badge-gap: 8px;
+    --badge-text: var(--text-sm);
     --badge-leading: 20px;
-    --badge-icon: 14px;
+    --badge-icon: 16px;
   }
 }
 

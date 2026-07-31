@@ -127,7 +127,7 @@ export function render(panel, ctx) {
           'div',
           { clase: 'resultado' },
           el('span', { clase: 'resultado__etiqueta' }, etiqueta),
-          el('span', { clase: 'resultado__valor', estilo: { fontSize: '1.1rem' } },
+          el('span', { clase: 'resultado__valor', estilo: { fontSize: 'var(--text-lg)' } },
             `${formatear(valor, decimales)} ${unidadTexto}`)
         );
       reemplazar(
@@ -191,7 +191,7 @@ export function render(panel, ctx) {
       const ok = await confirmar({
         titulo: `Restaurar ${defGrupo.etiqueta}`,
         descripcion: 'Estos valores van a cambiar:',
-        cuerpo: el('ul', { estilo: { paddingLeft: '1.2rem', fontSize: '0.9rem' } }, cambios),
+        cuerpo: el('ul', { estilo: { paddingLeft: '1.2rem', fontSize: 'var(--text-sm)' } }, cambios),
         confirmarTexto: 'Restaurar',
         destructivo: true,
       });
@@ -286,7 +286,7 @@ export function render(panel, ctx) {
               descripcion: 'Estas filas de velocidad se perderían:',
               cuerpo: el(
                 'ul',
-                { estilo: { paddingLeft: '1.2rem', fontSize: '0.9rem' } },
+                { estilo: { paddingLeft: '1.2rem', fontSize: 'var(--text-sm)' } },
                 perdidas.map((v) =>
                   el('li', {}, `${tractor.etiquetasRango[v.rango] ?? v.rango + 1}${v.marcha}: ${v.kmhNominal} km/h (${v.origen})`)
                 )
@@ -328,7 +328,7 @@ export function render(panel, ctx) {
           inputmode: 'decimal',
           value: fila?.kmhNominal ?? '',
           'aria-label': `Velocidad nominal de ${etiqueta}`,
-          estilo: { height: '2.2rem', width: '5.5rem' },
+          estilo: { width: '5.5rem' },
         });
         entrada.addEventListener('change', () => {
           const valor = Number(entrada.value.replace(',', '.'));
@@ -595,7 +595,7 @@ export function render(panel, ctx) {
           el('div', { clase: 'resultado' },
             el('span', { clase: 'resultado__etiqueta' },
               `Masa por pie cúbico estándar (${efectivo.valores.anulado ? 'ANULADA manualmente' : 'derivada'})`),
-            el('span', { clase: 'resultado__valor', estilo: { fontSize: '1.2rem' } },
+            el('span', { clase: 'resultado__valor', estilo: { fontSize: 'var(--text-xl)' } },
               `${formatear(efectivo.valores.gPorScf, 4)} g/SCF`)),
           ...pintarAvisos(efectivo.avisos)
         );
@@ -848,8 +848,8 @@ export function render(panel, ctx) {
       reemplazar(
         listaClases,
         clases.map((rango, i) => {
-          const min = el('input', { clase: 'entrada', inputmode: 'decimal', value: rango.presionMinBar, estilo: { width: '4.2rem', height: '2.2rem' }, 'aria-label': 'Presión mínima del rango' });
-          const max = el('input', { clase: 'entrada', inputmode: 'decimal', value: rango.presionMaxBar, estilo: { width: '4.2rem', height: '2.2rem' }, 'aria-label': 'Presión máxima del rango' });
+          const min = el('input', { clase: 'entrada', inputmode: 'decimal', value: rango.presionMinBar, estilo: { width: '4.6rem' }, 'aria-label': 'Presión mínima del rango' });
+          const max = el('input', { clase: 'entrada', inputmode: 'decimal', value: rango.presionMaxBar, estilo: { width: '4.6rem' }, 'aria-label': 'Presión máxima del rango' });
           const clase = el('select', { 'aria-label': 'Clase de gota' }, ORDEN_CLASES.map((c) => el('option', { value: c, selected: c === rango.clase || null }, c)));
           min.addEventListener('change', () => { clases[i].presionMinBar = Number(min.value.replace(',', '.')); });
           max.addEventListener('change', () => { clases[i].presionMaxBar = Number(max.value.replace(',', '.')); });
