@@ -26,13 +26,46 @@
     <main class="contenido">
       <section class="card">
         <div class="card__encabezado">
-          <h2 class="card__titulo">Card con encabezado</h2>
-          <p class="card__descripcion">Título, descripción y contenido, como en shadcn.</p>
+          <h2 class="card__titulo">Card con banda de identidad</h2>
+          <p class="card__descripcion">Banda con el cromado del módulo, título y contenido.</p>
         </div>
         <div class="card__contenido">
           <p class="texto-suave texto-chico">Este es el contenido de la tarjeta. La pagina completa
           es la muestra viva del sistema: todos los componentes en ambos temas, en el layout de
           teléfono (columna única, máximo 480px).</p>
+          <p class="texto-suave texto-chico">El relleno interior lo pone la superficie
+          (<code class="mono">.card__contenido</code>), nunca el contenido: un relleno propio en el
+          nodo raíz de lo que va dentro se suma al de la tarjeta.</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card__encabezado">
+          <h2 class="card__titulo">Acento por sección</h2>
+          <p class="card__descripcion">El color identifica al módulo, no a la pantalla: tres
+          acentos, uno por sección de la navegación inferior. Las diez pestañas NO tienen color
+          propio a propósito.</p>
+        </div>
+        <div class="card__contenido">
+          <div data-seccion="calibrar" class="card">
+            <div class="card__encabezado">
+              <h2 class="card__titulo">Calibrar</h2>
+              <p class="card__descripcion">Verde de marca.</p>
+            </div>
+          </div>
+          <div data-seccion="registrar" class="card">
+            <div class="card__encabezado">
+              <h2 class="card__titulo">Registrar</h2>
+              <p class="card__descripcion">Violeta.</p>
+            </div>
+          </div>
+          <div data-seccion="sistema" class="card">
+            <div class="card__encabezado">
+              <h2 class="card__titulo">Sistema</h2>
+              <p class="card__descripcion">Neutro: la banda se atenúa, el título NO (es la
+              identidad del bloque).</p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -125,16 +158,26 @@
       <section class="card">
         <div class="card__encabezado">
           <h2 class="card__titulo">Badges y colores ISO</h2>
-          <p class="card__descripcion">Los colores ISO se pintan desde data/iso-colors.js, iguales
-          en ambos temas, con texto elegido por luminancia para contraste AA.</p>
+          <p class="card__descripcion">La geometría del chip sale entera de los tokens
+          <code class="mono">--badge-*</code>: en pantalla táctil sube un escalón (24px de alto,
+          14px de texto) sin tocar una sola clase. Los colores ISO se pintan desde
+          data/iso-colors.js, iguales en ambos temas, con texto elegido por luminancia para
+          contraste AA.</p>
         </div>
         <div class="card__contenido">
           <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
             <span class="badge">Default</span>
             <span class="badge badge--secundario">Secundario</span>
             <span class="badge badge--contorno">Contorno</span>
-            <span class="badge badge--destructivo">Destructivo</span>
+          </div>
+          <p class="ayuda">Estados semánticos: mismo par borde + fondo + texto que los badges de
+          dominio de Sherman. La paleta vive en los tokens, no en la pantalla.</p>
+          <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+            <span class="badge badge--exito">Verificado</span>
+            <span class="badge badge--info">Estimado</span>
             <span class="badge badge--advertencia">Advertencia</span>
+            <span class="badge badge--destructivo">Destructivo</span>
+            <span class="badge badge--neutro">Sin dato</span>
           </div>
           <div id="badges-iso" style="display:flex; flex-wrap:wrap; gap:0.4rem;"></div>
         </div>
@@ -144,9 +187,19 @@
         <div class="card__encabezado"><h2 class="card__titulo">Alertas</h2></div>
         <div class="card__contenido">
           <div class="alerta" role="status">
+            <p class="alerta__titulo">Neutra</p>
+            <p class="alerta__descripcion">Sin carga semántica: un apunte que acompaña al
+            formulario.</p>
+          </div>
+          <div class="alerta alerta--info" role="status">
             <p class="alerta__titulo">Velocidad estimada</p>
             <p class="alerta__descripcion">Las velocidades por marcha son estimaciones mientras no
             se calibren contra la unidad real.</p>
+          </div>
+          <div class="alerta alerta--exito" role="status">
+            <p class="alerta__titulo">Aforo dentro de tolerancia</p>
+            <p class="alerta__descripcion">Las boquillas medidas caen dentro del ±10 % del caudal
+            nominal.</p>
           </div>
           <div class="alerta alerta--advertencia" role="alert">
             <p class="alerta__titulo">Régimen distinto al de calibración</p>

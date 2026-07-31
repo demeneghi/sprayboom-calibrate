@@ -1,16 +1,31 @@
-/* Tokens de diseno: reproduccion del lenguaje visual de shadcn/ui en
-   CSS nativo, sin instalar nada.
+/* Tokens de diseno: sistema visual Sherman reproducido en CSS nativo,
+   sin instalar nada.
 
-   Formato: tres numeros HSL sin la funcion hsl(), como exige el
-   documento de diseno, para poder componer opacidades:
+   Fuente de verdad del sistema: `src/app.css` del repositorio Sherman
+   (bloque `@theme` para el tema claro, `.dark` para el oscuro) y las
+   reglas de `.claude/rules/design-system.md`. La adaptacion a este
+   proyecto esta documentada en `.claude/rules/design-system.md` de este
+   repositorio.
+
+   Formato de COLOR: tres numeros HSL sin la funcion hsl(), como exige
+   el documento de diseno de este proyecto, para poder componer
+   opacidades:
      background-color: hsl(var(--card));
      border-color: hsl(var(--border) / 0.5);
 
-   Nota de verificacion (2026-07-30): la documentacion vigente de
-   ui.shadcn.com ya usa OKLCH y elimino --destructive-foreground. Aqui
-   se conserva a proposito el formato HSL de tres numeros y el juego de
-   tokens del documento de diseno (tema zinc), porque la composicion de
-   opacidades con hsl(var(--x) / a) es requisito explicito del proyecto.
+   Sherman declara los mismos colores en OKLCH. Aqui se conserva el
+   formato HSL de tres numeros a proposito: 124 puntos del CSS y del JS
+   componen opacidad con `hsl(var(--x) / a)`, y `tools/verificar-contraste.mjs`
+   (compuerta AA en CI) lee estos tripletes. Los VALORES si son los de
+   Sherman, convertidos desde OKLCH; las desviaciones estan marcadas
+   una por una mas abajo.
+
+   Formato de GEOMETRIA: pixeles, no `rem`. Este proyecto fija
+   `html { font-size: 14px }` mientras Sherman usa la base de 16px del
+   navegador, asi que un `rem` no mide lo mismo en los dos: el piso
+   tactil de Sherman (`2.75rem` = 44px) valdria 38.5px aqui. Lo que
+   representa una medida fisica (area tactil, alto de control, alto de
+   chip, radio) se declara en px para que mida lo mismo en ambos.
 
    Temas: claro en :root, oscuro en [data-theme="oscuro"], y automatico
    siguiendo prefers-color-scheme cuando [data-theme="auto"]. El default
@@ -18,74 +33,206 @@
    primer pintado); estos bloques solo definen los valores. */
 
 :root {
-  /* Tema claro (zinc) */
+  /* ---------------------------------------------------------------- */
+  /* Color: superficie y texto (neutros de Sherman, tono 0)            */
+  /* ---------------------------------------------------------------- */
   --background: 0 0% 100%;
-  --foreground: 240 10% 3.9%;
+  --foreground: 0 0% 3.9%;
   --card: 0 0% 100%;
-  --card-foreground: 240 10% 3.9%;
+  --card-foreground: 0 0% 3.9%;
   --popover: 0 0% 100%;
-  --popover-foreground: 240 10% 3.9%;
-  --primary: 240 5.9% 10%;
+  --popover-foreground: 0 0% 3.9%;
+
+  /* Verde de marca de Sherman (#006045). Es lo que pinta la accion
+     principal, la pestana activa, el foco y el acento de la seccion
+     Calibrar: el gris casi negro que traia shadcn dejaba la interfaz
+     entera sin color. */
+  --primary: 163 100% 18.8%;
   --primary-foreground: 0 0% 98%;
-  --secondary: 240 4.8% 95.9%;
-  --secondary-foreground: 240 5.9% 10%;
-  --muted: 240 4.8% 95.9%;
-  /* Ajuste AA: el zinc de fabrica trae 46.1%, que da 4.40:1 sobre
-     --muted (texto de tab inactivo); 42% da 5.1:1. */
-  --muted-foreground: 240 3.8% 42%;
-  --accent: 240 4.8% 95.9%;
-  --accent-foreground: 240 5.9% 10%;
-  /* Ajuste AA: el zinc de fabrica trae 0 84.2% 60.2%, que con texto
-     blanco da 3.76:1; 45% de luminosidad da 5.8:1. */
+
+  --secondary: 0 0% 96.1%;
+  --secondary-foreground: 0 0% 9%;
+  --muted: 0 0% 96.1%;
+  /* Desviacion respecto a Sherman (mantiene el ajuste AA del proyecto):
+     Sherman usa 45.2% de luminosidad, que sobre --muted da 4.33:1;
+     42% da 4.88:1 y pasa la compuerta de contraste. */
+  --muted-foreground: 0 0% 42%;
+  --accent: 0 0% 96.1%;
+  --accent-foreground: 0 0% 9%;
+
+  /* Desviacion respecto a Sherman (ajuste AA del proyecto): el rojo de
+     Sherman con texto blanco da 3.76:1; 45% de luminosidad da 5.8:1. */
   --destructive: 0 72% 45%;
   --destructive-foreground: 0 0% 98%;
   /* Texto destructivo SOBRE el fondo del tema (mensajes de error):
      en claro el mismo rojo; en oscuro uno mas claro y legible. */
   --destructive-texto: 0 72% 45%;
-  --border: 240 5.9% 90%;
-  --input: 240 5.9% 90%;
-  --ring: 240 10% 3.9%;
 
-  --radius: 0.5rem;
+  /* Jerarquia de bordes de Sherman: el de seccion pesa mas que el de
+     tabla. Si se ajusta uno, mantener la relacion seccion > tabla. */
+  --border: 0 0% 92.1%;
+  --border-sutil: 0 0% 94.1%;
+  --input: 0 0% 89.8%;
+  --ring: 163 100% 18.8%;
+
+  /* ---------------------------------------------------------------- */
+  /* Color: estados semanticos (chips y alertas)                       */
+  /* ---------------------------------------------------------------- */
+  /* Cada estado trae texto + fondo + borde, como los badges de Sherman
+     (`tarea-badge-palette.ts`). El texto cumple AA sobre su fondo; la
+     compuerta lo verifica par por par. */
+
+  /* Verde: verificacion correcta, valor dentro de rango. */
+  --exito: 142 61% 24%;
+  --exito-foreground: 0 0% 100%;
+  --exito-fondo: 141 79% 93%;
+  --exito-borde: 142 66% 55%;
+
+  /* Azul: informacion neutra, dato de referencia. */
+  --info: 201 90% 27%;
+  --info-foreground: 0 0% 100%;
+  --info-fondo: 204 94% 94%;
+  --info-borde: 199 89% 48%;
+
+  /* Ambar: advertencia (distinguir advertencia de error destructivo
+     importa en una herramienta de calibracion). */
+  --warning: 38 92% 30%;
+  --warning-foreground: 0 0% 100%;
+  --warning-fondo: 48 96% 89%;
+  --warning-borde: 38 92% 50%;
+
+  /* Rojo: el fondo y el borde del chip destructivo. */
+  --destructive-fondo: 0 93% 94%;
+  --destructive-borde: 0 84% 60%;
+
+  /* Gris: chip sin carga semantica. */
+  --neutro: 0 0% 33%;
+  --neutro-fondo: 0 0% 94.5%;
+  --neutro-borde: 0 0% 74%;
+
+  /* ---------------------------------------------------------------- */
+  /* Color: acento por seccion                                        */
+  /* ---------------------------------------------------------------- */
+  /* Equivalente de `accentModulo` en Sherman: el color identifica el
+     MODULO, no la pantalla. Tres acentos declarados aqui, uno por
+     seccion de la navegacion inferior; las diez pestanas NO tienen
+     color propio (inventar diez tonos convierte la senal en adorno). */
+  --acento-calibrar: 163 100% 18.8%;
+  --acento-registrar: 263 70% 42%;
+  --acento-sistema: 0 0% 42%;
+
+  /* ---------------------------------------------------------------- */
+  /* Tipografia                                                        */
+  /* ---------------------------------------------------------------- */
+  /* Mismas familias que Sherman: Inter para el cuerpo, IBM Plex Mono
+     para cifras, codigos y lecturas de instrumento. Las dos van
+     autohospedadas (@font-face en base.css); la pila de respaldo cubre
+     el arranque y el caso de fuente bloqueada. */
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* Escala compacta con nombre (equivale a `text-micro` / `text-meta`
+     de Sherman): por debajo de 12px no se escriben tamanos sueltos. */
+  --text-micro: 11px;
+  --text-meta: 12px;
+
+  /* ---------------------------------------------------------------- */
+  /* Geometria (en px: la raiz de este proyecto mide 14px)             */
+  /* ---------------------------------------------------------------- */
+  /* Radio de Sherman: 0.625rem sobre base 16px = 10px. */
+  --radius: 10px;
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 
-  /* Advertencias (propio de la aplicacion: distinguir advertencia de
-     error destructivo importa en una herramienta de calibracion) */
-  --warning: 38 92% 30%;
-  --warning-foreground: 0 0% 100%;
+  /* Alto nominal de los controles de una linea (input, select,
+     boton). Sherman usa 32px en escritorio denso; aqui la aplicacion
+     es solo de telefono y el valor vigente del proyecto son 36px. */
+  --control-h: 36px;
 
-  /* Sombra de tarjeta */
+  /* Piso tactil: lo consume el boton en `components.css` en DOS reglas
+     (alto y, solo en botones de icono, ancho), nunca repitiendo
+     `min-height` por consumidor. Vale 0 fuera de superficies tactiles;
+     los bloques de abajo lo encienden. */
+  --touch-floor: 0px;
+
+  /* Geometria del chip (badge). Valores COMPACTOS; en pantalla tactil
+     suben un escalon en el bloque de mas abajo. El chip es el unico
+     consumidor de estos tokens: cambiar el escalon de una superficie
+     es declarar los tokens, nunca repetir tamanos en el consumidor. */
+  --badge-h: 20px;
+  --badge-px: 8px;
+  --badge-gap: 4px;
+  --badge-text: 12px;
+  --badge-leading: 16px;
+  --badge-icon: 12px;
+
+  /* Sombras */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.1);
 }
 
-/* Tema oscuro (zinc): valores del documento de diseno */
+/* Tema oscuro (neutros de Sherman) */
 :root[data-theme='oscuro'] {
-  --background: 240 10% 3.9%;
+  /* Sherman separa fondo (0.22) y tarjeta (0.26): con los dos en el
+     mismo valor, como estaban, las tarjetas eran invisibles en oscuro
+     y toda la pantalla se leia como un solo bloque. */
+  --background: 0 0% 10.4%;
   --foreground: 0 0% 98%;
-  --card: 240 10% 3.9%;
+  --card: 0 0% 14.1%;
   --card-foreground: 0 0% 98%;
-  --popover: 240 10% 3.9%;
+  --popover: 0 0% 14.1%;
   --popover-foreground: 0 0% 98%;
-  --primary: 0 0% 98%;
-  --primary-foreground: 240 5.9% 10%;
-  --secondary: 240 3.7% 15.9%;
+
+  /* Verde de marca oscuro de Sherman (#5cd4a4). */
+  --primary: 156 58% 60%;
+  --primary-foreground: 0 0% 14.1%;
+
+  --secondary: 0 0% 19.9%;
   --secondary-foreground: 0 0% 98%;
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
-  --accent: 240 3.7% 15.9%;
+  --muted: 0 0% 19.9%;
+  --muted-foreground: 0 0% 63%;
+  --accent: 0 0% 19.9%;
   --accent-foreground: 0 0% 98%;
+
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 0 0% 98%;
   --destructive-texto: 0 84% 70%;
-  --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
-  --ring: 240 4.9% 83.9%;
+
+  /* Gris solido, no blanco con alpha: evita las lineas que se leen
+     "blancas" sobre el fondo oscuro. */
+  --border: 0 0% 17.9%;
+  --border-sutil: 0 0% 14.1%;
+  --input: 0 0% 24%;
+  --ring: 156 58% 60%;
+
+  --exito: 141 76% 73%;
+  --exito-foreground: 143 64% 8%;
+  --exito-fondo: 142 32% 16%;
+  --exito-borde: 142 50% 38%;
+
+  --info: 201 94% 78%;
+  --info-foreground: 202 80% 8%;
+  --info-fondo: 201 45% 17%;
+  --info-borde: 200 60% 40%;
 
   --warning: 38 92% 50%;
   --warning-foreground: 24 100% 5%;
+  --warning-fondo: 36 45% 17%;
+  --warning-borde: 38 70% 40%;
+
+  --destructive-fondo: 0 40% 19%;
+  --destructive-borde: 0 60% 45%;
+
+  --neutro: 0 0% 75%;
+  --neutro-fondo: 0 0% 21%;
+  --neutro-borde: 0 0% 38%;
+
+  --acento-calibrar: 156 58% 60%;
+  --acento-registrar: 252 90% 82%;
+  --acento-sistema: 0 0% 63%;
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.5);
 }
 
 /* Automatico: sigue al sistema. Duplicado necesario del bloque oscuro
@@ -93,31 +240,79 @@
    media query solo en uno. */
 @media (prefers-color-scheme: dark) {
   :root[data-theme='auto'] {
-    --background: 240 10% 3.9%;
+    --background: 0 0% 10.4%;
     --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
+    --card: 0 0% 14.1%;
     --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
+    --popover: 0 0% 14.1%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
+
+    --primary: 156 58% 60%;
+    --primary-foreground: 0 0% 14.1%;
+
+    --secondary: 0 0% 19.9%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
+    --muted: 0 0% 19.9%;
+    --muted-foreground: 0 0% 63%;
+    --accent: 0 0% 19.9%;
     --accent-foreground: 0 0% 98%;
+
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --destructive-texto: 0 84% 70%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+
+    --border: 0 0% 17.9%;
+    --border-sutil: 0 0% 14.1%;
+    --input: 0 0% 24%;
+    --ring: 156 58% 60%;
+
+    --exito: 141 76% 73%;
+    --exito-foreground: 143 64% 8%;
+    --exito-fondo: 142 32% 16%;
+    --exito-borde: 142 50% 38%;
+
+    --info: 201 94% 78%;
+    --info-foreground: 202 80% 8%;
+    --info-fondo: 201 45% 17%;
+    --info-borde: 200 60% 40%;
 
     --warning: 38 92% 50%;
     --warning-foreground: 24 100% 5%;
+    --warning-fondo: 36 45% 17%;
+    --warning-borde: 38 70% 40%;
+
+    --destructive-fondo: 0 40% 19%;
+    --destructive-borde: 0 60% 45%;
+
+    --neutro: 0 0% 75%;
+    --neutro-fondo: 0 0% 21%;
+    --neutro-borde: 0 0% 38%;
+
+    --acento-calibrar: 156 58% 60%;
+    --acento-registrar: 252 90% 82%;
+    --acento-sistema: 0 0% 63%;
 
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+    --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.5);
+  }
+}
+
+/* Escalon tactil: el chip sube un peldano y el piso tactil se enciende.
+   Regla de Sherman (ADR 0069 y 0072) adaptada: esta aplicacion es SOLO
+   de telefono, asi que el escalon aplica siempre que el puntero sea
+   grueso o la pantalla estrecha, no en un breakpoint de escritorio.
+   Encender el piso en una superficie nueva = declarar `--touch-floor`,
+   nunca repetir `min-height` en el consumidor. */
+@media (pointer: coarse), (width < 640px) {
+  :root {
+    --touch-floor: 44px;
+
+    --badge-h: 24px;
+    --badge-px: 10px;
+    --badge-gap: 6px;
+    --badge-text: 14px;
+    --badge-leading: 20px;
+    --badge-icon: 14px;
   }
 }
 

@@ -26,6 +26,8 @@ const PRECACHE = [
   './assets/css/components.css',
   './assets/css/tokens.css',
   './assets/fonts/OFL.txt',
+  './assets/fonts/ibm-plex-mono-latin-400.woff2',
+  './assets/fonts/ibm-plex-mono-latin-600.woff2',
   './assets/fonts/inter-latin-variable.woff2',
   './assets/icons/favicon.svg',
   './assets/icons/icon-192.png',

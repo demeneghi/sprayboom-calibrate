@@ -1,0 +1,159 @@
+# Marco de diseño (adaptado de Sherman)
+
+El sistema visual de esta aplicación **no se inventa**: se copia del marco de diseño de
+**Sherman** (`.claude/rules/design-system.md` de ese repositorio y su `src/app.css`) y se
+reproduce en **CSS nativo**, sin Tailwind, sin librerías y sin paso de build.
+
+Este documento dice qué se copió tal cual, qué se adaptó y por qué. Cuando una regla de Sherman
+y una decisión de este proyecto choquen, gana lo escrito aquí — y el motivo queda anotado.
+
+## Fuente de verdad
+
+| Capa | Archivo |
+| --- | --- |
+| Tokens (color, tipografía, geometría) | `assets/css/tokens.css` |
+| Reset, tipografía base, layout y utilidades | `assets/css/base.css` |
+| Componentes | `assets/css/components.css` |
+| Muestra viva de todo el sistema | `componentes.html` |
+| Compuerta de contraste AA (CI) | `tools/verificar-contraste.mjs` |
+
+Ningún componente declara colores, radios ni tamaños sueltos: todo entra por token.
+
+## Diferencias declaradas respecto a Sherman
+
+Son cinco, y ninguna es cosmética.
+
+1. **El color va en HSL de tres números, no en OKLCH.** Sherman declara
+   `--color-primary: oklch(...)`. Aquí el formato es el triplete `H S% L%` sin la función,
+   porque 124 puntos del CSS y del JS componen opacidad con `hsl(var(--x) / a)` y porque la
+   compuerta de contraste de CI lee esos tripletes. **Los valores sí son los de Sherman**,
+   convertidos desde OKLCH.
+
+2. **La geometría va en píxeles, no en `rem`.** Este proyecto fija `html { font-size: 14px }`
+   y Sherman usa la base de 16px del navegador. Un `rem` no mide lo mismo en los dos: el piso
+   táctil de Sherman (`2.75rem` = 44px) valdría **38.5px** aquí, por debajo del objetivo. Lo que
+   representa una medida física —piso táctil, alto de control, alto de chip, radio— se declara en
+   px.
+
+3. **Tres valores conservan el ajuste AA propio del proyecto** y no toman el de Sherman, porque
+   el de Sherman no pasa la compuerta con los pares que esta aplicación usa:
+   `--muted-foreground` (42% en vez de 45.2%), `--destructive` y `--warning`. Cada uno lleva su
+   comentario en `tokens.css`.
+
+4. **El tema por defecto es oscuro**, no claro. Es una decisión de producto anterior
+   (`index.html` lo estampa en `<html>` antes del primer pintado) y se conserva; el usuario puede
+   elegir claro, oscuro o automático.
+
+5. **El escalón táctil no está tras un breakpoint de escritorio.** Sherman lo enciende en
+   `@media (width < 640px)` porque es una aplicación de escritorio con adaptación a teléfono.
+   Esta es **solo de teléfono**, así que el escalón aplica con `(pointer: coarse), (width < 640px)`.
+
+## Color
+
+- **Superficies y texto:** neutros de Sherman (tono 0). En oscuro el fondo (10.4%) y la tarjeta
+  (14.1%) son **distintos**: con los dos en el mismo valor —como estaban— las tarjetas eran
+  invisibles y la pantalla se leía como un solo bloque.
+- **Verde de marca** (`#006045` claro / `#5cd4a4` oscuro) en `--primary` y `--ring`: acción
+  principal, pestaña activa, interruptor, casilla, marcha seleccionada y anillo de foco.
+- **Jerarquía de bordes:** `--border` (secciones, tarjetas, marco) pesa más que `--border-sutil`
+  (filas de tabla). Si se ajusta uno, **mantener la relación sección > tabla**.
+- **Estados semánticos:** cada uno es un trío borde + fondo + texto (`--exito*`, `--info*`,
+  `--warning*`, `--destructive*`, `--neutro*`), igual que los badges de dominio de Sherman. El
+  texto cumple AA sobre **su** fondo, y la compuerta lo verifica par por par.
+- **Prohibido** el color suelto en un componente. Excepción declarada: los **colores ISO 10625**,
+  que son **datos** (`assets/js/data/iso-colors.js`) y se aplican en línea, iguales en ambos
+  temas, con el texto elegido por luminancia.
+
+### Acento por sección (equivale a `accentModulo`)
+
+- **El color identifica al MÓDULO, no a la pantalla.** Tres acentos declarados en `tokens.css`,
+  uno por sección de la navegación inferior: **Calibrar** (verde de marca), **Registrar**
+  (violeta) y **Sistema** (neutro). **Prohibido** inventar un color por pestaña: diez tonos
+  convierten la señal en adorno.
+- `main.js` estampa `data-seccion` en `<html>`, igual que hace con el tema. Va en la raíz y no en
+  el panel porque la subnavegación vive en el encabezado y los diálogos cuelgan de `<body>`: son
+  justo las piezas que dicen dónde estás. El selector es de atributo (`[data-seccion='…']`) para
+  que un bloque anidado pueda declarar su propio módulo — así la galería muestra los tres
+  acentos en la misma página.
+- **Son dos variables, no una.** `--acento` es cromado (banda, borde, tinte); `--acento-texto` es
+  **identidad** (título de la tarjeta, cifra del resultado). Con el acento neutro, `--acento-texto`
+  vale `--foreground` y **no** se atenúa: con un solo token, el dato principal de la pantalla
+  quedaba en gris claro en la sección Sistema. Es la misma regla que en Sherman prohíbe usar
+  `labelClass` para la identidad del registro.
+- La acción principal **sigue siendo `--primary`** aunque la sección tenga otro acento: el acento
+  es identidad, el primario es acción.
+
+## Tipografía
+
+- **Inter** para el cuerpo, **IBM Plex Mono** para cifras. Las mismas de Sherman, autohospedadas
+  con subconjunto latino (`assets/fonts/`, licencia SIL OFL 1.1). De Plex Mono solo se traen los
+  dos pesos que la interfaz usa: 400 y 600.
+- Las familias se declaran **una vez**, en `--font-body` y `--font-mono`; no se repiten en el
+  componente.
+- **Toda cantidad va monoespaciada, con `tabular-nums` y alineada a la derecha** — también cuando
+  se captura. La marca de un campo numérico es `inputmode="decimal"`, que es lo que emite
+  `crearCampoNumerico`.
+- Por debajo de 12px **no se escriben tamaños sueltos**: están `--text-meta` (12px) y
+  `--text-micro` (11px), con las utilidades `.texto-meta` y `.texto-micro`. Si hace falta otro
+  escalón se declara aquí como token, no como número mágico en la pantalla.
+
+## Piso táctil y botón de icono
+
+- El piso vive en el token heredable **`--touch-floor`** y se aplica en **dos reglas y solo ahí**:
+  `.boton { min-height: var(--touch-floor, 0px) }` y
+  `.boton--icono { min-width: var(--touch-floor, 0px) }`.
+- **La segunda es obligatoria.** Un botón que solo lleva un icono es cuadrado siempre; si el piso
+  empuja solo el alto, un botón de 36px queda **36×44**, aplastado en el eje X.
+- Encender el piso en una superficie nueva es **declarar el token**, nunca repetir `min-height`
+  en el consumidor.
+- **Adaptación:** aquí el piso alcanza también a los elementos que se pulsan una vez y no son
+  botón —pestaña, opción de lista, fila con control, resumen desplegable, botón de la navegación
+  inferior—, porque la aplicación es solo de teléfono. **No** alcanza a los campos de captura
+  (`input`, `select`), que conservan `--control-h` como en Sherman: subirlos a 44px deja el
+  encabezado fijo y los formularios densos comiéndose la pantalla.
+
+## Chip (badge)
+
+- La geometría sale entera de **seis tokens** —`--badge-h`, `--badge-px`, `--badge-gap`,
+  `--badge-text`, `--badge-leading`, `--badge-icon`— y **`.badge` es su único consumidor**.
+- Dos juegos de valores: compacto (20px de alto / 12px de texto) y táctil (24px / 14px). Cambiar
+  el escalón de una superficie es **declarar los tokens**, nunca repetir tamaños en el consumidor.
+- Un chip de estado usa el trío semántico completo (borde + fondo + texto), no solo el color del
+  texto.
+
+## Tarjeta
+
+- **El relleno interior lo pone la superficie, nunca el contenido.** `.card__contenido` aporta el
+  relleno; el nodo raíz de lo que va dentro no lleva `padding`. Un relleno propio se **suma** al de
+  la tarjeta y da el doble por lado.
+- **Banda de identidad:** `.card__encabezado` es una franja con el cromado del módulo (fondo
+  tintado, borde inferior y el título en `--acento-texto`). Es lo que permite reconocer de un
+  vistazo en qué sección estás cuando la pantalla es una columna de tarjetas casi idénticas.
+- Cambiar la densidad de las tarjetas es tocar `.card__contenido` (afecta a todas por igual), no
+  sumar relleno desde una pantalla.
+
+## Idioma
+
+Todo texto visible va en **español de México con ortografía correcta**: tildes, `ñ`, signos de
+apertura `¿` `¡` y concordancia. La compuerta `tools/acentuar.mjs` lo verifica en CI.
+
+## Contraste (compuerta de CI)
+
+`tools/verificar-contraste.mjs` recorre, en **ambos temas**, los pares de tokens declarados en
+`PARES` y falla por debajo de **4.5:1**. Al añadir un token de color que vaya a pintar texto hay
+que **añadir su par ahí**: texto sobre su fondo propio, y sobre `background` y `card` si se usa
+suelto. Lo mismo con cada color ISO sembrado.
+
+## Qué evitar
+
+- Colores, radios o tamaños escritos a mano en un componente en vez de tokens.
+- Un color por pantalla o por pestaña (el color es del módulo).
+- `--acento` donde toca la identidad: el título y la cifra usan `--acento-texto`, o quedan grises
+  en la sección neutra.
+- Parchear la altura de un botón desde el consumidor (`min-height` suelto): rompe el eje que no
+  toque. El piso táctil es responsabilidad exclusiva de `components.css`.
+- Fijar el tamaño de un chip en el consumidor: lo saca del escalón táctil.
+- Sumar relleno a una tarjeta desde su contenido.
+- Medidas físicas en `rem` (la raíz mide 14px, no 16px).
+- Añadir un token de color que pinte texto **sin** su par en la compuerta de contraste.
+- Tamaños de texto por debajo de 12px escritos como número suelto.

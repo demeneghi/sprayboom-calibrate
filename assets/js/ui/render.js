@@ -11,7 +11,7 @@ export function pintarAviso(aviso) {
       ? 'alerta alerta--destructiva'
       : aviso.tipo === 'advertencia'
         ? 'alerta alerta--advertencia'
-        : 'alerta';
+        : 'alerta alerta--info';
   return el(
     'div',
     { clase, role: aviso.tipo === 'info' ? 'status' : 'alert' },

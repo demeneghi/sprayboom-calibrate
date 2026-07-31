@@ -63,6 +63,25 @@ const PARES = [
   ['destructive-texto', 'background'],
   ['destructive-texto', 'card'],
   ['warning', 'background'],
+  // Chips de estado semantico: el texto del chip sobre SU fondo.
+  ['exito', 'exito-fondo'],
+  ['exito-foreground', 'exito'],
+  ['info', 'info-fondo'],
+  ['info-foreground', 'info'],
+  ['warning', 'warning-fondo'],
+  ['destructive-texto', 'destructive-fondo'],
+  ['neutro', 'neutro-fondo'],
+  // Los mismos colores usados como TEXTO sobre la superficie del tema
+  // (linea de verificacion, cifra destacada, titulo con acento).
+  ['exito', 'background'],
+  ['exito', 'card'],
+  ['info', 'card'],
+  ['primary', 'background'],
+  ['primary', 'card'],
+  // Acento por seccion: rotula el modulo en la banda de la tarjeta.
+  ['acento-calibrar', 'card'],
+  ['acento-registrar', 'card'],
+  ['acento-sistema', 'card'],
 ];
 
 let fallos = 0;
