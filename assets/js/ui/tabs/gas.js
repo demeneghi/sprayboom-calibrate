@@ -31,6 +31,9 @@ import {
 } from '../render.js';
 import { crearCampoNumerico } from '../campos.js';
 import { formatear, formatearTiempo } from '../formato.js';
+import { nodosTubo } from './gas/tubo.js';
+import { nodosManometro } from './gas/manometro.js';
+import { decimalesDe, ajustar } from './gas/escala.js';
 import { mostrarToast } from '../toast.js';
 import { aSistema, deSistema, unidad } from '../../domain/units.js';
 import {
@@ -57,232 +60,6 @@ const MODOS = [
   { id: 'tiempo', etiqueta: 'Tiempo requerido', descripcion: 'tiempo requerido' },
   { id: 'lectura', etiqueta: 'Lectura del flotador', descripcion: 'lectura del flotador' },
 ];
-
-// ---------------------------------------------------------------------
-// Ayudantes SVG: nodos con createElementNS y texto via textContent.
-// El color NO se escribe aqui: cada nodo lleva su clase y el bloque
-// `.instrumento*` de components.css lo pinta con tokens del tema.
-// ---------------------------------------------------------------------
-const SVG_NS = 'http://www.w3.org/2000/svg';
-
-function nodoSvg(nombre, atributos = {}) {
-  const nodo = document.createElementNS(SVG_NS, nombre);
-  for (const [clave, valor] of Object.entries(atributos)) {
-    if (valor === null || valor === undefined) continue;
-    nodo.setAttribute(clave, String(valor));
-  }
-  return nodo;
-}
-
-function textoSvg(x, y, contenido, opciones = {}) {
-  const { clase = 'instrumento__numero', anclaje = 'start', giro = null } = opciones;
-  const nodo = nodoSvg('text', {
-    x,
-    y,
-    class: clase,
-    'text-anchor': anclaje,
-    transform: giro,
-  });
-  nodo.textContent = contenido;
-  return nodo;
-}
-
-function lineaSvg(clase, x1, y1, x2, y2) {
-  return nodoSvg('line', { class: clase, x1, y1, x2, y2 });
-}
-
-function poligonoSvg(clase, puntos) {
-  return nodoSvg('polygon', {
-    class: clase,
-    points: puntos.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' '),
-  });
-}
-
-// ---------------------------------------------------------------------
-// Geometria del rotametro (viewBox 200 x 360)
-// ---------------------------------------------------------------------
-// Se dibuja como el aparato real: bloque de acrilico con su conexion
-// roscada arriba y su tuerca abajo, tubo conico (mas ancho arriba) y la
-// escala grabada a la derecha del tubo. La escala NO llega a los
-// extremos del tubo, igual que en el instrumento: asi el flotador cabe
-// entero cuando marca el minimo, y el canal de la izquierda queda libre
-// para la pastilla de lectura.
-const G = {
-  ancho: 200,
-  alto: 360,
-  cuerpoX: 54,
-  cuerpoX2: 192,
-  cuerpoY: 26,
-  cuerpoY2: 332,
-  bandaY: 50, // filete bajo el encabezado serigrafiado
-  cx: 100, // eje del tubo
-  tuboSup: 58,
-  tuboInf: 300,
-  semiSup: 26, // semiancho del tubo arriba (conico)
-  semiInf: 17, // y abajo
-  escalaSup: 68, // la escala vive dentro del tubo, sin tocar los topes
-  escalaInf: 278,
-  rayaX: 130,
-  rayaMenorX2: 138,
-  rayaMayorX2: 145,
-  numeroX: 149,
-  grabadoX: 186,
-  // La pastilla de lectura es un rotulo que flota sobre el chasis, a la
-  // izquierda del tubo: por eso el dibujo entero cabe centrado y no
-  // queda un canal vacio cuando todavia no hay lectura.
-  pastillaX: 2,
-  pastillaAncho: 68,
-  flotadorSemi: 13,
-  flotadorAlto: 22,
-};
-
-// Semiancho del tubo a una altura dada (el cono interpola linealmente).
-function semiAncho(y) {
-  const t = (y - G.tuboSup) / (G.tuboInf - G.tuboSup);
-  return G.semiSup + (G.semiInf - G.semiSup) * t;
-}
-
-// Chasis: acrilico, conexion roscada superior y tuerca moleteada.
-function piezasChasis() {
-  const piezas = [
-    nodoSvg('rect', {
-      class: 'instrumento__conexion',
-      x: G.cx - 17,
-      y: 6,
-      width: 34,
-      height: 22,
-      rx: 3,
-    }),
-    nodoSvg('rect', {
-      class: 'instrumento__tuerca',
-      x: G.cx - 23,
-      y: G.cuerpoY2,
-      width: 46,
-      height: 24,
-      rx: 4,
-    }),
-    nodoSvg('rect', {
-      class: 'instrumento__cuerpo',
-      x: G.cuerpoX,
-      y: G.cuerpoY,
-      width: G.cuerpoX2 - G.cuerpoX,
-      height: G.cuerpoY2 - G.cuerpoY,
-      rx: 12,
-    }),
-    lineaSvg('instrumento__banda', G.cuerpoX, G.bandaY, G.cuerpoX2, G.bandaY),
-  ];
-  for (const y of [12, 17, 22]) {
-    piezas.push(lineaSvg('instrumento__rosca', G.cx - 15, y, G.cx + 15, y));
-  }
-  for (let i = 0; i < 5; i += 1) {
-    const x = G.cx - 16 + i * 8;
-    piezas.push(lineaSvg('instrumento__estria', x, G.cuerpoY2 + 5, x, G.cuerpoY2 + 19));
-  }
-  return piezas;
-}
-
-// Tubo conico, su cuello hacia la tuerca, el brillo de la pared y el
-// vastago guia que atraviesa el flotador.
-function piezasTubo() {
-  const supIzq = G.cx - G.semiSup;
-  const supDer = G.cx + G.semiSup;
-  const infIzq = G.cx - G.semiInf;
-  const infDer = G.cx + G.semiInf;
-  const yA = G.tuboSup + 8;
-  const yB = G.tuboInf - 8;
-  return [
-    nodoSvg('rect', {
-      class: 'instrumento__cuello',
-      x: G.cx - 11,
-      y: G.tuboInf - 4,
-      width: 22,
-      height: G.cuerpoY2 - G.tuboInf + 4,
-    }),
-    nodoSvg('path', {
-      class: 'instrumento__tubo',
-      d: `M ${supIzq} ${G.tuboSup} L ${supDer} ${G.tuboSup} L ${infDer} ${G.tuboInf} L ${infIzq} ${G.tuboInf} Z`,
-    }),
-    poligonoSvg('instrumento__brillo', [
-      [G.cx - semiAncho(yA) + 4, yA],
-      [G.cx - semiAncho(yA) + 12, yA],
-      [G.cx - semiAncho(yB) + 12, yB],
-      [G.cx - semiAncho(yB) + 4, yB],
-    ]),
-    lineaSvg('instrumento__vastago', G.cx, G.tuboSup + 4, G.cx, G.tuboInf - 4),
-  ];
-}
-
-// ---------------------------------------------------------------------
-// Geometria del manometro (viewBox 200 x 212)
-// ---------------------------------------------------------------------
-// Caratula redonda de 0 al fondo de escala configurado, con el barrido
-// de 270 grados de un manometro de Bourdon: la aguja arranca abajo a la
-// izquierda (225 grados) y termina abajo a la derecha (-45).
-const M = {
-  ancho: 200,
-  alto: 212,
-  cx: 100,
-  cy: 100,
-  rBisel: 90,
-  rCaratula: 80,
-  rRayaBorde: 74, // de donde arrancan las rayas, hacia adentro
-  rRayaMenor: 68,
-  rRayaMayor: 62,
-  rNumero: 51,
-  rAguja: 66,
-  rCola: 14,
-  anguloInicio: 225,
-  barrido: 270,
-};
-
-function puntoPolar(radio, grados) {
-  const rad = (grados * Math.PI) / 180;
-  return [M.cx + radio * Math.cos(rad), M.cy - radio * Math.sin(rad)];
-}
-
-// Angulo de la aguja para una fraccion 0..1 del fondo de escala.
-function anguloManometro(fraccion) {
-  return M.anguloInicio - M.barrido * fraccion;
-}
-
-// Fraccion 0..1 del fondo de escala para un punto de la caratula: es lo
-// que convierte un toque en presion capturada. Devuelve null en el
-// hueco de abajo (los 90 grados sin escala): ahi el toque no dice nada
-// y saltar al tope seria capturar un numero que nadie pidio.
-function fraccionDesdePunto(x, y) {
-  let grados = (Math.atan2(M.cy - y, x - M.cx) * 180) / Math.PI;
-  if (grados < -90) grados += 360;
-  const barrido = M.anguloInicio - grados;
-  if (barrido < 0 || barrido > M.barrido) return null;
-  return barrido / M.barrido;
-}
-
-// Bisel, caratula y vastago de conexion: el chasis del manometro.
-function piezasCaratula() {
-  return [
-    nodoSvg('rect', {
-      class: 'instrumento__conexion',
-      x: M.cx - 11,
-      y: M.cy + M.rBisel - 6,
-      width: 22,
-      height: 22,
-      rx: 3,
-    }),
-    nodoSvg('circle', { class: 'instrumento__bisel', cx: M.cx, cy: M.cy, r: M.rBisel }),
-    nodoSvg('circle', { class: 'instrumento__caratula', cx: M.cx, cy: M.cy, r: M.rCaratula }),
-  ];
-}
-
-// Paso de numeracion legible de la escala: el menor candidato que deja
-// nueve etiquetas o menos (para la F-550 de 0.5 a 4.5 sale 0.5 SCFM).
-// Es una decision de presentacion, no un valor de dominio.
-function pasoLegible(amplitud) {
-  const candidatos = [0.1, 0.2, 0.25, 0.5, 1, 2, 5, 10, 20, 50];
-  for (const paso of candidatos) {
-    if (amplitud / paso <= 9) return paso;
-  }
-  return candidatos[candidatos.length - 1];
-}
 
 export function render(panel, ctx) {
   const borrador = ctx.borrador(id);
@@ -478,19 +255,6 @@ export function render(panel, ctx) {
   // mismo: aqui solo se escribe en el, se guarda el borrador y se
   // recalcula, igual que si la persona lo hubiera tecleado.
 
-  // Decimales que exige un escalon (0.1 -> 1, 1 -> 0, 0.25 -> 2).
-  function decimalesDe(paso) {
-    const texto = String(paso);
-    const punto = texto.indexOf('.');
-    return punto === -1 ? 0 : Math.min(texto.length - punto - 1, 3);
-  }
-
-  function ajustar(valor, paso, minimo, maximo) {
-    const pegado = paso > 0 ? Math.round(valor / paso) * paso : valor;
-    const acotado = Math.min(Math.max(pegado, minimo), maximo);
-    return Number(acotado.toFixed(decimalesDe(paso)));
-  }
-
   function fijarCaptura(campo, clave, valor) {
     campo.fijar(String(valor));
     ctx.guardarBorrador(id, { [clave]: valor });
@@ -547,16 +311,6 @@ export function render(panel, ctx) {
         raiz.classList.toggle('oculto', !activo);
       },
     };
-  }
-
-  // Toque sobre el dibujo: convierte la posicion en valor. El SVG se
-  // escala con la tarjeta, asi que la conversion pasa por el ancho real
-  // del nodo (el viewBox conserva la proporcion).
-  function puntoEnSvg(svg, evento, anchoViewBox) {
-    const caja = svg.getBoundingClientRect();
-    if (!(caja.width > 0)) return null;
-    const factor = anchoViewBox / caja.width;
-    return { x: (evento.clientX - caja.left) * factor, y: (evento.clientY - caja.top) * factor };
   }
 
   // ---------------- Masa por pie cubico estandar (siempre visible) ----
@@ -972,215 +726,29 @@ export function render(panel, ctx) {
   });
 
   // ---------------- Tubo del rotametro en SVG ----------------
+  // El dibujo vive en ./gas/tubo.js: aqui solo se le pasa el estado
+  // vigente y se cuelga lo que devuelve.
   const zonaTubo = el('div', { estilo: COLUMNA });
 
   function dibujarTubo() {
-    const rotametro = ctx.rotametroActivo();
-    const nodos = [];
-    if (!rotametro) {
-      nodos.push(
-        el(
-          'p',
-          { clase: 'texto-suave' },
-          'Sin rotámetro configurado: agrégalo en Sistema, Configuración para ver el tubo.'
-        )
-      );
-    } else {
-      const min = rotametro.escalaMin;
-      const max = rotametro.escalaMax;
-      const amplitud = max - min;
-      if (!(amplitud > 0)) {
-        nodos.push(
-          el(
-            'div',
-            { clase: 'alerta alerta--destructiva', role: 'alert' },
-            el(
-              'p',
-              { clase: 'alerta__descripcion' },
-              'La escala del rotámetro configurado no es válida: el mínimo debe ser menor que el máximo.'
-            )
-          )
-        );
-      } else {
-        const fueraDeEscala = lecturaTubo !== null && (lecturaTubo < min || lecturaTubo > max);
-        const eps = amplitud * 1e-6;
-        // La escala ocupa el tramo grabado del tubo, no el tubo entero.
-        const yDe = (v) =>
-          G.escalaInf - ((v - min) / amplitud) * (G.escalaInf - G.escalaSup);
-
-        const etiquetaAria =
-          lecturaTubo === null
-            ? `Tubo del rotámetro ${rotametro.modelo}: sin lectura`
-            : `Tubo del rotámetro ${rotametro.modelo}: flotador en ${formatear(lecturaTubo, 2)} SCFM` +
-              (fueraDeEscala ? ', fuera de escala' : '');
-        const svg = nodoSvg('svg', {
-          class: 'instrumento',
-          viewBox: `0 0 ${G.ancho} ${G.alto}`,
-          role: 'img',
-          'aria-label': etiquetaAria,
-          'data-fuera': fueraDeEscala ? 'true' : 'false',
-        });
-
-        // Captura por toque: solo cuando la lectura se captura. En el
-        // modo que la despeja, el tubo es un resultado y no se toca.
-        const pasoTubo = rotametro.resolucion > 0 ? rotametro.resolucion : amplitud / 100;
-        if (modo !== 'lectura') {
-          svg.setAttribute('data-captura', 'true');
-          svg.addEventListener('click', (evento) => {
-            const punto = puntoEnSvg(svg, evento, G.ancho);
-            if (!punto) return;
-            const fraccion = (G.escalaInf - punto.y) / (G.escalaInf - G.escalaSup);
-            fijarCaptura(campoScfm, 'scfm', ajustar(min + fraccion * amplitud, pasoTubo, min, max));
-          });
-        }
-
-        svg.append(...piezasChasis(), ...piezasTubo());
-
-        // Serigrafia del instrumento: modelo en el encabezado y
-        // condicion de calibracion grabada al costado, como el real.
-        const modeloCorto =
-          rotametro.modelo.length > 18 ? `${rotametro.modelo.slice(0, 17)}…` : rotametro.modelo;
-        svg.append(
-          textoSvg(G.cuerpoX + 8, 44, modeloCorto, { clase: 'instrumento__grabado' }),
-          textoSvg(G.cuerpoX2 - 8, 44, 'SCFM', { clase: 'instrumento__unidad', anclaje: 'end' })
-        );
-        const presionEstandar = ctx.gasActivo()?.presionEstandarPsia;
-        if (Number.isFinite(presionEstandar)) {
-          const yGrabado = (G.tuboSup + G.tuboInf) / 2;
-          svg.append(
-            textoSvg(
-              G.grabadoX,
-              yGrabado,
-              `Calibrado a ${formatear(presionEstandar, 2, { fijos: false })} psia`,
-              {
-                clase: 'instrumento__grabado',
-                anclaje: 'middle',
-                giro: `rotate(-90 ${G.grabadoX} ${yGrabado})`,
-              }
-            )
-          );
-        }
-
-        // Rayas menores: una por cada resolucion legible del instrumento.
-        if (rotametro.resolucion > 0 && amplitud / rotametro.resolucion <= 400) {
-          const nRayas = Math.round(amplitud / rotametro.resolucion);
-          for (let i = 0; i <= nRayas; i += 1) {
-            const v = min + i * rotametro.resolucion;
-            if (v > max + eps) break;
-            const y = yDe(v);
-            svg.append(lineaSvg('instrumento__raya', G.rayaX, y, G.rayaMenorX2, y));
-          }
-        }
-
-        // Rayas mayores con numero, a un paso legible de la escala.
-        const paso = pasoLegible(amplitud);
-        const kInicio = Math.ceil((min - eps) / paso);
-        const kFin = Math.floor((max + eps) / paso);
-        for (let k = kInicio; k <= kFin; k += 1) {
-          const v = k * paso;
-          const y = yDe(Math.min(Math.max(v, min), max));
-          svg.append(
-            lineaSvg('instrumento__rayamayor', G.rayaX, y, G.rayaMayorX2, y),
-            textoSvg(G.numeroX, y + 4, formatear(v, 2, { fijos: false }))
-          );
-        }
-
-        // Flotador: en la lectura vigente; fuera de escala se fija al
-        // extremo en ambar de advertencia y el numero mostrado es el
-        // REAL, nunca el recortado. El borde superior del flotador es la
-        // linea de lectura, como en el instrumento (se lee al diametro
-        // mayor), y de ahi salen la guia y la pastilla con la cifra.
-        if (lecturaTubo !== null) {
-          const lecturaDibujo = Math.min(Math.max(lecturaTubo, min), max);
-          const y = yDe(lecturaDibujo);
-          const semi = G.flotadorSemi;
-          const anchoColumna = semiAncho(y) - 2;
-          const anchoFondo = semiAncho(G.tuboInf) - 2;
-          svg.append(
-            poligonoSvg('instrumento__columna', [
-              [G.cx - anchoColumna, y],
-              [G.cx + anchoColumna, y],
-              [G.cx + anchoFondo, G.tuboInf - 1],
-              [G.cx - anchoFondo, G.tuboInf - 1],
-            ]),
-            poligonoSvg('instrumento__flotador', [
-              [G.cx - semi, y],
-              [G.cx + semi, y],
-              [G.cx + semi, y + 8],
-              [G.cx + 6, y + G.flotadorAlto],
-              [G.cx - 6, y + G.flotadorAlto],
-              [G.cx - semi, y + 8],
-            ]),
-            lineaSvg('instrumento__guia', G.cx + semi + 2, y, G.rayaX - 2, y),
-            lineaSvg('instrumento__guia', G.pastillaX + G.pastillaAncho, y, G.cx - semi - 2, y),
-            nodoSvg('rect', {
-              class: 'instrumento__pastilla',
-              x: G.pastillaX,
-              y: y - 11,
-              width: G.pastillaAncho,
-              height: 22,
-              rx: 7,
-            }),
-            textoSvg(G.pastillaX + G.pastillaAncho / 2, y + 4, `${formatear(lecturaTubo, 2)} SCFM`, {
-              clase: 'instrumento__lectura',
-              anclaje: 'middle',
-            })
-          );
-        }
-        nodos.push(svg);
-
-        if (modo === 'lectura') {
-          if (lecturaTubo === null) {
-            nodos.push(
-              el(
-                'p',
-                { clase: 'texto-suave' },
-                'Sin lectura despejada todavía: completa las capturas del modo para posicionar el flotador.'
-              )
-            );
-          }
-        } else {
-          nodos.push(
-            el(
-              'p',
-              { clase: 'texto-suave' },
-              'Toca el tubo donde flota la bola, o usa los botones, para capturar la lectura.'
-            )
-          );
-        }
-        if (fueraDeEscala) {
-          nodos.push(
-            el(
-              'div',
-              { clase: 'alerta alerta--advertencia', role: 'alert' },
-              el(
-                'p',
-                { clase: 'alerta__descripcion' },
-                `La lectura real (${formatear(lecturaTubo, 2)} SCFM) queda fuera de la escala del tubo ` +
-                  `(${formatear(min, 2, { fijos: false })} a ${formatear(max, 2, { fijos: false })} SCFM): ` +
-                  'el flotador se dibuja fijado al extremo y el número mostrado es el calculado, sin recorte.'
-              )
-            )
-          );
-        }
-        nodos.push(
-          el(
-            'p',
-            { clase: 'ayuda' },
-            `${rotametro.modelo}: escala de ${formatear(min, 2, { fijos: false })} a ` +
-              `${formatear(max, 2, { fijos: false })} SCFM, rayas cada ` +
-              `${formatear(rotametro.resolucion, 2, { fijos: false })} SCFM. Se edita en Sistema, Configuración.`
-          )
-        );
-      }
-    }
-    reemplazar(zonaTubo, nodos);
+    reemplazar(
+      zonaTubo,
+      nodosTubo({
+        rotametro: ctx.rotametroActivo(),
+        lectura: lecturaTubo,
+        // En el modo que DESPEJA la lectura el tubo es un resultado.
+        capturable: modo !== 'lectura',
+        presionEstandarPsia: ctx.gasActivo()?.presionEstandarPsia,
+        alCapturar: (valor) => fijarCaptura(campoScfm, 'scfm', valor),
+      })
+    );
   }
 
   // ---------------- Manometro en SVG ----------------
   // El fondo de escala y la resolucion de la caratula son parametros
   // (Sistema, Configuracion), igual que la escala del rotametro: aqui no
-  // se inventa ningun numero de dominio.
+  // se inventa ningun numero de dominio. El dibujo vive en
+  // ./gas/manometro.js.
   const cfgManometro = ctx.estado().parametros.manometro ?? {
     escalaMaxPsi: valorDefault('manometro', 'escalaMaxPsi'),
     resolucionPsi: valorDefault('manometro', 'resolucionPsi'),
@@ -1188,166 +756,16 @@ export function render(panel, ctx) {
   const zonaManometro = el('div', { estilo: COLUMNA });
 
   function dibujarManometro() {
-    const maxPsi = cfgManometro.escalaMaxPsi;
-    const resPsi = cfgManometro.resolucionPsi;
-    const nodos = [];
-    if (!(maxPsi > 0)) {
-      nodos.push(
-        el(
-          'div',
-          { clase: 'alerta alerta--destructiva', role: 'alert' },
-          el(
-            'p',
-            { clase: 'alerta__descripcion' },
-            'El fondo de escala del manómetro no es válido: debe ser mayor que cero.'
-          )
-        )
-      );
-      reemplazar(zonaManometro, nodos);
-      return;
-    }
-
-    const fueraDeEscala = presionAguja !== null && (presionAguja < 0 || presionAguja > maxPsi);
-    const eps = maxPsi * 1e-6;
-    const etiquetaAria =
-      presionAguja === null
-        ? `Manómetro de 0 a ${formatear(maxPsi, 2, { fijos: false })} psi: sin lectura`
-        : `Manómetro: aguja en ${formatear(presionAguja, 1)} psi` +
-          (fueraDeEscala ? ', fuera de escala' : '');
-    const svg = nodoSvg('svg', {
-      class: 'instrumento',
-      viewBox: `0 0 ${M.ancho} ${M.alto}`,
-      role: 'img',
-      'aria-label': etiquetaAria,
-      'data-fuera': fueraDeEscala ? 'true' : 'false',
-    });
-
-    // Captura por toque, salvo en el modo que despeja la presion.
-    if (modo !== 'presion') {
-      svg.setAttribute('data-captura', 'true');
-      svg.addEventListener('click', (evento) => {
-        const punto = puntoEnSvg(svg, evento, M.ancho);
-        if (!punto) return;
-        if (Math.hypot(punto.x - M.cx, punto.y - M.cy) < 18) return; // el eje no dice angulo
-        const fraccion = fraccionDesdePunto(punto.x, punto.y);
-        if (fraccion === null) return;
-        fijarCaptura(campoPsi, 'psiManometrica', ajustar(fraccion * maxPsi, resPsi, 0, maxPsi));
-      });
-    }
-
-    svg.append(...piezasCaratula());
-
-    // Rayas menores por resolucion legible y mayores numeradas.
-    if (resPsi > 0 && maxPsi / resPsi <= 300) {
-      const nRayas = Math.round(maxPsi / resPsi);
-      for (let i = 0; i <= nRayas; i += 1) {
-        const v = i * resPsi;
-        if (v > maxPsi + eps) break;
-        const grados = anguloManometro(v / maxPsi);
-        const [x1, y1] = puntoPolar(M.rRayaBorde, grados);
-        const [x2, y2] = puntoPolar(M.rRayaMenor, grados);
-        svg.append(lineaSvg('instrumento__raya', x1, y1, x2, y2));
-      }
-    }
-    const paso = pasoLegible(maxPsi);
-    for (let k = 0; k * paso <= maxPsi + eps; k += 1) {
-      const v = k * paso;
-      const grados = anguloManometro(v / maxPsi);
-      const [x1, y1] = puntoPolar(M.rRayaBorde, grados);
-      const [x2, y2] = puntoPolar(M.rRayaMayor, grados);
-      const [xn, yn] = puntoPolar(M.rNumero, grados);
-      svg.append(
-        lineaSvg('instrumento__rayamayor', x1, y1, x2, y2),
-        textoSvg(xn, yn + 4, formatear(v, 2, { fijos: false }), { anclaje: 'middle' })
-      );
-    }
-    // La unidad va donde iria la pastilla de lectura: si hay aguja, la
-    // cifra ya la trae, y un rotulo fijo en medio de la caratula queda
-    // tarde o temprano debajo de la aguja.
-    if (presionAguja === null) {
-      svg.append(
-        textoSvg(M.cx, M.cy + 60, 'psi', { clase: 'instrumento__unidad', anclaje: 'middle' })
-      );
-    }
-
-    // Aguja: fuera de escala se fija al tope en ambar y la cifra sigue
-    // siendo la real, igual que el flotador del tubo.
-    if (presionAguja !== null) {
-      const fraccion = Math.min(Math.max(presionAguja / maxPsi, 0), 1);
-      const grados = anguloManometro(fraccion);
-      const rad = (grados * Math.PI) / 180;
-      const dx = Math.cos(rad);
-      const dy = -Math.sin(rad);
-      const ancho = 4;
-      svg.append(
-        poligonoSvg('instrumento__aguja', [
-          [M.cx + dx * M.rAguja, M.cy + dy * M.rAguja],
-          [M.cx - dy * ancho, M.cy + dx * ancho],
-          [M.cx - dx * M.rCola, M.cy - dy * M.rCola],
-          [M.cx + dy * ancho, M.cy - dx * ancho],
-        ]),
-        nodoSvg('circle', { class: 'instrumento__eje', cx: M.cx, cy: M.cy, r: 7 }),
-        nodoSvg('rect', {
-          class: 'instrumento__pastilla',
-          x: M.cx - 34,
-          y: M.cy + 45,
-          width: 68,
-          height: 22,
-          rx: 7,
-        }),
-        textoSvg(M.cx, M.cy + 60, `${formatear(presionAguja, 1)} psi`, {
-          clase: 'instrumento__lectura',
-          anclaje: 'middle',
-        })
-      );
-    } else {
-      svg.append(nodoSvg('circle', { class: 'instrumento__eje', cx: M.cx, cy: M.cy, r: 7 }));
-    }
-    nodos.push(svg);
-
-    if (modo === 'presion') {
-      if (presionAguja === null) {
-        nodos.push(
-          el(
-            'p',
-            { clase: 'texto-suave' },
-            'Sin presión despejada todavía: completa las capturas del modo para mover la aguja.'
-          )
-        );
-      }
-    } else {
-      nodos.push(
-        el(
-          'p',
-          { clase: 'texto-suave' },
-          'Toca la carátula donde marca la aguja, o usa los botones, para capturar la presión.'
-        )
-      );
-    }
-    if (fueraDeEscala) {
-      nodos.push(
-        el(
-          'div',
-          { clase: 'alerta alerta--advertencia', role: 'alert' },
-          el(
-            'p',
-            { clase: 'alerta__descripcion' },
-            `La presión real (${formatear(presionAguja, 2)} psi) queda fuera de la carátula ` +
-              `(0 a ${formatear(maxPsi, 2, { fijos: false })} psi): la aguja se dibuja fijada al ` +
-              'tope y el número mostrado es el calculado, sin recorte.'
-          )
-        )
-      );
-    }
-    nodos.push(
-      el(
-        'p',
-        { clase: 'ayuda' },
-        `Carátula de 0 a ${formatear(maxPsi, 2, { fijos: false })} psi, rayas cada ` +
-          `${formatear(resPsi, 2, { fijos: false })} psi. Se edita en Sistema, Configuración.`
-      )
+    reemplazar(
+      zonaManometro,
+      nodosManometro({
+        maxPsi: cfgManometro.escalaMaxPsi,
+        resPsi: cfgManometro.resolucionPsi,
+        presion: presionAguja,
+        capturable: modo !== 'presion',
+        alCapturar: (valor) => fijarCaptura(campoPsi, 'psiManometrica', valor),
+      })
     );
-    reemplazar(zonaManometro, nodos);
   }
 
   // ---------------- Filas de captura rapida ----------------
