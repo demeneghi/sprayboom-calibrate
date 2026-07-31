@@ -74,6 +74,7 @@ const PRECACHE = [
   './assets/js/ui/tabs/metodologia.js',
   './assets/js/ui/tabs/mezcla.js',
   './assets/js/ui/toast.js',
+  './assets/js/ui/velocidad.js',
   // </precache>
 ];
 
