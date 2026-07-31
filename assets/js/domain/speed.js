@@ -409,3 +409,89 @@ export function velocidadCorregida({ velocidadTeoricaKmh, factor, umbralDesviaci
     avisos,
   };
 }
+
+// ---------------------------------------------------------------------
+// Velocidad heredada de la pantalla de Avance
+// ---------------------------------------------------------------------
+
+// La velocidad de trabajo se captura UNA sola vez, en Avance, y las
+// demas pantallas la heredan: es el mismo numero, y copiarlo a mano de
+// una pantalla a otra es la via mas corta a calibrar con una velocidad
+// que ya no es la del tractor.
+//
+// Reproduce lo que Avance esta mostrando a partir de su captura: manda
+// el modo elegido ahi y, si ese modo no tiene datos, se intenta el otro.
+// La falta de datos NO es un error: devuelve velocidadKmh en null para
+// que la pantalla que hereda pida la captura. Solo lanza si la
+// configuracion es invalida (distancia de referencia, regimen nominal).
+//
+//   captura: borrador de la pestana Avance ({ modo, marcha, rpm,
+//            segundosPorTramo })
+//   mediciones: factores de desviacion MEDIDOS de ese mismo tractor
+export function velocidadDeAvance({
+  captura,
+  tractor,
+  mediciones = [],
+  distanciaReferencia,
+  umbralDesviacionPct,
+}) {
+  const sinDatos = { velocidadKmh: null, origen: null, etiqueta: null, marcha: null, avisos: [] };
+  const c = captura ?? {};
+  if (!tractor) return sinDatos;
+
+  const hayReporte = Number.isFinite(c.segundosPorTramo) && c.segundosPorTramo > 0;
+  const hayMarcha = Boolean(c.marcha) && Number.isFinite(c.rpm) && c.rpm > 0;
+  // El modo elegido en Avance manda; el otro queda como respaldo.
+  const orden = c.modo === 'reporte' ? ['reporte', 'marcha'] : ['marcha', 'reporte'];
+
+  for (const fuente of orden) {
+    if (fuente === 'reporte' && hayReporte) {
+      return {
+        velocidadKmh: velocidadDesdeReporte({
+          segundosPorTramo: c.segundosPorTramo,
+          distanciaReferencia,
+        }),
+        origen: 'reporte',
+        etiqueta: 'del reporte de campo',
+        marcha: null,
+        avisos: [],
+      };
+    }
+    if (fuente === 'marcha' && hayMarcha) {
+      const fila = marchasDeTractor(tractor).find(
+        (f) => f.rango === c.marcha.rango && f.marcha === c.marcha.marcha
+      );
+      // Marcha pendiente de velocidad: no hay de donde heredar, se
+      // intenta la otra fuente.
+      if (!fila || fila.kmhNominal === null) continue;
+      const teorica = velocidadEfectiva({
+        kmhNominal: fila.kmhNominal,
+        rpm: c.rpm,
+        regimenNominal: tractor.regimenNominal,
+      });
+      const factor = factorDesviacion({ mediciones, rpm: c.rpm });
+      const corregida = velocidadCorregida({
+        velocidadTeoricaKmh: teorica,
+        factor: factor.factor,
+        umbralDesviacionPct,
+      });
+      // Lo que decide si la velocidad esta respaldada es el ESTADO del
+      // factor, no que la correccion devuelva numero: sin mediciones el
+      // factor vale 1.0 y la corregida sale identica a la teorica, que
+      // no es lo mismo que estar medida.
+      const medida =
+        (factor.estado === 'medido' || factor.estado === 'interpolado') &&
+        corregida.valores.velocidadCorregidaKmh !== null;
+      return {
+        velocidadKmh: medida ? corregida.valores.velocidadCorregidaKmh : teorica,
+        origen: medida ? 'marcha-corregida' : 'marcha-teorica',
+        etiqueta: medida
+          ? `de la marcha ${fila.etiqueta} con factor medido`
+          : `de la marcha ${fila.etiqueta} (teórica sin verificar)`,
+        marcha: fila.etiqueta,
+        avisos: [...factor.avisos, ...corregida.avisos],
+      };
+    }
+  }
+  return sinDatos;
+}
