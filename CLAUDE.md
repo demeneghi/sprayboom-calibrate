@@ -43,7 +43,8 @@ el mismo renglón— y porque el sello de despliegue da una garantía **más fue
 que nadie se acuerde.
 
 En el repositorio `version.js` dice `'dev'`. Es lo que ven `humo.mjs`, `interaccion.mjs` y quien
-abra el sitio desde el disco.
+abra el sitio desde el disco; la pantalla de Configuración mostrará "Versión instalada: dev", que
+es lo correcto en local.
 
 ## Sin `innerHTML` — REGLA DURA
 

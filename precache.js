@@ -45,6 +45,7 @@ self.SPRAYBOOM_PRECACHE = [
   './assets/js/domain/water.js',
   './assets/js/main.js',
   './assets/js/storage.js',
+  './assets/js/ui/actualizar.js',
   './assets/js/ui/campos.js',
   './assets/js/ui/color.js',
   './assets/js/ui/combobox.js',

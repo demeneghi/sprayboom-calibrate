@@ -22,6 +22,12 @@
 // (humo.mjs, interaccion.mjs) y quien lo abra en local: la cache se
 // llama sprayboom-dev y se comporta igual.
 //
+// Ojo con los DOS consumidores: sw.js lo trae por importScripts, e
+// index.html lo carga como script clasico para que la pantalla de
+// Configuracion muestre "Version instalada". En local esa pantalla dice
+// 'dev', que es lo correcto: ese navegador no tiene un paquete
+// publicado. El texto se muestra tal cual, sin interpretar el formato.
+//
 // Uso: node tools/sellar-version.mjs <sello>
 import { writeFileSync } from 'node:fs';
 
