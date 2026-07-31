@@ -18,18 +18,19 @@ export function crearCronometro({
   let termino = false;
 
   const pantalla = el('div', {
-    clase: 'resultado__valor mono',
-    estilo: { fontSize: 'var(--text-cifra-xl)', textAlign: 'center' },
+    clase: 'resultado__valor mono cronometro__pantalla',
     role: 'timer',
     'aria-live': 'off',
   });
 
   // El alto lo manda el piso tactil de `components.css`; el consumidor
-  // no parchea `min-height` (regla dura del sistema de diseno).
-  const botonArrancar = el('button', { clase: 'boton', estilo: { flex: '1' } }, 'Arrancar');
+  // no parchea `min-height` (regla dura del sistema de diseno). El
+  // reparto de la fila tambien vive alli: la etiqueta de "usar" es larga
+  // y en una sola fila se salia de la tarjeta.
+  const botonArrancar = el('button', { clase: 'boton' }, 'Arrancar');
   const botonReiniciar = el('button', { clase: 'boton boton--contorno' }, 'Reiniciar');
   const botonUsar = alUsar
-    ? el('button', { clase: 'boton boton--secundario' }, etiquetaUsar)
+    ? el('button', { clase: 'boton boton--secundario cronometro__usar' }, etiquetaUsar)
     : null;
 
   function transcurridoS() {
@@ -113,9 +114,9 @@ export function crearCronometro({
 
   const elemento = el(
     'div',
-    { clase: 'card', estilo: { padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' } },
+    { clase: 'card cronometro' },
     pantalla,
-    el('div', { estilo: { display: 'flex', gap: '0.5rem' } }, botonArrancar, botonReiniciar, botonUsar)
+    el('div', { clase: 'cronometro__acciones' }, botonArrancar, botonReiniciar, botonUsar)
   );
 
   return {
