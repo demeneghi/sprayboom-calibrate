@@ -46,7 +46,9 @@
           <label class="visualmente-oculto" for="selector-equipo">Equipo de aplicacion</label>
           <select id="selector-equipo"></select>
         </div>
-        <div class="selector" style="flex: 0 0 6.4rem;">
+        <!-- Ancho fijo, calculado para que "Métrico" quepa entero con el
+             cuerpo de 16px de la escala tipografica. -->
+        <div class="selector" style="flex: 0 0 7.2rem;">
           <label class="visualmente-oculto" for="selector-unidades">Sistema de unidades</label>
           <select id="selector-unidades">
             <option value="metrico">Métrico</option>
@@ -54,7 +56,7 @@
           </select>
         </div>
         <button id="boton-compartir" class="boton boton--contorno boton--icono" aria-label="Compartir esta calibración" title="Compartir esta calibración">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
             <circle cx="6" cy="12" r="2.6"/><circle cx="17" cy="5.5" r="2.6"/><circle cx="17" cy="18.5" r="2.6"/>
             <path d="M8.4 10.8l6.2-3.9M8.4 13.2l6.2 3.9"/>
           </svg>

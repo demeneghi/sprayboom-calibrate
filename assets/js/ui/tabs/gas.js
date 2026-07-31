@@ -73,7 +73,7 @@ function nodoSvg(nombre, atributos = {}, estilos = {}) {
 function textoSvg(x, y, contenido, opciones = {}) {
   const {
     anclaje = 'start',
-    tamano = '11px',
+    tamano = '13px',
     color = 'hsl(var(--muted-foreground))',
     peso = 'normal',
   } = opciones;
@@ -782,7 +782,7 @@ export function render(panel, ctx) {
             textoSvg(142, y + 4, formatear(v, 2, { fijos: false }))
           );
         }
-        svg.append(textoSvg(142, 14, 'SCFM', { tamano: '10px' }));
+        svg.append(textoSvg(142, 14, 'SCFM', { tamano: '12px' }));
 
         // Flotador: en la lectura vigente; fuera de escala se fija al
         // extremo en color de advertencia y el numero mostrado es el
@@ -799,7 +799,7 @@ export function render(panel, ctx) {
             ),
             textoSvg(66, y + 4, `${formatear(lecturaTubo, 2)} SCFM`, {
               anclaje: 'end',
-              tamano: '12px',
+              tamano: '15px',
               color: fueraDeEscala ? 'hsl(var(--warning))' : 'hsl(var(--foreground))',
               peso: '600',
             })

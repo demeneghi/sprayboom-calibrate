@@ -19,6 +19,20 @@ y una decisión de este proyecto choquen, gana lo escrito aquí — y el motivo 
 
 Ningún componente declara colores, radios ni tamaños sueltos: todo entra por token.
 
+## Para quién es esta interfaz
+
+Se usa **de pie, en el lote**, con guantes puestos, el teléfono a la distancia del brazo, el sol
+de frente y la pantalla sucia. Quien calibra suele pasar de los cuarenta y **trae lentes de
+lectura**, o los trae en la camioneta y no se los pone. Eso manda sobre la densidad: entre meter
+un dato más en la pantalla y que el dato se lea, **gana que se lea**.
+
+De ahí salen tres decisiones que atraviesan todo el sistema:
+
+- El **cuerpo mide 16px** y el piso absoluto de cualquier texto son **12px**.
+- El **piso táctil son 48px**, no los 44px clásicos de Sherman.
+- Los tamaños de texto viven en una **escala con nombre** (`--text-*`), para que subirlos otra vez
+  sea cambiar nueve números y no recorrer ochenta reglas.
+
 ## Diferencias declaradas respecto a Sherman
 
 Son cinco, y ninguna es cosmética.
@@ -29,11 +43,14 @@ Son cinco, y ninguna es cosmética.
    compuerta de contraste de CI lee esos tripletes. **Los valores sí son los de Sherman**,
    convertidos desde OKLCH.
 
-2. **La geometría va en píxeles, no en `rem`.** Este proyecto fija `html { font-size: 14px }`
-   y Sherman usa la base de 16px del navegador. Un `rem` no mide lo mismo en los dos: el piso
-   táctil de Sherman (`2.75rem` = 44px) valdría **38.5px** aquí, por debajo del objetivo. Lo que
-   representa una medida física —piso táctil, alto de control, alto de chip, radio— se declara en
-   px.
+2. **La geometría y los tamaños de texto van en píxeles, no en `rem`.** Este proyecto fija
+   `html { font-size: 14px }` y Sherman usa la base de 16px del navegador. Un `rem` no mide lo
+   mismo en los dos: el piso táctil de Sherman (`2.75rem` = 44px) valdría **38.5px** aquí, por
+   debajo del objetivo. Lo que representa una medida física —piso táctil, alto de control, alto
+   de chip, radio, **tamaño de letra**— se declara en px.
+
+   La raíz sigue en 14px porque es la referencia de los `rem` de **espaciado** ya repartidos por
+   el sistema; **no** es el tamaño del texto: eso lo fija `body` con `--text-base` (16px).
 
 3. **Tres valores conservan el ajuste AA propio del proyecto** y no toman el de Sherman, porque
    el de Sherman no pasa la compuerta con los pares que esta aplicación usa:
@@ -93,9 +110,32 @@ Son cinco, y ninguna es cosmética.
 - **Toda cantidad va monoespaciada, con `tabular-nums` y alineada a la derecha** — también cuando
   se captura. La marca de un campo numérico es `inputmode="decimal"`, que es lo que emite
   `crearCampoNumerico`.
-- Por debajo de 12px **no se escriben tamaños sueltos**: están `--text-meta` (12px) y
-  `--text-micro` (11px), con las utilidades `.texto-meta` y `.texto-micro`. Si hace falta otro
-  escalón se declara aquí como token, no como número mágico en la pantalla.
+### Escala tipográfica — REGLA DURA
+
+**Ningún tamaño de texto se escribe suelto.** Ni en CSS, ni en un `style` en línea, ni en el
+`estilo` de un `el()`. Se elige un escalón de la escala de `tokens.css`:
+
+| Token | Medida | Para qué |
+| --- | --- | --- |
+| `--text-micro` | 12px | piso absoluto; nada baja de aquí |
+| `--text-meta` | 13px | metadato, fórmula, unidad al margen, fecha |
+| `--text-sm` | 15px | apoyo: ayuda, error, etiqueta, tabla, alerta |
+| `--text-base` | 16px | cuerpo, botón, campo de captura, pestaña |
+| `--text-lg` | 18px | título de tarjeta y de diálogo |
+| `--text-xl` | 21px | dato corto que se toca (marcha) |
+| `--text-cifra` | 26px | resultado secundario |
+| `--text-cifra-lg` | 34px | resultado principal de la pantalla |
+| `--text-cifra-xl` | 40px | lectura a distancia de brazo (cronómetro) |
+
+- Las utilidades `.texto-micro`, `.texto-meta`, `.texto-chico` (15px) y `.texto-grande` (18px)
+  son la vía desde el HTML y desde `el()`.
+- **Los campos de captura nunca bajan de 16px**, en ninguna superficie: por debajo, iOS Safari
+  hace zoom al enfocar y deja la pantalla descuadrada a media calibración. Esto incluye los
+  selectores del encabezado, que antes iban a 12.6px.
+- El interlineado del cuerpo es `--leading-cuerpo` (1.55), más suelto que el 1.5 de Sherman: con
+  lentes de lectura el renglón largo se pierde más fácil.
+- Si hace falta otro escalón se **declara aquí como token**, no como número mágico en la
+  pantalla. Subir la letra de toda la aplicación tiene que ser tocar esta tabla y nada más.
 
 ## Piso táctil y botón de icono
 
@@ -103,14 +143,23 @@ Son cinco, y ninguna es cosmética.
   `.boton { min-height: var(--touch-floor, 0px) }` y
   `.boton--icono { min-width: var(--touch-floor, 0px) }`.
 - **La segunda es obligatoria.** Un botón que solo lleva un icono es cuadrado siempre; si el piso
-  empuja solo el alto, un botón de 36px queda **36×44**, aplastado en el eje X.
+  empuja solo el alto, un botón de 44px de ancho nominal queda aplastado en el eje X.
 - Encender el piso en una superficie nueva es **declarar el token**, nunca repetir `min-height`
   en el consumidor.
+- **El piso son 48px, no 44.** Aquí se toca de pie, con guantes, sobre un tractor que vibra y
+  mirando por la parte baja de unos lentes de lectura: los 4px extra son la diferencia entre
+  acertar y volver a intentar. Los 44px clásicos de Sherman quedan como **alto nominal del
+  control** (`--control-h`), que es otra cosa.
 - **Adaptación:** aquí el piso alcanza también a los elementos que se pulsan una vez y no son
   botón —pestaña, opción de lista, fila con control, resumen desplegable, botón de la navegación
   inferior—, porque la aplicación es solo de teléfono. **No** alcanza a los campos de captura
-  (`input`, `select`), que conservan `--control-h` como en Sherman: subirlos a 44px deja el
-  encabezado fijo y los formularios densos comiéndose la pantalla.
+  (`input`, `select`), que se quedan en `--control-h` (44px): un campo no es un objetivo de un
+  solo toque, y subirlo al piso deja el encabezado fijo y los formularios densos comiéndose la
+  pantalla. Ese 44 ya subió desde 36 al crecer la letra: con el cuerpo en 16px, en 36px el texto
+  rozaba el borde del control.
+- El botón compacto (`.boton--sm`, `--control-h-sm` = 36px) es para la acción de fila dentro de
+  una tabla o de un editor largo. En teléfono el piso lo sube igual: lo compacto es el trazo, no
+  el área que se toca.
 
 ## Selección dentro de un grupo de opciones
 
@@ -128,7 +177,7 @@ Son cinco, y ninguna es cosmética.
   el borde de la pantalla. El consumidor solo declara la clase; no escribe `display: flex` en
   línea.
 - El piso táctil sigue mandando el alto: `height: auto` deja crecer a dos renglones sin bajar de
-  44px.
+  los 48px del piso.
 
 ## Anillo de foco y apilado de campos
 
@@ -148,8 +197,10 @@ Son cinco, y ninguna es cosmética.
 
 - La geometría sale entera de **seis tokens** —`--badge-h`, `--badge-px`, `--badge-gap`,
   `--badge-text`, `--badge-leading`, `--badge-icon`— y **`.badge` es su único consumidor**.
-- Dos juegos de valores: compacto (20px de alto / 12px de texto) y táctil (24px / 14px). Cambiar
+- Dos juegos de valores: compacto (22px de alto / 13px de texto) y táctil (28px / 15px). Cambiar
   el escalón de una superficie es **declarar los tokens**, nunca repetir tamaños en el consumidor.
+- El texto del chip sale de la **misma escala** que el resto (`--badge-text` apunta a
+  `--text-meta` o a `--text-sm`): un chip no es un sitio para inventar un tamaño intermedio.
 - Un chip de estado usa el trío semántico completo (borde + fondo + texto), no solo el color del
   texto.
 
@@ -192,4 +243,8 @@ suelto. Lo mismo con cada color ISO sembrado.
   etiqueta del campo de abajo.
 - Medidas físicas en `rem` (la raíz mide 14px, no 16px).
 - Añadir un token de color que pinte texto **sin** su par en la compuerta de contraste.
-- Tamaños de texto por debajo de 12px escritos como número suelto.
+- **Cualquier tamaño de texto escrito como número suelto**, en CSS o en un `estilo` de `el()`:
+  saca a esa pantalla de la escala y hace imposible volver a subir la letra de golpe.
+- Un campo de captura por debajo de 16px: iOS Safari hace zoom al enfocarlo.
+- Recortar letra para meter un dato más en la pantalla. Si no cabe, se parte en dos tarjetas o se
+  manda al desglose; **nunca se encoge**.

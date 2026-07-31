@@ -398,11 +398,11 @@ export function render(panel, ctx) {
           },
         },
         el('span', { clase: 'badge badge--secundario' }, ETIQUETAS_TIPO[entrada.tipo] ?? entrada.tipo),
-        el('span', { clase: 'texto-suave', estilo: { fontSize: '0.82rem' } }, formatearFecha(entrada.fecha))
+        el('span', { clase: 'texto-suave', estilo: { fontSize: 'var(--text-meta)' } }, formatearFecha(entrada.fecha))
       ),
-      el('p', { estilo: { fontWeight: '600', fontSize: '0.95rem' } }, entrada.titulo),
+      el('p', { estilo: { fontWeight: '600', fontSize: 'var(--text-base)' } }, entrada.titulo),
       entrada.resumen
-        ? el('p', { clase: 'texto-suave', estilo: { fontSize: '0.88rem' } }, entrada.resumen)
+        ? el('p', { clase: 'texto-suave', estilo: { fontSize: 'var(--text-sm)' } }, entrada.resumen)
         : null,
       el('div', { estilo: { display: 'flex', gap: '0.5rem' } }, botonDetalle, botonEliminar)
     );
@@ -661,7 +661,7 @@ export function render(panel, ctx) {
           'div',
           { estilo: { display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' } },
           el('span', { clase: 'badge badge--secundario' }, ETIQUETAS_TIPO[entrada.tipo] ?? entrada.tipo),
-          el('span', { clase: 'texto-suave', estilo: { fontSize: '0.85rem' } }, formatearFecha(entrada.fecha))
+          el('span', { clase: 'texto-suave', estilo: { fontSize: 'var(--text-meta)' } }, formatearFecha(entrada.fecha))
         ),
         entrada.resumen ? el('p', { clase: 'texto-suave' }, entrada.resumen) : null,
         el('h3', { clase: 'etiqueta' }, 'Datos guardados'),
