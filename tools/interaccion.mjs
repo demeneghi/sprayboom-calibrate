@@ -74,8 +74,19 @@ const campoRpm = pagina.locator('input.entrada').first();
 await campoRpm.fill('2100');
 await pagina.waitForTimeout(150);
 let texto = await pagina.locator('#panel').innerText();
-verificar(/2\.10|2,10/.test(texto), 'Avance: A1 a 2100 rpm muestra 2.10 km/h (nominal 2400)');
-verificar(/ESTIMACIÓN|estimación/i.test(texto), 'Avance: la estimación sin calibrar se advierte');
+// A1 de fabrica son 2.1 km/h a 2400 rpm: a 2100 rpm toca 1.84 km/h.
+verificar(/1\.84|1,84/.test(texto), 'Avance: A1 a 2100 rpm muestra 1.84 km/h (nominal 2400)');
+// Las tablas son del fabricante: la alerta de ESTIMACIÓN no debe salir, y
+// en su lugar manda el aviso de que sin mediciones la velocidad no está
+// verificada en campo.
+verificar(
+  !/ESTIMACIÓN no verificada/i.test(texto),
+  'Avance: la tabla de fábrica no se anuncia como estimación'
+);
+verificar(
+  /teórica sin verificar/i.test(texto),
+  'Avance: sin mediciones de desviación se advierte que la velocidad es teórica'
+);
 verificar(texto.includes('TDF'), 'Avance: tarjeta de TDF presente');
 
 // ---------- Avance: reporte de campo ----------
