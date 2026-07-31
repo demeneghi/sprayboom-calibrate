@@ -178,8 +178,8 @@ export function render(panel, ctx) {
         el(
           'p',
           { clase: 'ayuda' },
-          `${fila.etiqueta} usa un valor capturado a mano (${valor} nominales), sin medición de ` +
-            'campo que lo respalde. Calibrala para que quede respaldada.'
+          `${fila.etiqueta} usa un valor de tabla (${valor} nominales), sin medición de ` +
+            'campo que lo respalde. Calíbrala para que quede respaldada.'
         )
       );
       return;
@@ -634,7 +634,12 @@ export function render(panel, ctx) {
       unidad: 'rpm',
       valorInicial: campoRpm.obtener() ?? tractor.regimenHabitual,
     });
-    const vista = el('div', {}, campoSegundosMedidos.elemento, campoRpmMedidas.elemento);
+    const vista = el(
+      'div',
+      { clase: 'pila-campos' },
+      campoSegundosMedidos.elemento,
+      campoRpmMedidas.elemento
+    );
     const ok = await confirmar({
       titulo: `Calibrar ${fila.etiqueta} desde una medición de campo`,
       descripcion:

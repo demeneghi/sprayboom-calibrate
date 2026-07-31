@@ -1007,7 +1007,7 @@ export function render(panel, ctx) {
   // ------------------------------------------------------------------
   function tarjetaSupuestos() {
     const supuestos = [
-      'Las velocidades por marcha sembradas son estimaciones hasta que se calibren en campo; la interfaz las marca como estimación.',
+      'Las velocidades por marcha sembradas son las tablas del fabricante, válidas para el régimen nominal y la llanta trasera anotados en cada tractor; con otra llanta la tabla se reescala. Siguen siendo teóricas: no incluyen patinaje.',
       'El patinaje y el error del tacómetro se corrigen con factores MEDIDOS en campo; sin mediciones, la velocidad es teórica y así se marca. El patinaje no se predice con fórmula.',
       'El reporte de campo (segundos por tramo) es más confiable que la marcha teórica.',
       'En transmisión mecánica la velocidad de avance escala proporcional al régimen del motor.',

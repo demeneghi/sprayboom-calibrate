@@ -68,6 +68,37 @@ export function sembrarEstado() {
 }
 
 // ---------------------------------------------------------------------
+// Adopcion de las tablas de velocidad de fabrica
+//
+// Un telefono que ya uso la aplicacion tiene sus tractores guardados: sin
+// esto, la correccion de una tabla de velocidades nunca le llegaria y
+// seguiria calculando el gasto con la velocidad vieja. Una fila que sigue
+// marcada 'estimacion' es un default que nadie verifico, asi que se
+// reemplaza por la de la siembra. Lo que el usuario capturo o calibro NO
+// se toca: sale de SU unidad y manda sobre cualquier tabla generica.
+// ---------------------------------------------------------------------
+export function adoptarVelocidadesDeFabrica(tractoresGuardados, tractoresSemilla) {
+  if (!Array.isArray(tractoresGuardados) || !Array.isArray(tractoresSemilla)) {
+    return tractoresGuardados;
+  }
+  return tractoresGuardados.map((tractor) => {
+    const semilla = tractoresSemilla.find((t) => t.id === tractor?.id);
+    if (!semilla || !Array.isArray(tractor?.velocidades)) return tractor;
+    return {
+      ...tractor,
+      velocidades: tractor.velocidades.map((fila) => {
+        if (fila?.origen !== 'estimacion') return fila;
+        const deFabrica = semilla.velocidades.find(
+          (v) => v.rango === fila.rango && v.marcha === fila.marcha
+        );
+        if (!deFabrica || deFabrica.origen === 'estimacion') return fila;
+        return { ...deFabrica };
+      }),
+    };
+  });
+}
+
+// ---------------------------------------------------------------------
 // Almacen con pub/sub y autosave
 // ---------------------------------------------------------------------
 export function crearAlmacen({ backend = null, alFallarEscritura = null } = {}) {
@@ -112,6 +143,10 @@ export function crearAlmacen({ backend = null, alFallarEscritura = null } = {}) 
             ...cargado,
             parametros,
             preferencias: { ...semilla.preferencias, ...(cargado.preferencias ?? {}) },
+            tractores: adoptarVelocidadesDeFabrica(
+              cargado.tractores ?? semilla.tractores,
+              semilla.tractores
+            ),
           };
         } else {
           conservarGuardado = true;

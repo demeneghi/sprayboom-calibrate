@@ -19,7 +19,7 @@ import {
   resultadoConfiable,
   pintarResultadoNoVerificado,
 } from '../render.js';
-import { crearCampoNumerico } from '../campos.js';
+import { crearCampoNumerico, crearEtiquetaConAyuda } from '../campos.js';
 import { crearCombobox } from '../combobox.js';
 import { crearCronometro } from '../cronometro.js';
 import { formatear, formatearPorcentaje } from '../formato.js';
@@ -167,18 +167,20 @@ export function render(panel, ctx) {
   if (boquillaInicial) {
     combo.fijarTexto(`${boquillaInicial.fabricante} ${boquillaInicial.modelo}`);
   }
+  const cabeceraBoquilla = crearEtiquetaConAyuda({
+    idCampo: 'captura-boquilla',
+    etiqueta: 'Boquilla de referencia',
+    ayuda:
+      ctx.estado().catalogo.length === 0
+        ? 'El catálogo está vacío: agrega boquillas en Sistema, Configuración.'
+        : 'Se precarga la boquilla del equipo activo. El caudal de catálogo es el de una boquilla NUEVA: contra él se estima el desgaste.',
+  });
   const campoBoquilla = el(
     'div',
     { clase: 'campo' },
-    el('label', { clase: 'etiqueta', for: 'captura-boquilla' }, 'Boquilla de referencia'),
-    combo.elemento,
-    el(
-      'p',
-      { clase: 'ayuda' },
-      ctx.estado().catalogo.length === 0
-        ? 'El catálogo está vacío: agrega boquillas en Sistema, Configuración.'
-        : 'Se precarga la boquilla del equipo activo. El caudal de catálogo es el de una boquilla NUEVA: contra él se estima el desgaste.'
-    )
+    cabeceraBoquilla.cabecera,
+    cabeceraBoquilla.globo,
+    combo.elemento
   );
 
   // ---------------- Renglones de volumenes recogidos ----------------

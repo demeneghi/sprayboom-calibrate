@@ -235,10 +235,31 @@
 /* ------------------------------------------------------------------ */
 /* Label e Input                                                       */
 /* ------------------------------------------------------------------ */
+/* Un campo es etiqueta + control + (error/ayuda) en columna. La
+   separacion NO puede bajar de `--foco-holgura`: el anillo de foco del
+   control sobresale esa medida y, con los 0.35rem de antes (4.9px
+   contra 4px de anillo), quedaba pegado a su propia etiqueta. */
 .campo {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: calc(var(--foco-holgura) + 2px);
+}
+
+/* Apilado de campos: la columna de un formulario, dentro de un dialogo
+   o de cualquier superficie que no sea `.card__contenido` ni `.panel`
+   (los dos ya separan a sus hijos).
+
+   El ritmo vive aqui y no en cada pantalla, como el del grupo de
+   opciones: el consumidor solo declara la clase. Apilar campos en un
+   <div> pelado los dejaba con separacion CERO, asi que la etiqueta de
+   un campo nacia pegada al control del campo de arriba y el anillo de
+   foco de ese control se pintaba ENCIMA de la etiqueta. El mismo
+   ritmo que `.card__contenido`, muy por arriba del minimo que pide el
+   anillo. */
+.pila-campos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .etiqueta {
@@ -299,12 +320,111 @@
   font-size: 0.86rem;
 }
 
-/* Ayuda contextual visible bajo el campo: en telefono no hay cursor,
-   asi que el texto del tooltip vive aqui, siempre visible. */
+/* Nota de una seccion: texto secundario siempre visible. Es la ayuda
+   que NO pertenece a un campo (no hay etiqueta de la que colgar un
+   boton "?"): pie de una tabla, aclaracion de un bloque. */
 .ayuda {
   color: hsl(var(--muted-foreground));
   font-size: 0.86rem;
   line-height: 1.35;
+}
+
+/* ------------------------------------------------------------------ */
+/* Ayuda de un campo: boton "?" en la etiqueta + globo bajo demanda    */
+/* ------------------------------------------------------------------ */
+/* En telefono no hay cursor, asi que el tooltip clasico no existe: el
+   texto se pedia mostrando TODAS las ayudas a la vez, y una pantalla de
+   cinco campos se leia como un muro de parrafos grises con los campos
+   perdidos entre ellos. Ahora cada ayuda se pide por su boton y solo
+   una queda abierta a la vez (lo impone `crearAyuda` en campos.js). */
+
+/* Fila de la etiqueta cuando el campo tiene ayuda. El "?" va SIEMPRE al
+   extremo derecho, no pegado al texto: asi cae en el mismo eje vertical
+   en toda la columna (se encuentra sin leer) y la puntita del globo
+   puede apuntarle desde una posicion fija. */
+.campo__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* La fila del interruptor ocupa el ancho del campo: es ella la que
+   crece, no el hueco entre la etiqueta y el boton. */
+.campo__cabecera > .fila-control {
+  flex: 1 1 auto;
+}
+
+.ayuda-boton {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--ayuda-boton-tam);
+  height: var(--ayuda-boton-tam);
+  padding: 0;
+  border: 1px solid hsl(var(--border));
+  border-radius: 999px;
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  font-family: var(--font-body);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Objetivo tactil sin inflar la linea de la etiqueta: el area real la
+   pone un pseudo-elemento que NO ocupa lugar en el flujo. Es mas ancha
+   que alta a proposito: a los lados del boton no hay nada mas que
+   tocar, pero arriba y abajo estan los controles de los campos vecinos
+   y un area de 44px de alto les robaria el toque. */
+.ayuda-boton::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100%, var(--touch-floor, 0px));
+  height: max(100%, calc(var(--ayuda-boton-tam) + 10px));
+  transform: translate(-50%, -50%);
+}
+
+/* Abierto: el mismo cromado del modulo que marca la opcion elegida de
+   un grupo, para que se lea que ese globo es de ESTE campo. */
+.ayuda-boton[aria-expanded='true'] {
+  background-color: hsl(var(--acento) / 0.14);
+  border-color: hsl(var(--acento));
+  color: hsl(var(--acento-texto));
+}
+
+/* El globo va EN EL FLUJO, no flotando: una tarjeta recorta lo que se
+   sale de ella y, en un telefono, un globo absoluto acaba tapando el
+   campo que explica. Y va DEBAJO del control: entre la etiqueta y el
+   control, el rotulo se separa de su campo. */
+.ayuda--globo {
+  position: relative;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-md);
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  box-shadow: var(--shadow-sm);
+}
+
+/* Puntita hacia arriba, en el eje del boton "?": cuadrado girado, con
+   solo dos lados de borde para que continue el del globo. */
+.ayuda--globo::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  right: 7px;
+  width: 8px;
+  height: 8px;
+  background-color: hsl(var(--muted));
+  border-left: 1px solid hsl(var(--border));
+  border-top: 1px solid hsl(var(--border));
+  transform: rotate(45deg);
 }
 
 /* ------------------------------------------------------------------ */

@@ -374,7 +374,7 @@ export function render(panel, ctx) {
     nodos.push(
       el('h3', { clase: 'etiqueta' }, 'Velocidades por marcha (km/h al régimen nominal)'),
       el('p', { clase: 'ayuda' },
-        'Todos los defaults son estimaciones no verificadas contra el manual. La bandera distingue estimación, capturado y calibrado; el botón de calibrar está en la pestaña Avance.'),
+        'Los defaults son las tablas del fabricante: el 5715 a 2400 rpm con llanta 16.9-30 y el 6603 a 2100 rpm con llanta 18.4-38. Si la unidad trae otra llanta, la tabla cambia y hay que capturarla. Ninguna incluye patinaje. La bandera distingue estimación, capturado y calibrado; el botón de calibrar está en la pestaña Avance.'),
       el('div', { clase: 'scroll-x' },
         el('table', { clase: 'tabla' },
           el('thead', {}, el('tr', {}, el('th', {}, 'Marcha'), el('th', {}, 'km/h nominal'), el('th', {}, 'Origen'))),
@@ -716,7 +716,7 @@ export function render(panel, ctx) {
       const campoTeorica = crearCampoNumerico({ etiqueta: COTAS_FACTOR_DESVIACION.velocidadTeorica.etiqueta, unidad: 'km/h' });
       const campoMedida = crearCampoNumerico({ etiqueta: COTAS_FACTOR_DESVIACION.velocidadMedida.etiqueta, unidad: 'km/h' });
       const campoCondiciones = el('input', { clase: 'entrada', id: 'factor-condiciones', placeholder: 'Implemento, humedad del suelo...' });
-      const cuerpo = el('div', {},
+      const cuerpo = el('div', { clase: 'pila-campos' },
         selectorTractor.elemento, campoRpm.elemento, campoTeorica.elemento, campoMedida.elemento,
         el('div', { clase: 'campo' }, el('label', { clase: 'etiqueta', for: 'factor-condiciones' }, 'Condiciones'), campoCondiciones));
       const ok = await confirmar({
@@ -869,7 +869,7 @@ export function render(panel, ctx) {
     });
     pintarClases();
 
-    const cuerpo = el('div', {},
+    const cuerpo = el('div', { clase: 'pila-campos' },
       campoFabricante.elemento,
       el('div', { clase: 'campo' }, el('label', { clase: 'etiqueta', for: 'boquilla-modelo' }, 'Serie o modelo'), campoModelo),
       campoPatron.elemento, campoTamano.elemento, campoAngulo.elemento, campoCaudal.elemento,

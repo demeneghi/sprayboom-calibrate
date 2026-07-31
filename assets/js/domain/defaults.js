@@ -360,22 +360,31 @@ export const COTAS_FACTOR_DESVIACION = {
 // ---------------------------------------------------------------------
 // Tractores de siembra
 //
-// TODAS las velocidades por marcha son estimaciones no verificadas
-// contra el manual de ninguna unidad (origen: 'estimacion'); son semilla
-// para que la aplicacion arranque, no especificacion. La interfaz debe
-// distinguir estimacion / capturado / calibrado con badges.
+// Las velocidades por marcha son las TABLAS DEL FABRICANTE (origen:
+// 'capturado'), no estimaciones. Cada tabla vale para el regimen nominal
+// y el neumatico trasero anotados en su tractor: la velocidad escala con
+// la circunferencia de rodadura, asi que un rodado distinto obliga a
+// reescalar la tabla por el cociente de circunferencias.
+//
+// Siguen siendo velocidades TEORICAS: la tabla se calcula con la rueda
+// girando sin resbalar. El patinaje NO esta aqui y se corrige aparte con
+// los factores medidos en campo (factorDesviacion en speed.js).
+//
+// La interfaz distingue estimacion / capturado / calibrado con badges;
+// 'calibrado' sigue mandando sobre 'capturado' porque sale de una
+// medicion de esta unidad.
 //
 // El regimen habitual (1800 rpm) es el que se precarga al seleccionar el
 // tractor: este rancho opera entre 1500 y 1800 rpm, no en el nominal.
 // ---------------------------------------------------------------------
-function tablaVelocidades(kmhPorMarcha) {
+function tablaVelocidades(kmhPorMarcha, origen = 'estimacion') {
   // kmhPorMarcha: arreglo por rango de arreglos por marcha, en orden.
   return kmhPorMarcha.flatMap((marchas, indiceRango) =>
     marchas.map((kmh, indiceMarcha) => ({
       rango: indiceRango,
       marcha: indiceMarcha + 1,
       kmhNominal: kmh,
-      origen: 'estimacion', // estimacion | capturado | calibrado
+      origen, // estimacion | capturado | calibrado
       fecha: null,
     }))
   );
@@ -386,38 +395,53 @@ export const TRACTORES_SIEMBRA = [
     id: 'jd5715',
     nombre: 'John Deere 5715',
     regimenNominal: 2400,
-    regimenNominalVerificado: 'pendiente',
+    regimenNominalVerificado: true,
     regimenNominalOrigen:
-      'Pendiente de confirmar contra el manual de la unidad; no verificado.',
+      'Ficha de motor del fabricante publicada por TractorData (2400 rpm nominales); ' +
+      'concuerda con el encabezado de la tabla de velocidades del mismo modelo.',
     regimenMinimo: 1400,
     regimenMaximo: 2400,
     regimenHabitual: 1800,
     numRangos: 3,
     marchasPorRango: 3,
     etiquetasRango: ['A', 'B', 'C'],
-    velocidades: tablaVelocidades([
-      [2.4, 3.9, 5.1],
-      [6.8, 10.5, 14.0],
-      [18.5, 23.8, 29.8],
-    ]),
+    // Tabla del fabricante a 2400 rpm con neumatico trasero 16.9-30
+    // (transmision Top Shaft Synchronized, 9 adelante y 3 atras).
+    // Reversa declarada por el fabricante: AR 3.5, BR 8.4, CR 23.0 km/h.
+    velocidades: tablaVelocidades(
+      [
+        [2.1, 3.1, 4.5],
+        [5.0, 7.2, 10.8],
+        [13.7, 19.8, 29.8],
+      ],
+      'capturado'
+    ),
   },
   {
     id: 'jd6603',
     nombre: 'John Deere 6603',
     regimenNominal: 2100,
     regimenNominalVerificado: true,
-    regimenNominalOrigen: 'Prueba de tractores de Nebraska.',
+    regimenNominalOrigen:
+      'Prueba de tractores de Nebraska (informe 1809, enero de 2002, ' +
+      'John Deere 6603 Diesel de 9 marchas); 2100 rpm nominales.',
     regimenMinimo: 1400,
     regimenMaximo: 2400,
     regimenHabitual: 1800,
     numRangos: 3,
     marchasPorRango: 3,
     etiquetasRango: ['A', 'B', 'C'],
-    velocidades: tablaVelocidades([
-      [2.6, 4.1, 5.6],
-      [7.2, 11.0, 14.6],
-      [19.2, 24.6, 30.6],
-    ]),
+    // Tabla del fabricante a 2100 rpm con neumatico trasero 18.4-38
+    // (transmision Top Shaft Synchronized, 9 adelante y 3 atras).
+    // Reversa declarada por el fabricante: AR 5.0, BR 11.3, CR 29.3 km/h.
+    velocidades: tablaVelocidades(
+      [
+        [3.1, 4.3, 5.3],
+        [6.6, 9.0, 11.3],
+        [18.3, 25.1, 31.2],
+      ],
+      'capturado'
+    ),
   },
 ];
 

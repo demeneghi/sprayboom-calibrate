@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import {
   sembrarEstado,
   crearAlmacen,
+  adoptarVelocidadesDeFabrica,
   exportarJSON,
   exportarCatalogoJSON,
   importarJSON,
@@ -45,6 +46,63 @@ test('recarga: lo guardado sobrevive y gana sobre la siembra', () => {
   });
   const a2 = crearAlmacen({ backend });
   assert.equal(a2.obtener().parametros.geometria.largoTabla, 500);
+});
+
+test('recarga: una tabla vieja marcada estimacion adopta la de fabrica', () => {
+  const backend = backendFalso();
+  const guardado = sembrarEstado();
+  const jd5715 = guardado.tractores.find((t) => t.id === 'jd5715');
+  // Como quedo en el telefono de campo antes de corregir las tablas.
+  jd5715.velocidades = jd5715.velocidades.map((v) => ({
+    ...v,
+    kmhNominal: 99,
+    origen: 'estimacion',
+  }));
+  backend.setItem(CLAVE_ALMACEN, JSON.stringify(guardado));
+
+  const recargado = crearAlmacen({ backend }).obtener();
+  const marchas = recargado.tractores.find((t) => t.id === 'jd5715').velocidades;
+  const b2 = marchas.find((v) => v.rango === 1 && v.marcha === 2);
+  assert.equal(b2.kmhNominal, 7.2, 'B2 debe tomar la velocidad de fabrica');
+  assert.equal(b2.origen, 'capturado');
+  assert.ok(marchas.every((v) => v.kmhNominal !== 99), 'ninguna fila vieja sobrevive');
+});
+
+test('recarga: lo capturado y lo calibrado por el usuario NUNCA se pisa', () => {
+  const backend = backendFalso();
+  const guardado = sembrarEstado();
+  const jd6603 = guardado.tractores.find((t) => t.id === 'jd6603');
+  jd6603.velocidades = jd6603.velocidades.map((v) => {
+    if (v.rango === 0 && v.marcha === 1) {
+      return { ...v, kmhNominal: 3.4, origen: 'calibrado', fecha: '2026-01-15T00:00:00.000Z' };
+    }
+    if (v.rango === 0 && v.marcha === 2) {
+      return { ...v, kmhNominal: 4.7, origen: 'capturado' };
+    }
+    return { ...v, kmhNominal: 99, origen: 'estimacion' };
+  });
+  backend.setItem(CLAVE_ALMACEN, JSON.stringify(guardado));
+
+  const marchas = crearAlmacen({ backend })
+    .obtener()
+    .tractores.find((t) => t.id === 'jd6603').velocidades;
+  const a1 = marchas.find((v) => v.rango === 0 && v.marcha === 1);
+  const a2 = marchas.find((v) => v.rango === 0 && v.marcha === 2);
+  const a3 = marchas.find((v) => v.rango === 0 && v.marcha === 3);
+  assert.equal(a1.kmhNominal, 3.4, 'lo calibrado en esta unidad manda');
+  assert.equal(a1.origen, 'calibrado');
+  assert.equal(a2.kmhNominal, 4.7, 'lo capturado por el usuario manda');
+  assert.equal(a3.kmhNominal, 5.3, 'solo la estimacion adopta la tabla de fabrica');
+});
+
+test('adoptar velocidades: tolera tractores propios y datos incompletos', () => {
+  const semilla = sembrarEstado().tractores;
+  const propio = { id: 'tractor-del-rancho', velocidades: [{ rango: 0, marcha: 1, kmhNominal: 4, origen: 'estimacion', fecha: null }] };
+  const roto = { id: 'jd5715' };
+  const resultado = adoptarVelocidadesDeFabrica([propio, roto], semilla);
+  assert.equal(resultado[0].velocidades[0].kmhNominal, 4, 'un tractor sin semilla no se toca');
+  assert.deepEqual(resultado[1], roto, 'un tractor sin tabla no truena');
+  assert.equal(adoptarVelocidadesDeFabrica(null, semilla), null);
 });
 
 test('version de esquema desconocida: se siembra y se reporta, sin tronar', () => {

@@ -135,13 +135,17 @@
       </section>
 
       <section class="card">
-        <div class="card__encabezado"><h2 class="card__titulo">Inputs y ayuda contextual</h2></div>
+        <div class="card__encabezado">
+          <h2 class="card__titulo">Inputs y ayuda contextual</h2>
+          <p class="card__descripcion">La ayuda de un campo ya no se imprime siempre: la pide el
+          botón <code class="mono">?</code> de la etiqueta y aparece en un globo bajo el control.
+          Solo un globo queda abierto a la vez.</p>
+        </div>
         <div class="card__contenido">
+          <div class="pila-campos" id="zona-ayuda"></div>
           <div class="campo">
             <label class="etiqueta" for="demo-normal">Velocidad</label>
             <input class="entrada" id="demo-normal" inputmode="decimal" placeholder="2.59">
-            <p class="ayuda">Ayuda contextual visible bajo el campo: en teléfono no hay cursor
-            para tooltips.</p>
           </div>
           <div class="campo">
             <label class="etiqueta" for="demo-solo-lectura">Resultado (solo lectura)</label>
@@ -262,10 +266,14 @@
       <section class="card">
         <div class="card__encabezado"><h2 class="card__titulo">Dialog y Toast</h2></div>
         <div class="card__contenido">
-          <div style="display:flex; gap:0.5rem;">
+          <div class="grupo-modo">
             <button class="boton boton--contorno" id="abrir-dialogo">Abrir diálogo</button>
+            <button class="boton boton--contorno" id="abrir-dialogo-campos">Diálogo con campos</button>
             <button class="boton boton--contorno" id="lanzar-toast">Lanzar toast</button>
           </div>
+          <p class="ayuda">El cuerpo con campos va en <code>.pila-campos</code>. Enfoca el primer
+          campo del diálogo: el anillo de foco tiene que quedar libre, sin tocar la etiqueta del
+          campo de abajo.</p>
         </div>
       </section>
 
@@ -343,6 +351,7 @@
     import { mostrarToast } from './assets/js/ui/toast.js';
     import { confirmar } from './assets/js/ui/dialog.js';
     import { crearCombobox } from './assets/js/ui/combobox.js';
+    import { crearCampoNumerico, crearCampoSelect, crearInterruptor } from './assets/js/ui/campos.js';
     import { CATALOGO_SIEMBRA } from './assets/js/data/nozzle-catalog.js';
     import { filaIso } from './assets/js/data/iso-colors.js';
 
@@ -363,6 +372,33 @@
       );
     }
 
+    // Campos con ayuda bajo demanda: el boton "?" de la etiqueta
+    const campoVolumen = crearCampoNumerico({
+      etiqueta: 'Volumen de aplicación objetivo',
+      unidad: 'L/ha',
+      valorInicial: 575,
+      ayuda: 'Objetivo primero: el volumen agronómico manda y de él se despeja el caudal que cada boquilla debe entregar.',
+    });
+    const campoClase = crearCampoSelect({
+      etiqueta: 'Clase de gota deseada',
+      opciones: [
+        { valor: 'cualquiera', texto: 'Cualquiera' },
+        { valor: 'M', texto: 'Media' },
+        { valor: 'G', texto: 'Gruesa' },
+      ],
+      valorInicial: 'cualquiera',
+      ayuda: 'Filtra por la clase que el fabricante publica a la presión requerida. Las boquillas sin clase publicada quedan fuera del filtro.',
+    });
+    const interruptorUnidades = crearInterruptor({
+      etiqueta: 'Mostrar en unidades imperiales',
+      ayuda: 'El cálculo interno siempre es métrico; la conversión ocurre solo al mostrar y capturar.',
+    });
+    document.getElementById('zona-ayuda').append(
+      campoVolumen.elemento,
+      campoClase.elemento,
+      interruptorUnidades.elemento
+    );
+
     // Dialogo y toast
     document.getElementById('abrir-dialogo').addEventListener('click', async () => {
       const ok = await confirmar({
@@ -372,6 +408,24 @@
         destructivo: true,
       });
       mostrarToast(ok ? 'Defaults restaurados.' : 'Sin cambios.');
+    });
+    document.getElementById('abrir-dialogo-campos').addEventListener('click', async () => {
+      const campoSegundos = crearCampoNumerico({
+        etiqueta: 'Segundos medidos por tramo de 100 m',
+        unidad: 's',
+      });
+      const campoRpm = crearCampoNumerico({
+        etiqueta: 'Régimen durante la medición',
+        unidad: 'rpm',
+        valorInicial: 1800,
+      });
+      const ok = await confirmar({
+        titulo: 'Calibrar A3 desde una medición de campo',
+        descripcion: 'La velocidad nominal de la marcha se recalcula al régimen nominal del tractor.',
+        cuerpo: el('div', { clase: 'pila-campos' }, campoSegundos.elemento, campoRpm.elemento),
+        confirmarTexto: 'Calibrar',
+      });
+      mostrarToast(ok ? 'Marcha calibrada.' : 'Sin cambios.');
     });
     document.getElementById('lanzar-toast').addEventListener('click', () => {
       mostrarToast('Los datos viven solo en este navegador. Exporta con regularidad.', {
