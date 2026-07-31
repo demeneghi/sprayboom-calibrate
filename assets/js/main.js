@@ -369,8 +369,17 @@ function registrarServiceWorker() {
           }
         });
       });
+      // La primera toma de control (clients.claim en la primera visita)
+      // no debe recargar: la página ya está servida completa y el
+      // usuario puede estar a media captura. Solo se recarga cuando ya
+      // había un controlador, es decir, en un cambio real de versión.
+      let teniaControlador = Boolean(navigator.serviceWorker.controller);
       let recargando = false;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!teniaControlador) {
+          teniaControlador = true;
+          return;
+        }
         if (recargando) return;
         recargando = true;
         location.reload();
