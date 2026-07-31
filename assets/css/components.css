@@ -772,6 +772,13 @@
 /* Dialog nativo                                                       */
 /* ------------------------------------------------------------------ */
 dialog.dialogo {
+  /* El dialogo modal se centra con `margin: auto` dentro del `inset: 0`
+     que el navegador le da al abrirlo con `showModal()`. Hay que
+     escribirlo aqui porque el reset de `base.css` (`* { margin: 0 }`)
+     pisa el `margin: auto` de la hoja del navegador: sin esta linea el
+     cuadro quedaba pegado a la esquina superior izquierda y se salia de
+     la pantalla del telefono. */
+  margin: auto;
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius);
   background-color: hsl(var(--popover));
