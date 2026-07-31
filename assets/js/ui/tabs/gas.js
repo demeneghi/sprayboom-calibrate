@@ -127,7 +127,7 @@ export function render(panel, ctx) {
 
   // ---------------- Modo ----------------
   const botonesModo = new Map();
-  const filaModos = el('div', { estilo: { display: 'flex', gap: '0.5rem', flexWrap: 'wrap' } });
+  const filaModos = el('div', { clase: 'grupo-modo' });
   for (const def of MODOS) {
     const boton = el('button', { clase: 'boton boton--contorno', 'aria-pressed': 'false' }, def.etiqueta);
     boton.addEventListener('click', () => {
@@ -142,8 +142,9 @@ export function render(panel, ctx) {
 
   function pintarModo() {
     for (const [modoId, boton] of botonesModo) {
+      // El resalte del modo elegido lo pinta components.css desde
+      // `aria-pressed`: no se intercambian variantes de boton aqui.
       boton.setAttribute('aria-pressed', modoId === modo ? 'true' : 'false');
-      boton.classList.toggle('boton--secundario', modoId === modo);
     }
     // Cada modo despeja una variable: su campo se oculta y los otros
     // tres se capturan.
