@@ -22,7 +22,7 @@ el cultivo. Nada se da por terminado sin pasar, como mínimo, lo que corre CI:
 ```bash
 npm test                                   # 131 pruebas de dominio (node:test)
 node tools/verificar-contraste.mjs         # contraste AA de tokens y colores ISO
-node tools/generar-precache.mjs            # lista de precache de sw.js al día
+node tools/generar-precache.mjs            # regenera precache.js (lista del service worker)
 node tools/acentuar.mjs $(find assets/js -name '*.js' | sort)
 node tools/humo.mjs && node tools/interaccion.mjs   # navegador real, viewport de teléfono
 ```

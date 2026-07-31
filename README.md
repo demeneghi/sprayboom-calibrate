@@ -86,7 +86,7 @@ batería como compuerta del despliegue: nada llega a `main` publicable sin pasar
 | Job | Qué valida |
 |---|---|
 | `pruebas` | Las 131 pruebas de dominio con `node:test` |
-| `estatico` | Sintaxis de todos los JS (`node --check`), manifest JSON válido, prohibición de `.innerHTML`, contraste AA de tokens y colores ISO, precache de `sw.js` al día, ortografía de textos visibles al día |
+| `estatico` | Sintaxis de todos los JS (`node --check`), manifest JSON válido, prohibición de `.innerHTML`, contraste AA de tokens y colores ISO, `precache.js` al día, ortografía de textos visibles al día |
 | `humo` | Playwright con el Chrome del runner: 10 rutas x 2 viewports de teléfono y la interacción completa, incluida la recarga sin conexión |
 | `version-sw` | Solo en PR: si cambian archivos del sitio, `version.js` debe subir; si no, los teléfonos en campo conservan la caché vieja y nunca reciben el cambio |
 
@@ -101,7 +101,7 @@ Herramientas de desarrollo (ninguna es requisito del sitio publicado):
 
 ```bash
 node tools/verificar-contraste.mjs      # contraste AA de tokens y colores ISO
-node tools/generar-precache.mjs         # regenera la lista de precache de sw.js
+node tools/generar-precache.mjs         # regenera precache.js (lista del service worker)
 CHROMIUM_PATH=/opt/pw-browsers/chromium node tools/generar-iconos.mjs   # PNG del manifest
 CHROMIUM_PATH=... node tools/humo.mjs               # humo: 10 rutas x 2 viewports de teléfono
 CHROMIUM_PATH=... node tools/interaccion.mjs        # interacción completa + recarga sin conexión
@@ -150,6 +150,7 @@ componentes.html      muestra del sistema de diseño en ambos temas
 .nojekyll             desactiva Jekyll en Pages
 manifest.webmanifest  PWA
 sw.js                 service worker (precache versionado)
+precache.js           lista de precache, GENERADA (merge=union, ver .gitattributes)
 version.js            versión de la caché del service worker
 .claude/rules/        reglas del proyecto (sistema de diseño)
 assets/
@@ -163,6 +164,8 @@ assets/
     data/             tabla ISO 10625, clases de gota ANSI/ASABE S572,
                       catálogo de boquillas de siembra (con fuentes citadas)
     ui/               un módulo por pestaña + componentes compartidos
+                      (dom, svg, campos, formato, diálogo, toast…); una pestaña
+                      grande se parte en su propia carpeta: ui/tabs/gas/
     storage.js        persistencia local, exportación e importación
     main.js           arranque y estado
 tests/                pruebas con node:test
