@@ -29,9 +29,31 @@ import {
   validarRegimen,
 } from '../../domain/speed.js';
 import { tdfRpm } from '../../domain/pump.js';
-import { TOLERANCIA_RPM_COINCIDENCIA } from '../../domain/constants.js';
+import { PORCIENTO, TOLERANCIA_RPM_COINCIDENCIA } from '../../domain/constants.js';
+import { validarValor } from '../../domain/validate.js';
+import { COTAS_VELOCIDAD_MARCHA } from '../../domain/defaults.js';
 
 export const id = 'avance';
+
+// Marca corta del origen de la velocidad de cada marcha, visible en la
+// cuadricula. Antes solo se marcaba la estimacion: al calibrar, la
+// unica senal era que el numero cambiaba, y una calibracion realista lo
+// mueve poco. Ahora cada estado se lee en la casilla.
+const MARCA_ORIGEN = {
+  estimacion: ' (est.)',
+  capturado: ' (manual)',
+  calibrado: ' (medida)',
+};
+
+const FORMATO_FECHA = new Intl.DateTimeFormat('es-MX', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+
+function formatearFecha(iso) {
+  const fecha = new Date(iso ?? NaN);
+  return Number.isNaN(fecha.getTime()) ? null : FORMATO_FECHA.format(fecha);
+}
 
 export function render(panel, ctx) {
   const borrador = ctx.borrador(id);
@@ -45,10 +67,10 @@ export function render(panel, ctx) {
   const botonMarcha = el('button', { clase: 'boton boton--contorno', 'aria-pressed': 'false' }, 'Desde marcha y rpm');
   const botonReporte = el('button', { clase: 'boton boton--contorno', 'aria-pressed': 'false' }, 'Desde reporte de campo');
   function pintarModo() {
+    // El resalte del modo elegido lo pinta components.css desde
+    // `aria-pressed`: no se intercambian variantes de boton aqui.
     botonMarcha.setAttribute('aria-pressed', modo === 'marcha' ? 'true' : 'false');
     botonReporte.setAttribute('aria-pressed', modo === 'reporte' ? 'true' : 'false');
-    botonMarcha.classList.toggle('boton--secundario', modo === 'marcha');
-    botonReporte.classList.toggle('boton--secundario', modo === 'reporte');
     zonaMarcha.classList.toggle('oculto', modo !== 'marcha');
     zonaReporte.classList.toggle('oculto', modo !== 'reporte');
   }
@@ -85,7 +107,7 @@ export function render(panel, ctx) {
         { clase: 'marcha__velocidad' },
         fila.kmhNominal === null
           ? 'pendiente'
-          : `${formatear(aSistema('velocidad', fila.kmhNominal, sistema), 1)} ${unidadVelocidad}${fila.origen === 'estimacion' ? ' (est.)' : ''}`
+          : `${formatear(aSistema('velocidad', fila.kmhNominal, sistema), 1)} ${unidadVelocidad}${MARCA_ORIGEN[fila.origen] ?? ''}`
       )
     );
     boton.addEventListener('click', () => {
@@ -97,12 +119,74 @@ export function render(panel, ctx) {
     botonesMarcha.set(clave, boton);
     cuadricula.append(boton);
   }
+  function filaSeleccionada() {
+    if (!marchaSeleccionada) return null;
+    return (
+      filasMarchas.find(
+        (f) => f.rango === marchaSeleccionada.rango && f.marcha === marchaSeleccionada.marcha
+      ) ?? null
+    );
+  }
+
   function pintarSeleccion() {
     for (const [clave, boton] of botonesMarcha) {
       const activa =
         marchaSeleccionada && clave === `${marchaSeleccionada.rango}-${marchaSeleccionada.marcha}`;
       boton.setAttribute('aria-pressed', activa ? 'true' : 'false');
     }
+    const fila = filaSeleccionada();
+    // El boton dice QUE marcha se va a calibrar: es la unica pieza que
+    // conecta la cuadricula con el dialogo.
+    botonCalibrarMarcha.textContent = fila
+      ? `Calibrar ${fila.etiqueta} con una medición`
+      : 'Calibrar esta marcha con una medición';
+    pintarEstadoMarcha();
+  }
+
+  // Estado de la marcha seleccionada. Se deriva del dato guardado, asi
+  // que sobrevive al re-pintado que dispara la calibracion: es la
+  // constancia que queda en pantalla cuando el toast ya se fue.
+  function pintarEstadoMarcha() {
+    const fila = filaSeleccionada();
+    if (!fila || fila.kmhNominal === null) {
+      reemplazar(zonaEstadoMarcha);
+      return;
+    }
+    const valor = `${formatear(aSistema('velocidad', fila.kmhNominal, sistema), 2)} ${unidadVelocidad}`;
+    const fecha = formatearFecha(fila.fecha);
+    if (fila.origen === 'calibrado') {
+      reemplazar(
+        zonaEstadoMarcha,
+        el(
+          'div',
+          { clase: 'alerta alerta--exito', role: 'status' },
+          el('p', { clase: 'alerta__titulo' }, `${fila.etiqueta} calibrada con una medición de campo`),
+          el(
+            'p',
+            { clase: 'alerta__descripcion' },
+            `${valor} nominales a ${formatear(tractor.regimenNominal, 0)} rpm.` +
+              // La fecha ya cierra con punto ("a. m."): no se le agrega otro.
+              (fecha ? ` Medición del ${fecha}` : '')
+          )
+        )
+      );
+      return;
+    }
+    if (fila.origen === 'capturado') {
+      reemplazar(
+        zonaEstadoMarcha,
+        el(
+          'p',
+          { clase: 'ayuda' },
+          `${fila.etiqueta} usa un valor de tabla (${valor} nominales), sin medición de ` +
+            'campo que lo respalde. Calíbrala para que quede respaldada.'
+        )
+      );
+      return;
+    }
+    // La estimacion ya lleva su propia alerta en la tarjeta de resultado:
+    // no se repite aqui.
+    reemplazar(zonaEstadoMarcha);
   }
 
   const campoRpm = crearCampoNumerico({
@@ -123,12 +207,15 @@ export function render(panel, ctx) {
   );
   botonCalibrarMarcha.addEventListener('click', () => abrirCalibracion());
 
+  const zonaEstadoMarcha = el('div', {});
+
   const zonaMarcha = el(
     'div',
     { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } },
     cuadricula,
     campoRpm.elemento,
-    botonCalibrarMarcha
+    botonCalibrarMarcha,
+    zonaEstadoMarcha
   );
 
   // ---------------- Reporte de campo ----------------
@@ -532,11 +619,7 @@ export function render(panel, ctx) {
   }
 
   async function abrirCalibracion() {
-    const fila = marchaSeleccionada
-      ? filasMarchas.find(
-          (f) => f.rango === marchaSeleccionada.rango && f.marcha === marchaSeleccionada.marcha
-        )
-      : null;
+    const fila = filaSeleccionada();
     if (!fila) {
       mostrarToast('Primero elige la marcha que vas a calibrar.', { tipo: 'destructivo' });
       return;
@@ -571,11 +654,27 @@ export function render(panel, ctx) {
         segundosPorTramo: segundos,
         distanciaReferencia: p.geometria.distanciaReferencia,
       });
-      const nominal = calibrarMarcha({
-        velocidadMedidaKmh: velocidadMedida,
-        rpmMedidas,
-        regimenNominal: tractor.regimenNominal,
-      });
+      // Se redondea a 4 decimales antes de guardar: el sobrante binario
+      // (16.000000000000004) no es precision, y sale a la vista en el
+      // campo de Configuracion.
+      const nominal =
+        Math.round(
+          calibrarMarcha({
+            velocidadMedidaKmh: velocidadMedida,
+            rpmMedidas,
+            regimenNominal: tractor.regimenNominal,
+          }) * 1e4
+        ) / 1e4;
+      // Las mismas cotas que valida el formulario de Configuracion: una
+      // medicion mal tomada no puede dejar guardado un valor imposible.
+      const veredicto = validarValor(COTAS_VELOCIDAD_MARCHA.kmhNominal, nominal);
+      if (!veredicto.ok) {
+        mostrarToast(`No se calibró ${fila.etiqueta}. ${veredicto.mensaje} Revisa la medición.`, {
+          tipo: 'destructivo',
+        });
+        return;
+      }
+      const anterior = fila.kmhNominal;
       ctx.almacen.actualizar((estado) => {
         const t = estado.tractores.find((x) => x.id === tractor.id);
         const filaEstado = t.velocidades.find(
@@ -585,9 +684,20 @@ export function render(panel, ctx) {
         filaEstado.origen = 'calibrado';
         filaEstado.fecha = new Date().toISOString();
       }, 'contexto');
-      mostrarToast(
-        `${fila.etiqueta} calibrada: ${formatear(nominal, 2)} km/h nominales a ${tractor.regimenNominal} rpm.`
-      );
+      // El toast dice el CAMBIO, no solo el valor nuevo: una calibracion
+      // realista mueve el numero poco y sin el antes no se nota.
+      const nuevoEnSistema = formatear(aSistema('velocidad', nominal, sistema), 2);
+      const rpmNominal = formatear(tractor.regimenNominal, 0);
+      let cambio = `${nuevoEnSistema} ${unidadVelocidad} nominales a ${rpmNominal} rpm.`;
+      if (anterior !== null && anterior !== undefined && anterior > 0) {
+        const variacionPct = ((nominal - anterior) / anterior) * PORCIENTO;
+        const signo = variacionPct > 0 ? '+' : '';
+        cambio =
+          `pasó de ${formatear(aSistema('velocidad', anterior, sistema), 2)} a ${nuevoEnSistema} ` +
+          `${unidadVelocidad} nominales a ${rpmNominal} rpm ` +
+          `(${signo}${formatearPorcentaje(variacionPct)}).`;
+      }
+      mostrarToast(`${fila.etiqueta} calibrada: ${cambio}`, { duracionMs: 7000 });
     } catch (error) {
       mostrarToast(String(error.message ?? error), { tipo: 'destructivo' });
     }
@@ -600,7 +710,7 @@ export function render(panel, ctx) {
         titulo: 'Avance',
         descripcion: `Velocidad y tiempo por tabla del ${tractor.nombre}.`,
       },
-      el('div', { estilo: { display: 'flex', gap: '0.5rem' } }, botonMarcha, botonReporte),
+      el('div', { clase: 'grupo-modo' }, botonMarcha, botonReporte),
       zonaMarcha,
       zonaReporte
     ),
