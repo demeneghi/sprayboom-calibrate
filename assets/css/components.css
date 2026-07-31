@@ -235,10 +235,31 @@
 /* ------------------------------------------------------------------ */
 /* Label e Input                                                       */
 /* ------------------------------------------------------------------ */
+/* Un campo es etiqueta + control + (error/ayuda) en columna. La
+   separacion NO puede bajar de `--foco-holgura`: el anillo de foco del
+   control sobresale esa medida y, con los 0.35rem de antes (4.9px
+   contra 4px de anillo), quedaba pegado a su propia etiqueta. */
 .campo {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: calc(var(--foco-holgura) + 2px);
+}
+
+/* Apilado de campos: la columna de un formulario, dentro de un dialogo
+   o de cualquier superficie que no sea `.card__contenido` ni `.panel`
+   (los dos ya separan a sus hijos).
+
+   El ritmo vive aqui y no en cada pantalla, como el del grupo de
+   opciones: el consumidor solo declara la clase. Apilar campos en un
+   <div> pelado los dejaba con separacion CERO, asi que la etiqueta de
+   un campo nacia pegada al control del campo de arriba y el anillo de
+   foco de ese control se pintaba ENCIMA de la etiqueta. El mismo
+   ritmo que `.card__contenido`, muy por arriba del minimo que pide el
+   anillo. */
+.pila-campos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .etiqueta {

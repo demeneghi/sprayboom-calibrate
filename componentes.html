@@ -239,10 +239,14 @@
       <section class="card">
         <div class="card__encabezado"><h2 class="card__titulo">Dialog y Toast</h2></div>
         <div class="card__contenido">
-          <div style="display:flex; gap:0.5rem;">
+          <div class="grupo-modo">
             <button class="boton boton--contorno" id="abrir-dialogo">Abrir diálogo</button>
+            <button class="boton boton--contorno" id="abrir-dialogo-campos">Diálogo con campos</button>
             <button class="boton boton--contorno" id="lanzar-toast">Lanzar toast</button>
           </div>
+          <p class="ayuda">El cuerpo con campos va en <code>.pila-campos</code>. Enfoca el primer
+          campo del diálogo: el anillo de foco tiene que quedar libre, sin tocar la etiqueta del
+          campo de abajo.</p>
         </div>
       </section>
 
@@ -320,6 +324,7 @@
     import { mostrarToast } from './assets/js/ui/toast.js';
     import { confirmar } from './assets/js/ui/dialog.js';
     import { crearCombobox } from './assets/js/ui/combobox.js';
+    import { crearCampoNumerico } from './assets/js/ui/campos.js';
     import { CATALOGO_SIEMBRA } from './assets/js/data/nozzle-catalog.js';
     import { filaIso } from './assets/js/data/iso-colors.js';
 
@@ -349,6 +354,24 @@
         destructivo: true,
       });
       mostrarToast(ok ? 'Defaults restaurados.' : 'Sin cambios.');
+    });
+    document.getElementById('abrir-dialogo-campos').addEventListener('click', async () => {
+      const campoSegundos = crearCampoNumerico({
+        etiqueta: 'Segundos medidos por tramo de 100 m',
+        unidad: 's',
+      });
+      const campoRpm = crearCampoNumerico({
+        etiqueta: 'Régimen durante la medición',
+        unidad: 'rpm',
+        valorInicial: 1800,
+      });
+      const ok = await confirmar({
+        titulo: 'Calibrar A3 desde una medición de campo',
+        descripcion: 'La velocidad nominal de la marcha se recalcula al régimen nominal del tractor.',
+        cuerpo: el('div', { clase: 'pila-campos' }, campoSegundos.elemento, campoRpm.elemento),
+        confirmarTexto: 'Calibrar',
+      });
+      mostrarToast(ok ? 'Marcha calibrada.' : 'Sin cambios.');
     });
     document.getElementById('lanzar-toast').addEventListener('click', () => {
       mostrarToast('Los datos viven solo en este navegador. Exporta con regularidad.', {
