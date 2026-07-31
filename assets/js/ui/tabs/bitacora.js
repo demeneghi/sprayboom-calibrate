@@ -13,7 +13,7 @@
 import { el, reemplazar } from '../dom.js';
 import { tarjeta } from '../render.js';
 import { crearCampoSelect } from '../campos.js';
-import { formatear, formatearPorcentaje } from '../formato.js';
+import { formatear, formatearPorcentaje, formatearFecha } from '../formato.js';
 import { confirmar } from '../dialog.js';
 import { mostrarToast } from '../toast.js';
 import { aCSV, descargarOCompartir } from '../../storage.js';
@@ -50,16 +50,6 @@ const OPCIONES_FILTRO = [
 // ---------------------------------------------------------------------
 // Utilerias de presentacion (sin logica de dominio)
 // ---------------------------------------------------------------------
-const FORMATO_FECHA = new Intl.DateTimeFormat('es-MX', {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-});
-
-function formatearFecha(iso) {
-  const fecha = new Date(iso ?? NaN);
-  return Number.isNaN(fecha.getTime()) ? '—' : FORMATO_FECHA.format(fecha);
-}
-
 function marcaTiempo(iso) {
   const t = new Date(iso ?? NaN).getTime();
   return Number.isFinite(t) ? t : 0;

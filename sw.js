@@ -8,76 +8,14 @@
 // (stale-while-revalidate) para recursos del mismo origen. Nunca se
 // piden recursos externos: todo es autohospedado.
 
-importScripts('./version.js');
+// La lista de precache vive en su propio archivo generado: separada de
+// esta logica puede llevar merge=union y deja de producir conflictos
+// cuando dos ramas agregan archivos distintos.
+importScripts('./version.js', './precache.js');
 
 const NOMBRE_CACHE = `sprayboom-${self.SPRAYBOOM_VERSION}`;
 
-// Lista generada con: node tools/generar-precache.mjs
-// (reescribe este bloque entre los marcadores).
-const PRECACHE = [
-  // <precache>
-  './',
-  './404.html',
-  './componentes.html',
-  './index.html',
-  './manifest.webmanifest',
-  './version.js',
-  './assets/css/base.css',
-  './assets/css/components.css',
-  './assets/css/tokens.css',
-  './assets/fonts/OFL.txt',
-  './assets/fonts/ibm-plex-mono-latin-400.woff2',
-  './assets/fonts/ibm-plex-mono-latin-600.woff2',
-  './assets/fonts/inter-latin-variable.woff2',
-  './assets/icons/favicon.svg',
-  './assets/icons/icon-192.png',
-  './assets/icons/icon-512.png',
-  './assets/icons/icon.svg',
-  './assets/js/data/droplet-classes.js',
-  './assets/js/data/iso-colors.js',
-  './assets/js/data/nozzle-catalog.js',
-  './assets/js/domain/capture.js',
-  './assets/js/domain/constants.js',
-  './assets/js/domain/defaults.js',
-  './assets/js/domain/flowmeter.js',
-  './assets/js/domain/forcing.js',
-  './assets/js/domain/gas.js',
-  './assets/js/domain/index.js',
-  './assets/js/domain/mix.js',
-  './assets/js/domain/nozzles.js',
-  './assets/js/domain/pump.js',
-  './assets/js/domain/speed.js',
-  './assets/js/domain/units.js',
-  './assets/js/domain/validate.js',
-  './assets/js/domain/verify.js',
-  './assets/js/domain/water.js',
-  './assets/js/main.js',
-  './assets/js/storage.js',
-  './assets/js/ui/actualizar.js',
-  './assets/js/ui/campos.js',
-  './assets/js/ui/color.js',
-  './assets/js/ui/combobox.js',
-  './assets/js/ui/compartir.js',
-  './assets/js/ui/cronometro.js',
-  './assets/js/ui/dialog.js',
-  './assets/js/ui/dom.js',
-  './assets/js/ui/formato.js',
-  './assets/js/ui/render.js',
-  './assets/js/ui/tabs.js',
-  './assets/js/ui/tabs/avance.js',
-  './assets/js/ui/tabs/bitacora.js',
-  './assets/js/ui/tabs/boquillas.js',
-  './assets/js/ui/tabs/captura.js',
-  './assets/js/ui/tabs/configuracion.js',
-  './assets/js/ui/tabs/forzamiento.js',
-  './assets/js/ui/tabs/gas.js',
-  './assets/js/ui/tabs/gasto.js',
-  './assets/js/ui/tabs/metodologia.js',
-  './assets/js/ui/tabs/mezcla.js',
-  './assets/js/ui/toast.js',
-  './assets/js/ui/velocidad.js',
-  // </precache>
-];
+const PRECACHE = self.SPRAYBOOM_PRECACHE;
 
 self.addEventListener('install', (evento) => {
   evento.waitUntil(
