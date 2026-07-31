@@ -85,7 +85,7 @@
 }
 
 .card__titulo {
-  font-size: 1.07rem;
+  font-size: var(--text-lg);
   font-weight: 600;
   letter-spacing: -0.01em;
   color: hsl(var(--acento-texto));
@@ -93,7 +93,8 @@
 
 .card__descripcion {
   color: hsl(var(--muted-foreground));
-  font-size: 0.93rem;
+  font-size: var(--text-sm);
+  line-height: 1.45;
 }
 
 .card__contenido {
@@ -116,7 +117,7 @@
   padding: 0 1rem;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
-  font-size: 1rem;
+  font-size: var(--text-base);
   font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
@@ -216,11 +217,14 @@
   line-height: 1.2;
 }
 
+/* Accion de fila (editar, quitar) dentro de una tabla o de un editor
+   largo: mas compacta que la accion principal, pero con el texto de
+   apoyo completo — no es letra chica, es un boton chico. */
 .boton--sm {
-  height: 2.29rem; /* 32px */
+  height: var(--control-h-sm);
   padding: 0 0.75rem;
   border-radius: var(--radius-sm);
-  font-size: 0.93rem;
+  font-size: var(--text-sm);
 }
 
 .boton--icono {
@@ -262,10 +266,13 @@
   gap: 0.75rem;
 }
 
+/* La etiqueta dice QUE se esta capturando: con lentes de lectura es
+   tan importante como el numero, asi que va al escalon de apoyo y no
+   por debajo. */
 .etiqueta {
-  font-size: 0.93rem;
-  font-weight: 500;
-  line-height: 1;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 /* Los campos de captura NO reciben el piso tactil: conservan
@@ -317,7 +324,8 @@
 
 .campo__error {
   color: hsl(var(--destructive-texto));
-  font-size: 0.86rem;
+  font-size: var(--text-sm);
+  line-height: 1.4;
 }
 
 /* Nota de una seccion: texto secundario siempre visible. Es la ayuda
@@ -325,8 +333,8 @@
    boton "?"): pie de una tabla, aclaracion de un bloque. */
 .ayuda {
   color: hsl(var(--muted-foreground));
-  font-size: 0.86rem;
-  line-height: 1.35;
+  font-size: var(--text-sm);
+  line-height: 1.45;
 }
 
 /* ------------------------------------------------------------------ */
@@ -440,7 +448,7 @@
   -webkit-appearance: none;
   height: var(--control-h);
   width: 100%;
-  padding: 0 2.2rem 0 0.75rem;
+  padding: 0 1.9rem 0 0.75rem;
   border: 1px solid hsl(var(--input));
   border-radius: var(--radius-md);
   background-color: transparent;
@@ -496,7 +504,7 @@
   min-height: var(--touch-floor, 2.5rem);
   border-radius: var(--radius-md);
   font-weight: 500;
-  font-size: 0.95rem;
+  font-size: var(--text-base);
   cursor: pointer;
   white-space: nowrap;
   -webkit-tap-highlight-color: transparent;
@@ -519,14 +527,14 @@
 .tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.93rem;
+  font-size: var(--text-sm);
 }
 
 .tabla th {
   color: hsl(var(--muted-foreground));
-  font-weight: 500;
+  font-weight: 600;
   text-align: left;
-  padding: 0.5rem 0.6rem;
+  padding: 0.55rem 0.6rem;
   background-color: hsl(var(--muted) / 0.6);
   border-bottom: 1px solid hsl(var(--border));
   white-space: nowrap;
@@ -536,7 +544,7 @@
    la seccion, para que la tabla no compita con la tarjeta que la
    contiene. */
 .tabla td {
-  padding: 0.55rem 0.6rem;
+  padding: 0.6rem 0.6rem;
   border-bottom: 1px solid hsl(var(--border-sutil));
   vertical-align: middle;
 }
@@ -643,8 +651,8 @@
 }
 
 .muestra-color {
-  width: 0.85rem;
-  height: 0.85rem;
+  width: 14px;
+  height: 14px;
   border-radius: 0.2rem;
   border: 1px solid hsl(var(--border));
   flex: 0 0 auto;
@@ -669,11 +677,12 @@
 
 .alerta__titulo {
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: var(--text-base);
 }
 
 .alerta__descripcion {
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
+  line-height: 1.45;
   color: hsl(var(--muted-foreground));
 }
 
@@ -745,14 +754,15 @@ dialog.dialogo::backdrop {
 }
 
 .dialogo__titulo {
-  font-size: 1.07rem;
+  font-size: var(--text-lg);
   font-weight: 600;
   margin-bottom: 0.35rem;
 }
 
 .dialogo__descripcion {
   color: hsl(var(--muted-foreground));
-  font-size: 0.93rem;
+  font-size: var(--text-sm);
+  line-height: 1.45;
   margin-bottom: 0.9rem;
 }
 
@@ -786,8 +796,8 @@ dialog.dialogo::backdrop {
   border: 1px solid hsl(var(--border));
   border-left: 3px solid hsl(var(--primary));
   border-radius: var(--radius);
-  padding: 0.7rem 0.9rem;
-  font-size: 0.93rem;
+  padding: 0.75rem 0.9rem;
+  font-size: var(--text-base);
   box-shadow: var(--shadow-md);
   display: flex;
   align-items: flex-start;
@@ -804,11 +814,15 @@ dialog.dialogo::backdrop {
 /* ------------------------------------------------------------------ */
 /* Switch y Checkbox                                                   */
 /* ------------------------------------------------------------------ */
+/* Interruptor y casilla en px: son objetos que se tocan y que hay que
+   distinguir encendidos de apagados de un vistazo, no texto que
+   escale con la raiz de 14px. Con los 39x22 de antes, la casilla
+   medida 16px: un cuadro del tamano de una letra. */
 .switch {
   appearance: none;
   -webkit-appearance: none;
-  width: 2.8rem;
-  height: 1.6rem;
+  width: 52px;
+  height: 30px;
   border-radius: 9999px;
   background-color: hsl(var(--input));
   position: relative;
@@ -820,10 +834,10 @@ dialog.dialogo::backdrop {
 .switch::before {
   content: '';
   position: absolute;
-  top: 0.17rem;
-  left: 0.17rem;
-  width: 1.26rem;
-  height: 1.26rem;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background-color: hsl(var(--background));
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
@@ -835,15 +849,15 @@ dialog.dialogo::backdrop {
 }
 
 .switch:checked::before {
-  transform: translateX(1.2rem);
+  transform: translateX(22px);
 }
 
 .casilla {
   appearance: none;
   -webkit-appearance: none;
-  width: 1.15rem;
-  height: 1.15rem;
-  border: 1px solid hsl(var(--input));
+  width: 24px;
+  height: 24px;
+  border: 2px solid hsl(var(--input));
   border-radius: var(--radius-sm);
   background-color: transparent;
   cursor: pointer;
@@ -859,10 +873,10 @@ dialog.dialogo::backdrop {
 
 .casilla:checked::before {
   content: '';
-  width: 0.35rem;
-  height: 0.65rem;
-  border-right: 2px solid hsl(var(--primary-foreground));
-  border-bottom: 2px solid hsl(var(--primary-foreground));
+  width: 7px;
+  height: 12px;
+  border-right: 3px solid hsl(var(--primary-foreground));
+  border-bottom: 3px solid hsl(var(--primary-foreground));
   transform: rotate(45deg) translateY(-1px);
 }
 
@@ -907,7 +921,7 @@ dialog.dialogo::backdrop {
   border-radius: var(--radius-sm);
   cursor: pointer;
   min-height: var(--touch-floor, 2.5rem);
-  font-size: 0.95rem;
+  font-size: var(--text-base);
 }
 
 .combobox__opcion[aria-selected='true'],
@@ -918,7 +932,7 @@ dialog.dialogo::backdrop {
 
 .combobox__detalle {
   color: hsl(var(--muted-foreground));
-  font-size: 0.83rem;
+  font-size: var(--text-meta);
   margin-left: auto;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
@@ -927,7 +941,7 @@ dialog.dialogo::backdrop {
 .combobox__vacio {
   padding: 0.75rem;
   color: hsl(var(--muted-foreground));
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
 }
 
 /* ------------------------------------------------------------------ */
@@ -947,19 +961,22 @@ dialog.dialogo::backdrop {
 }
 
 .resultado__etiqueta {
-  font-size: 0.86rem;
+  font-size: var(--text-sm);
   color: hsl(var(--muted-foreground));
 }
 
+/* La cifra es lo que la persona vino a leer, muchas veces de pie y
+   sin acercarse el telefono: es el escalon mas grande de la escala
+   que cabe en el ancho de la tarjeta. */
 .resultado__valor {
-  font-size: 1.55rem;
+  font-size: var(--text-cifra);
   font-weight: 600;
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
 
 .resultado__unidad {
-  font-size: 0.9rem;
+  font-size: var(--text-base);
   font-weight: 400;
   color: hsl(var(--muted-foreground));
 }
@@ -971,7 +988,7 @@ dialog.dialogo::backdrop {
 }
 
 .resultado--principal .resultado__valor {
-  font-size: 2rem;
+  font-size: var(--text-cifra-lg);
   color: hsl(var(--acento-texto));
 }
 
@@ -983,13 +1000,13 @@ dialog.dialogo::backdrop {
 
 .resultado--error .resultado__valor {
   color: hsl(var(--destructive-texto));
-  font-size: 1rem;
+  font-size: var(--text-base);
 }
 
 .desglose {
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius-md);
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
 }
 
 .desglose summary {
@@ -1039,11 +1056,11 @@ dialog.dialogo::backdrop {
 
 .desglose__formula {
   color: hsl(var(--muted-foreground));
-  font-size: 0.83rem;
+  font-size: var(--text-meta);
 }
 
 .desglose__sustitucion {
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   overflow-wrap: anywhere;
 }
 
@@ -1051,7 +1068,7 @@ dialog.dialogo::backdrop {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.83rem;
+  font-size: var(--text-sm);
   color: hsl(var(--muted-foreground));
 }
 
@@ -1084,8 +1101,10 @@ dialog.dialogo::backdrop {
   gap: 0.5rem;
 }
 
+/* Dos renglones (nombre y velocidad) por encima del piso tactil: en
+   px, como todo lo que representa una medida fisica. */
 .marcha {
-  min-height: 3.6rem;
+  min-height: 64px;
   border: 1px solid hsl(var(--input));
   border-radius: var(--radius-md);
   background-color: transparent;
@@ -1101,11 +1120,14 @@ dialog.dialogo::backdrop {
 
 .marcha__nombre {
   font-weight: 600;
-  font-size: 1.1rem;
+  font-size: var(--text-xl);
 }
 
+/* La velocidad se queda en el escalon de metadato a proposito: en una
+   rejilla de tres columnas, "10.5 km/h" con la letra de apoyo se sale
+   del boton en un telefono de 360px. */
 .marcha__velocidad {
-  font-size: 0.8rem;
+  font-size: var(--text-meta);
   color: hsl(var(--muted-foreground));
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
@@ -1145,7 +1167,7 @@ dialog.dialogo::backdrop {
   color: hsl(var(--muted-foreground));
   min-height: var(--touch-floor, 3.15rem);
   border-radius: var(--radius-md);
-  font-size: 0.86rem;
+  font-size: var(--text-sm);
   font-weight: 500;
   display: flex;
   flex-direction: column;
@@ -1181,8 +1203,8 @@ dialog.dialogo::backdrop {
 }
 
 .nav-inferior__icono {
-  width: 1.35rem;
-  height: 1.35rem;
+  width: 22px;
+  height: 22px;
 }
 
 /* Encabezado con selectores siempre visibles */
@@ -1199,26 +1221,41 @@ dialog.dialogo::backdrop {
   gap: 0.5rem;
 }
 
+/* La fila del encabezado PARTE LINEA. Con el cuerpo en 16px, los tres
+   selectores y el boton de compartir no caben en una linea de 390px:
+   los nombres quedaban en "John De" y "Barra de", que no distinguen un
+   tractor de otro. Antes cabian porque el texto medía 12.6px, y eso ya
+   no es una opcion. Al envolver, cada nombre se lee entero. */
 .encabezado__fila {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   align-items: center;
 }
 
 .encabezado__fila .selector {
-  flex: 1;
+  flex: 1 1 10rem;
   min-width: 0;
 }
 
+/* El boton de icono se va al extremo derecho de su renglon, quede en el
+   primero o en el segundo. */
+.encabezado__fila .boton--icono {
+  margin-left: auto;
+}
+
+/* El selector del encabezado NO baja de la escala base: es un campo de
+   captura y, por debajo de 16px, iOS Safari hace zoom al enfocarlo y
+   deja la pantalla descuadrada a media calibracion. */
 .encabezado__fila .selector select {
-  font-size: 0.9rem;
+  font-size: var(--text-base);
 }
 
 /* Aviso persistente (p. ej. almacenamiento no disponible) */
 .franja-aviso {
   background-color: hsl(var(--warning));
   color: hsl(var(--warning-foreground));
-  font-size: 0.86rem;
+  font-size: var(--text-sm);
   padding: 0.4rem 0.75rem;
   text-align: center;
 }
@@ -1344,7 +1381,16 @@ dialog.dialogo::backdrop {
   fill: hsl(var(--instrumento-senda) / 0.18);
 }
 
-/* Escala grabada: raya menor de resolucion, raya mayor numerada. */
+/* Escala grabada: raya menor de resolucion, raya mayor numerada.
+
+   Los tamanos de letra de aqui abajo van en UNIDADES DE USUARIO del
+   SVG, que no son pixeles CSS: el dibujo mide 200 unidades de ancho y se
+   pinta a 300px, asi que cada unidad vale 1.5px. Por eso no se pueden
+   usar los tokens `--text-*` (un `--text-sm` de 15 unidades saldria a
+   22px en pantalla) y por eso los numeros de aqui parecen pequenos. En
+   pantalla quedan por encima del piso de 12px de la escala tipografica:
+   numero 16.5px, unidad 15px, cifra de lectura 18px y serigrafia 12px,
+   que es el minimo y solo lo usa el texto decorativo del aparato. */
 .instrumento__raya {
   stroke: hsl(var(--muted-foreground) / 0.6);
   stroke-width: 1;
@@ -1359,20 +1405,20 @@ dialog.dialogo::backdrop {
   fill: hsl(var(--muted-foreground));
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 11px;
+  font-size: 11px; /* 16.5px en pantalla */
 }
 
 .instrumento__unidad {
   fill: hsl(var(--muted-foreground));
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 10px; /* 15px en pantalla */
   letter-spacing: 0.06em;
 }
 
 /* Serigrafia del instrumento (modelo y condicion de calibracion). */
 .instrumento__grabado {
   fill: hsl(var(--muted-foreground) / 0.85);
-  font-size: 8px;
+  font-size: 8px; /* 12px en pantalla: el piso, y solo para serigrafia */
   letter-spacing: 0.04em;
 }
 
@@ -1399,7 +1445,7 @@ dialog.dialogo::backdrop {
   fill: hsl(var(--instrumento-cifra));
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 11px;
+  font-size: 12px; /* 18px en pantalla: la cifra que se lee en campo */
   font-weight: 600;
 }
 
@@ -1418,7 +1464,7 @@ dialog.dialogo::backdrop {
 .captura__valor {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 1.3rem;
+  font-size: var(--text-xl);
   font-weight: 600;
   color: hsl(var(--foreground));
   min-width: 4.5rem;
@@ -1432,6 +1478,6 @@ dialog.dialogo::backdrop {
 }
 
 .captura .boton--icono {
-  font-size: 1.4rem;
+  font-size: var(--text-xl);
   line-height: 1;
 }

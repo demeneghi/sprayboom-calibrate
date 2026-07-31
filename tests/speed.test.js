@@ -17,6 +17,7 @@ import {
   marchasDeTractor,
   marchasParaVelocidad,
   validarRegimen,
+  velocidadDeAvance,
 } from '../assets/js/domain/speed.js';
 import { cercano } from './helpers.js';
 
@@ -208,4 +209,84 @@ test('regimen fuera del rango de trabajo del tractor produce advertencia', () =>
   const avisos = validarRegimen({ rpm: 1000, tractor });
   assert.equal(avisos.length, 1);
   assert.equal(avisos[0].codigo, 'regimen-fuera-de-rango');
+});
+
+// -----------------------------------------------------------------
+// Velocidad heredada de Avance (precarga de las demas pantallas)
+// -----------------------------------------------------------------
+
+const TRACTOR_HERENCIA = {
+  id: 'jd',
+  nombre: 'JD',
+  regimenNominal: 2400,
+  regimenMinimo: 1400,
+  regimenMaximo: 2400,
+  regimenHabitual: 1800,
+  numRangos: 1,
+  marchasPorRango: 2,
+  etiquetasRango: ['A'],
+  velocidades: [
+    { rango: 0, marcha: 1, kmhNominal: 2.4, origen: 'estimacion', fecha: null },
+    { rango: 0, marcha: 2, kmhNominal: null, origen: 'pendiente', fecha: null },
+  ],
+};
+
+function heredar(captura, extra = {}) {
+  return velocidadDeAvance({
+    captura,
+    tractor: TRACTOR_HERENCIA,
+    distanciaReferencia: 100,
+    umbralDesviacionPct: 15,
+    ...extra,
+  });
+}
+
+test('velocidad heredada: sin captura en Avance no hay velocidad ni error', () => {
+  const r = heredar({});
+  assert.equal(r.velocidadKmh, null);
+  assert.equal(r.origen, null);
+  assert.equal(heredar(undefined).velocidadKmh, null, 'borrador ausente tampoco lanza');
+});
+
+test('velocidad heredada: el modo reporte trae la velocidad del reporte de campo', () => {
+  const r = heredar({ modo: 'reporte', segundosPorTramo: 139 });
+  cercano(r.velocidadKmh, 2.59, 0.005, 'velocidad del reporte');
+  assert.equal(r.origen, 'reporte');
+});
+
+test('velocidad heredada: el modo marcha manda aunque haya un reporte viejo', () => {
+  const r = heredar({
+    modo: 'marcha',
+    marcha: { rango: 0, marcha: 1 },
+    rpm: 2100,
+    segundosPorTramo: 139,
+  });
+  cercano(r.velocidadKmh, 2.1, 1e-9, 'velocidad de la marcha');
+  assert.equal(r.origen, 'marcha-teorica');
+  assert.match(r.etiqueta, /A1/);
+});
+
+test('velocidad heredada: el factor medido corrige la velocidad de la marcha', () => {
+  const r = heredar(
+    { modo: 'marcha', marcha: { rango: 0, marcha: 1 }, rpm: 2100 },
+    { mediciones: [{ rpm: 2100, factor: 0.9 }] }
+  );
+  cercano(r.velocidadKmh, 1.89, 1e-9, 'velocidad corregida');
+  assert.equal(r.origen, 'marcha-corregida');
+});
+
+test('velocidad heredada: marcha sin velocidad registrada cae al reporte', () => {
+  const r = heredar({
+    modo: 'marcha',
+    marcha: { rango: 0, marcha: 2 },
+    rpm: 2100,
+    segundosPorTramo: 139,
+  });
+  cercano(r.velocidadKmh, 2.59, 0.005, 'respaldo del reporte');
+  assert.equal(r.origen, 'reporte');
+});
+
+test('velocidad heredada: marcha pendiente y sin reporte no inventa velocidad', () => {
+  const r = heredar({ modo: 'marcha', marcha: { rango: 0, marcha: 2 }, rpm: 2100 });
+  assert.equal(r.velocidadKmh, null);
 });

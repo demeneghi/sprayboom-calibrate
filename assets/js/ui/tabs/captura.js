@@ -20,6 +20,7 @@ import {
   pintarResultadoNoVerificado,
 } from '../render.js';
 import { crearCampoNumerico, crearEtiquetaConAyuda } from '../campos.js';
+import { crearCampoVelocidad } from '../velocidad.js';
 import { crearCombobox } from '../combobox.js';
 import { crearCronometro } from '../cronometro.js';
 import { formatear, formatearPorcentaje } from '../formato.js';
@@ -47,7 +48,6 @@ export function render(panel, ctx) {
   const unidadVolChico = unidad('volumenChico', sistema);
   const unidadCaudal = unidad('caudal', sistema);
   const unidadPresion = unidad('presion', sistema);
-  const unidadVelocidad = unidad('velocidad', sistema);
   const unidadEspaciamiento = unidad('distanciaCorta', sistema);
   const unidadVolumen = unidad('volumenAplicacion', sistema);
   const decimalesPresion = sistema === 'imperial' ? 1 : 2;
@@ -235,15 +235,14 @@ export function render(panel, ctx) {
   }
 
   // ---------------- Contexto para el volumen real ----------------
-  const campoVelocidad = crearCampoNumerico({
+  // Hereda por defecto la velocidad capturada en Avance: la teorica sin
+  // verificar sesga el volumen real, y el numero se captura una sola vez.
+  const campoVelocidad = crearCampoVelocidad({
+    ctx,
+    tabId: id,
+    sistema,
     etiqueta: 'Velocidad de trabajo',
-    unidad: unidadVelocidad,
-    valorInicial: aCampo('velocidad', borrador.velocidadKmh ?? null),
-    ayuda: 'Usa la velocidad real (medida o corregida) de la pestaña Avance: la teórica sin verificar sesga el volumen real.',
-    alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { velocidadKmh: deSistema('velocidad', valor, sistema) });
-      recalcular();
-    },
+    alCambiar: () => recalcular(),
   });
   const campoEspaciamiento = crearCampoNumerico({
     etiqueta: 'Espaciamiento entre boquillas',

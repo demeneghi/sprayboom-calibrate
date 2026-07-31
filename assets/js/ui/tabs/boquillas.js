@@ -28,6 +28,7 @@ import {
   pintarResultadoNoVerificado,
 } from '../render.js';
 import { crearCampoNumerico, crearCampoSelect } from '../campos.js';
+import { crearCampoVelocidad } from '../velocidad.js';
 import { formatear, formatearPorcentaje } from '../formato.js';
 import { mostrarToast } from '../toast.js';
 import { estiloBadgeIso } from '../color.js';
@@ -54,7 +55,6 @@ export function render(panel, ctx) {
   const borrador = ctx.borrador(id);
   const sistema = ctx.sistema();
   const unidadVolumen = unidad('volumenAplicacion', sistema);
-  const unidadVelocidad = unidad('velocidad', sistema);
   const unidadEspaciamiento = unidad('distanciaCorta', sistema);
   const unidadPresion = unidad('presion', sistema);
   const unidadCaudal = unidad('caudal', sistema);
@@ -106,15 +106,14 @@ export function render(panel, ctx) {
       recalcular();
     },
   });
-  const campoVelocidad = crearCampoNumerico({
+  // Hereda por defecto la velocidad capturada en Avance: la teorica sin
+  // verificar sesga la seleccion, y el numero se captura una sola vez.
+  const campoVelocidad = crearCampoVelocidad({
+    ctx,
+    tabId: id,
+    sistema,
     etiqueta: 'Velocidad de trabajo',
-    unidad: unidadVelocidad,
-    valorInicial: aCampo('velocidad', borrador.velocidadKmh ?? null),
-    ayuda: 'Usa la velocidad real (medida o corregida) de la pestaña Avance: la teórica sin verificar sesga la selección.',
-    alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { velocidadKmh: deSistema('velocidad', valor, sistema) });
-      recalcular();
-    },
+    alCambiar: () => recalcular(),
   });
   const campoEspaciamiento = crearCampoNumerico({
     etiqueta: 'Espaciamiento entre boquillas',

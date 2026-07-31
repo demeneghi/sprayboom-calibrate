@@ -19,21 +19,13 @@ import {
   pintarResultadoNoVerificado,
 } from '../render.js';
 import { crearCampoNumerico, crearCampoSelect } from '../campos.js';
+import { crearCampoVelocidad } from '../velocidad.js';
 import { formatear } from '../formato.js';
 import { mostrarToast } from '../toast.js';
 import { crearCombobox } from '../combobox.js';
 import { estiloBadgeIso } from '../color.js';
 import { aSistema, deSistema, unidad } from '../../domain/units.js';
-import {
-  redondeoLegible,
-  geometria,
-  marchasDeTractor,
-  velocidadDesdeReporte,
-  velocidadEfectiva,
-  factorDesviacion,
-  velocidadCorregida,
-  calibrarMarcha,
-} from '../../domain/speed.js';
+import { redondeoLegible, geometria, calibrarMarcha } from '../../domain/speed.js';
 import {
   caudalAPresionDetallado,
   caudalConDensidadDetallado,
@@ -213,84 +205,15 @@ export function render(panel, ctx) {
     },
   });
 
-  const campoVelocidad = crearCampoNumerico({
+  // La velocidad de trabajo se hereda de Avance por defecto; escribir
+  // aqui la vuelve captura manual y esa manda (ver ui/velocidad.js).
+  const campoVelocidad = crearCampoVelocidad({
+    ctx,
+    tabId: id,
+    sistema,
     etiqueta: 'Velocidad de avance',
-    unidad: unidadVelocidad,
-    valorInicial: precarga('velocidad', borrador.velocidadKmh ?? null),
-    ayuda: 'Tráela de Avance: el reporte de campo (segundos por tramo) es la fuente más confiable.',
-    alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { velocidadKmh: deSistema('velocidad', valor, sistema) });
-      recalcular();
-    },
+    alCambiar: () => recalcular(),
   });
-
-  const botonTraerVelocidad = el(
-    'button',
-    { clase: 'boton boton--contorno' },
-    'Traer velocidad de Avance'
-  );
-  botonTraerVelocidad.addEventListener('click', traerVelocidadDeAvance);
-
-  function traerVelocidadDeAvance() {
-    const capturaAvance = ctx.borrador('avance');
-    const p = ctx.estado().parametros;
-    try {
-      let velocidadKmh = null;
-      let origen = '';
-      if (capturaAvance.segundosPorTramo !== null && capturaAvance.segundosPorTramo !== undefined) {
-        velocidadKmh = velocidadDesdeReporte({
-          segundosPorTramo: capturaAvance.segundosPorTramo,
-          distanciaReferencia: p.geometria.distanciaReferencia,
-        });
-        origen = 'del reporte de campo';
-      } else if (
-        capturaAvance.marcha &&
-        capturaAvance.rpm !== null &&
-        capturaAvance.rpm !== undefined
-      ) {
-        const fila = marchasDeTractor(tractor).find(
-          (f) => f.rango === capturaAvance.marcha.rango && f.marcha === capturaAvance.marcha.marcha
-        );
-        if (fila && fila.kmhNominal !== null) {
-          const teorica = velocidadEfectiva({
-            kmhNominal: fila.kmhNominal,
-            rpm: capturaAvance.rpm,
-            regimenNominal: tractor.regimenNominal,
-          });
-          const mediciones = ctx
-            .estado()
-            .factoresDesviacion.filter((m) => m.tractorId === tractor.id)
-            .map((m) => ({ rpm: m.rpm, factor: m.factor }));
-          const factor = factorDesviacion({ mediciones, rpm: capturaAvance.rpm });
-          const corregida = velocidadCorregida({
-            velocidadTeoricaKmh: teorica,
-            factor: factor.factor,
-            umbralDesviacionPct: p.umbrales.umbralDesviacionVelocidad,
-          });
-          velocidadKmh = corregida.valores.velocidadCorregidaKmh ?? teorica;
-          origen =
-            corregida.valores.velocidadCorregidaKmh !== null
-              ? `de la marcha ${fila.etiqueta} con factor medido`
-              : `de la marcha ${fila.etiqueta} (teórica sin verificar)`;
-        }
-      }
-      if (velocidadKmh === null) {
-        mostrarToast(
-          'No hay datos utilizables en Avance: captura ahí los segundos por tramo o una marcha con régimen.',
-          { tipo: 'destructivo' }
-        );
-        return;
-      }
-      campoVelocidad.fijar(precarga('velocidad', velocidadKmh));
-      ctx.guardarBorrador(id, { velocidadKmh });
-      recalcular();
-      mostrarToast(
-        `Velocidad traída ${origen}: ${formatear(aSistema('velocidad', velocidadKmh, sistema), 2)} ${unidadVelocidad}.`
-      );
-    } catch (error) {
-      mostrarToast(String(error?.message ?? error), { tipo: 'destructivo' });
-    }
-  }
 
   const parametrosVigentes = ctx.estado().parametros;
   const campoAncho = crearCampoNumerico({
@@ -1023,7 +946,6 @@ export function render(panel, ctx) {
       zonaBoquilla,
       campoPresion.elemento,
       campoVelocidad.elemento,
-      botonTraerVelocidad,
       campoAncho.elemento,
       campoNumBoquillas.elemento,
       campoEspaciamiento.elemento

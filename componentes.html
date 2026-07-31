@@ -16,7 +16,7 @@
   <div class="aplicacion">
     <header class="encabezado">
       <div class="encabezado__fila">
-        <h1 style="font-size:1rem; flex:1;">Sistema de diseño</h1>
+        <h1 style="font-size:var(--text-lg); flex:1;">Sistema de diseño</h1>
         <button class="boton boton--contorno boton--sm" data-tema="claro">Claro</button>
         <button class="boton boton--contorno boton--sm" data-tema="oscuro">Oscuro</button>
         <button class="boton boton--contorno boton--sm" data-tema="auto">Auto</button>
@@ -70,6 +70,38 @@
       </section>
 
       <section class="card">
+        <div class="card__encabezado">
+          <h2 class="card__titulo">Escala tipográfica</h2>
+          <p class="card__descripcion">Nueve escalones con nombre, en px, calibrados para leer en
+          campo con lentes de lectura. Ningún componente escribe un tamaño suelto: elige un
+          escalón. El piso absoluto son 12px.</p>
+        </div>
+        <div class="card__contenido">
+          <table class="tabla">
+            <thead><tr><th>Token</th><th>Medida</th><th>Dónde se usa</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">--text-micro</td><td class="numero">12px</td><td>piso absoluto</td></tr>
+              <tr><td class="mono">--text-meta</td><td class="numero">13px</td><td>fórmula, unidad al margen</td></tr>
+              <tr><td class="mono">--text-sm</td><td class="numero">15px</td><td>ayuda, error, etiqueta, tabla</td></tr>
+              <tr><td class="mono">--text-base</td><td class="numero">16px</td><td>cuerpo, botón, campo</td></tr>
+              <tr><td class="mono">--text-lg</td><td class="numero">18px</td><td>título de tarjeta y diálogo</td></tr>
+              <tr><td class="mono">--text-xl</td><td class="numero">21px</td><td>marcha</td></tr>
+              <tr><td class="mono">--text-cifra</td><td class="numero">26px</td><td>resultado secundario</td></tr>
+              <tr><td class="mono">--text-cifra-lg</td><td class="numero">34px</td><td>resultado principal</td></tr>
+              <tr><td class="mono">--text-cifra-xl</td><td class="numero">40px</td><td>cronómetro</td></tr>
+            </tbody>
+          </table>
+          <p style="font-size:var(--text-base);">Cuerpo a 16px: el tamaño al que se lee una ayuda
+          completa de pie, con el sol de frente.</p>
+          <p class="texto-chico texto-suave">Apoyo a 15px: ayuda, error y etiqueta. Es texto para
+          leer, no letra chica de contrato.</p>
+          <p class="texto-meta texto-suave">Metadato a 13px: fecha, fórmula, unidad al margen.</p>
+          <p class="texto-micro texto-suave">Micro a 12px: el piso. Nada de la aplicación baja de
+          aquí.</p>
+        </div>
+      </section>
+
+      <section class="card">
         <div class="card__encabezado"><h2 class="card__titulo">Botones</h2></div>
         <div class="card__contenido">
           <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
@@ -81,11 +113,13 @@
           </div>
           <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
             <button class="boton boton--sm">Chico</button>
-            <button class="boton">Default 36px</button>
+            <button class="boton">Default 44px</button>
             <button class="boton boton--icono" aria-label="Icono">+</button>
             <button class="boton" disabled>Deshabilitado</button>
           </div>
-          <p class="ayuda">El área táctil real es de 44px aunque el botón visual mida 36px.</p>
+          <p class="ayuda">El piso táctil de campo es de 48px: manda sobre el alto nominal del botón
+          (44px) y sobre el del botón chico (36px). Se declara una vez, en
+          <code class="mono">--touch-floor</code>.</p>
         </div>
       </section>
 
@@ -208,8 +242,8 @@
         <div class="card__encabezado">
           <h2 class="card__titulo">Badges y colores ISO</h2>
           <p class="card__descripcion">La geometría del chip sale entera de los tokens
-          <code class="mono">--badge-*</code>: en pantalla táctil sube un escalón (24px de alto,
-          14px de texto) sin tocar una sola clase. Los colores ISO se pintan desde
+          <code class="mono">--badge-*</code>: en pantalla táctil sube un escalón (28px de alto,
+          15px de texto) sin tocar una sola clase. Los colores ISO se pintan desde
           data/iso-colors.js, iguales en ambos temas, con texto elegido por luminancia para
           contraste AA.</p>
         </div>
