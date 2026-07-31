@@ -112,6 +112,24 @@ Son cinco, y ninguna es cosmética.
   (`input`, `select`), que conservan `--control-h` como en Sherman: subirlos a 44px deja el
   encabezado fijo y los formularios densos comiéndose la pantalla.
 
+## Selección dentro de un grupo de opciones
+
+- **El estado lo dice el atributo, no una clase de variante que el consumidor intercambia.** Un
+  botón elegido lleva `aria-pressed="true"` —que ya hace falta por accesibilidad— y
+  `components.css` lo pinta una sola vez con el acento del módulo: borde pleno, tinte de fondo y
+  texto en `--acento-texto`.
+- **Prohibido señalar la selección alternando variantes** (`classList.toggle('boton--secundario')`
+  sobre un `boton--contorno`). Aparte de repartir la decisión visual por diez pantallas, **no
+  funciona**: la regla de contorno va después en el archivo y su fondo transparente gana, así que
+  el botón elegido queda idéntico al resto y no hay forma de saber cuál está activo.
+- **El layout del grupo también está centralizado:** `.grupo-modo` es una rejilla de columnas
+  iguales (`auto-fit`, mínimo 9rem) donde el texto **sí** parte línea. Con una fila `flex` y el
+  `white-space: nowrap` del botón, una etiqueta larga se sale de la tarjeta y queda cortada contra
+  el borde de la pantalla. El consumidor solo declara la clase; no escribe `display: flex` en
+  línea.
+- El piso táctil sigue mandando el alto: `height: auto` deja crecer a dos renglones sin bajar de
+  44px.
+
 ## Chip (badge)
 
 - La geometría sale entera de **seis tokens** —`--badge-h`, `--badge-px`, `--badge-gap`,
@@ -153,6 +171,8 @@ suelto. Lo mismo con cada color ISO sembrado.
 - Parchear la altura de un botón desde el consumidor (`min-height` suelto): rompe el eje que no
   toque. El piso táctil es responsabilidad exclusiva de `components.css`.
 - Fijar el tamaño de un chip en el consumidor: lo saca del escalón táctil.
+- Señalar la opción elegida intercambiando variantes de botón, o maquetar el grupo con un
+  `display: flex` en línea: la etiqueta larga se sale de la tarjeta.
 - Sumar relleno a una tarjeta desde su contenido.
 - Medidas físicas en `rem` (la raíz mide 14px, no 16px).
 - Añadir un token de color que pinte texto **sin** su par en la compuerta de contraste.

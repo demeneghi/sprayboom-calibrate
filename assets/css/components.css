@@ -174,6 +174,48 @@
   color: hsl(var(--destructive-foreground));
 }
 
+/* Boton elegido dentro de un grupo de opciones (elegir el metodo de
+   calculo: "Desde marcha y rpm" / "Desde reporte de campo", los cuatro
+   modos del rotametro).
+
+   El estado lo dice `aria-pressed`, que el consumidor ya mantiene, y se
+   pinta AQUI una sola vez. Antes cada pantalla lo señalaba
+   intercambiando variantes —`boton--secundario` sobre un
+   `boton--contorno`— y no se veia: la regla de contorno va despues en
+   este archivo y su fondo transparente ganaba, asi que el boton elegido
+   quedaba identico al otro y no habia forma de saber cual estaba
+   activo. Mismo tratamiento que la pestaña activa y la marcha
+   seleccionada: acento del modulo. */
+.boton[aria-pressed='true'] {
+  background-color: hsl(var(--acento) / 0.14);
+  border-color: hsl(var(--acento));
+  color: hsl(var(--acento-texto));
+  font-weight: 600;
+}
+
+/* Grupo de opciones excluyentes: la fila de botones que elige el metodo
+   de calculo. Rejilla de columnas iguales que se reparten el ancho
+   disponible, y ahi el texto SI parte linea.
+
+   Con una fila flex y el `white-space: nowrap` del boton, una etiqueta
+   larga —"Desde reporte de campo"— se salia de la tarjeta y quedaba
+   cortada contra el borde de la pantalla. El layout vive aqui y no en
+   cada pantalla: el consumidor solo declara la clase. El piso tactil
+   sigue mandando el alto minimo (`height: auto` deja crecer a dos
+   renglones sin bajar de 44px). */
+.grupo-modo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.5rem;
+}
+
+.grupo-modo .boton {
+  white-space: normal;
+  height: auto;
+  padding-block: 0.4rem;
+  line-height: 1.2;
+}
+
 .boton--sm {
   height: 2.29rem; /* 32px */
   padding: 0 0.75rem;

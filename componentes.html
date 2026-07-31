@@ -90,6 +90,28 @@
       </section>
 
       <section class="card">
+        <div class="card__encabezado">
+          <h2 class="card__titulo">Grupo de opciones</h2>
+          <p class="card__descripcion">La opción elegida se marca con
+          <code class="mono">aria-pressed</code>, no intercambiando variantes de botón. El grupo es
+          una rejilla de columnas iguales donde el texto sí parte línea: en una fila los rótulos
+          largos se salen de la tarjeta.</p>
+        </div>
+        <div class="card__contenido">
+          <div class="grupo-modo">
+            <button class="boton boton--contorno" aria-pressed="true">Desde marcha y rpm</button>
+            <button class="boton boton--contorno" aria-pressed="false">Desde reporte de campo</button>
+          </div>
+          <div class="grupo-modo">
+            <button class="boton boton--contorno" aria-pressed="false">Consumo (masa)</button>
+            <button class="boton boton--contorno" aria-pressed="true">Presión requerida</button>
+            <button class="boton boton--contorno" aria-pressed="false">Tiempo requerido</button>
+            <button class="boton boton--contorno" aria-pressed="false">Lectura del flotador</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
         <div class="card__encabezado"><h2 class="card__titulo">Inputs y ayuda contextual</h2></div>
         <div class="card__contenido">
           <div class="campo">
