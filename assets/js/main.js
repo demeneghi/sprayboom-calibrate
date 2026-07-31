@@ -8,7 +8,7 @@ import { el, limpiar } from './ui/dom.js';
 import { crearTabs } from './ui/tabs.js';
 import { mostrarAvisoPersistente, mostrarToast } from './ui/toast.js';
 import { confirmar } from './ui/dialog.js';
-import { iniciarServiceWorker } from './ui/actualizar.js';
+import { estadoReinstalacion, iniciarServiceWorker, versionInstalada } from './ui/actualizar.js';
 import {
   armarUrlCompartir,
   compartirUrl,
@@ -360,3 +360,18 @@ if (rutaActual.consulta) {
 // registro, el aviso de version nueva y la actualizacion a mano viven en
 // ui/actualizar.js.
 iniciarServiceWorker();
+
+// Acuse de "Reinstalar desde cero". Sin esto, la reinstalacion es
+// invisible: la pantalla vuelve identica y el usuario cree que el boton
+// no hizo nada. El estado se lee DESPUES de iniciar el service worker,
+// que es quien lo hace avanzar.
+const reinstalacion = estadoReinstalacion();
+if (reinstalacion === 'pendiente') {
+  mostrarToast('Reinstalando la aplicación: se recarga sola al terminar. No la cierres.', {
+    duracionMs: 25000,
+  });
+} else if (reinstalacion === 'terminada') {
+  mostrarToast(`Aplicación reinstalada. Versión instalada: ${versionInstalada() ?? 'desconocida'}.`, {
+    duracionMs: 9000,
+  });
+}

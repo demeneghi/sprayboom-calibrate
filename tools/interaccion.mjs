@@ -206,6 +206,61 @@ verificar(
   'Actualizar: el botón de reinstalar desde cero existe'
 );
 
+// ---------- Reinstalar desde cero ----------
+// Es el ultimo recurso cuando el telefono se quedo con la version
+// vieja: si este boton no hace nada, no hay salida en el lote.
+await pagina.getByRole('button', { name: 'Reinstalar desde cero' }).click();
+await pagina.waitForTimeout(400);
+const dialogo = pagina.locator('dialog.dialogo');
+const textoDialogo = await dialogo.innerText();
+// `dialogo.append(cuerpo)` con cuerpo ausente pintaba la palabra "null"
+// bajo la descripcion, en todos los dialogos de la aplicacion.
+verificar(!/\bnull\b/.test(textoDialogo), 'Diálogo: sin la palabra «null» cuando no hay cuerpo');
+verificar(/Se borra la copia guardada/.test(textoDialogo), 'Diálogo: la descripción se pinta');
+
+// Sin conexión NO se borra nada: la copia guardada es lo único con lo
+// que la aplicación abre en el lote.
+await contexto.setOffline(true);
+await pagina.getByRole('button', { name: 'Reinstalar', exact: true }).click();
+await pagina.waitForTimeout(1000);
+const cachesSinConexion = await pagina.evaluate(() => caches.keys());
+verificar(cachesSinConexion.length > 0, 'Reinstalar: sin conexión no se borra la copia guardada');
+texto = await pagina.locator('#panel').innerText();
+verificar(/Sin conexión: no se borró nada/.test(texto), 'Reinstalar: sin conexión lo dice y no miente');
+verificar(
+  await pagina.getByRole('button', { name: 'Reinstalar desde cero' }).isEnabled(),
+  'Reinstalar: sin conexión el botón vuelve a quedar disponible'
+);
+await contexto.setOffline(false);
+
+// Con conexión: borra, recarga las dos veces y avisa al terminar. Sin
+// el aviso, la reinstalación es invisible y parece que no hizo nada.
+await pagina.getByRole('button', { name: 'Reinstalar desde cero' }).click();
+await pagina.waitForTimeout(400);
+await pagina.getByRole('button', { name: 'Reinstalar', exact: true }).click();
+// El aviso se autodescarta a los 9 s: hay que esperarlo, no medir el
+// reloj. Aparece tras la SEGUNDA recarga, la que trae la versión nueva.
+const aviso = pagina.locator('.toast', { hasText: /reinstalada/i });
+const avisoSalio = await aviso
+  .waitFor({ state: 'attached', timeout: 25000 })
+  .then(() => true)
+  .catch(() => false);
+verificar(avisoSalio, 'Reinstalar: al terminar avisa al usuario');
+await pagina.waitForTimeout(500);
+verificar(
+  (await pagina.evaluate(() => sessionStorage.getItem('sprayboom:reinstalacion'))) === null,
+  'Reinstalar: la marca de reinstalación se consume (no se repite el aviso)'
+);
+const cachesTrasReinstalar = await pagina.evaluate(() => caches.keys());
+verificar(
+  cachesTrasReinstalar.length > 0,
+  `Reinstalar: la copia guardada queda rehecha (${JSON.stringify(cachesTrasReinstalar)})`
+);
+verificar(
+  (await pagina.locator('#panel .card').count()) > 0,
+  'Reinstalar: la aplicación queda usable tras reinstalar'
+);
+
 await contexto.close();
 await navegador.close();
 servidor.close();

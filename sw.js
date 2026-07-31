@@ -17,9 +17,26 @@ const NOMBRE_CACHE = `sprayboom-${self.SPRAYBOOM_VERSION}`;
 
 const PRECACHE = self.SPRAYBOOM_PRECACHE;
 
+// Cada archivo se pide con `cache: 'reload'`: eso salta la cache HTTP
+// del navegador y obliga a traer los bytes de la red. Sin esto, un
+// `addAll` con rutas sueltas rellena la cache nueva con lo que el
+// navegador ya tenia guardado —el CDN de Pages lo sostiene ~10
+// minutos—, y entonces "Reinstalar desde cero" borraba la copia para
+// volver a escribir exactamente la misma version vieja: un botón que no
+// hacia nada.
+function peticionSinCacheHttp(ruta) {
+  try {
+    return new Request(ruta, { cache: 'reload' });
+  } catch {
+    // Navegador que no acepta el modo de cache en Request: se precachea
+    // como antes. Peor, pero funciona.
+    return ruta;
+  }
+}
+
 self.addEventListener('install', (evento) => {
   evento.waitUntil(
-    caches.open(NOMBRE_CACHE).then((cache) => cache.addAll(PRECACHE))
+    caches.open(NOMBRE_CACHE).then((cache) => cache.addAll(PRECACHE.map(peticionSinCacheHttp)))
   );
 });
 
