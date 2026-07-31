@@ -67,6 +67,10 @@ const MENSAJES_ACTUALIZACION = {
     'La descarga se interrumpió. Vuelve a intentar; si sigue igual, usa «Reinstalar desde cero».',
   'sin-soporte':
     'Este navegador no guarda la aplicación para uso sin conexión: siempre carga la última versión al abrirla.',
+  // Reinstalar borra la única copia con la que la aplicación abre sin
+  // señal: sin conexión no se borra nada y se dice por qué.
+  reinstalarSinConexion:
+    'Sin conexión: no se borró nada. La copia guardada es lo único con lo que la aplicación abre en el lote. Conéctate a datos o wifi y vuelve a intentar.',
 };
 
 const ETIQUETAS_BOMBA = { positiva: 'Desplazamiento positivo', centrifuga: 'Centrífuga', independiente: 'Motor independiente' };
@@ -1184,12 +1188,27 @@ export function render(panel, ctx) {
     botonReinstalar.disabled = true;
     botonBuscar.disabled = true;
     estadoActualizacion.textContent = 'Borrando la copia guardada y recargando…';
-    try {
-      await reinstalar();
-    } catch (error) {
-      estadoActualizacion.textContent = `No se pudo borrar la copia guardada: ${String(error?.message ?? error)}`;
+    const reactivar = () => {
       botonReinstalar.disabled = false;
       botonBuscar.disabled = false;
+    };
+    try {
+      const resultado = await reinstalar();
+      // Sin señal no se borró nada: hay que decirlo y devolver los
+      // botones, o la pantalla se queda en «recargando…» para siempre.
+      if (resultado.estado === 'sin-conexion') {
+        estadoActualizacion.textContent = MENSAJES_ACTUALIZACION.reinstalarSinConexion;
+        mostrarToast(MENSAJES_ACTUALIZACION.reinstalarSinConexion, { tipo: 'destructivo' });
+        reactivar();
+        return;
+      }
+      // Son dos recargas: la pantalla se va y vuelve una vez más antes
+      // de mostrar la versión nueva.
+      estadoActualizacion.textContent =
+        'Reinstalando. La aplicación se recarga sola un par de veces; no la cierres.';
+    } catch (error) {
+      estadoActualizacion.textContent = `No se pudo borrar la copia guardada: ${String(error?.message ?? error)}`;
+      reactivar();
     }
   });
 

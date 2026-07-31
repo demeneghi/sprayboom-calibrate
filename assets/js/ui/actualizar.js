@@ -19,6 +19,35 @@ import { mostrarToast } from './toast.js';
 // precache completo tarda.
 const LIMITE_INSTALACION_MS = 30000;
 
+// Cuanto se espera, tras una reinstalacion, a que el trabajador nuevo
+// tome el control y dispare la segunda recarga. Mas largo que el
+// anterior porque aqui se baja el sitio COMPLETO, no una diferencia.
+const LIMITE_REINSTALACION_MS = 45000;
+
+// Marca de una reinstalacion en curso. Vive en sessionStorage porque
+// tiene que sobrevivir a la recarga (es un proceso de dos recargas) y
+// morir al cerrar la aplicacion: si algo se tuerce, abrirla de nuevo la
+// limpia. No toca los datos del usuario, que viven en localStorage.
+const MARCA_REINSTALACION = 'sprayboom:reinstalacion';
+
+function leerMarca() {
+  try {
+    return sessionStorage.getItem(MARCA_REINSTALACION);
+  } catch {
+    return null;
+  }
+}
+
+function escribirMarca(valor) {
+  try {
+    if (valor === null) sessionStorage.removeItem(MARCA_REINSTALACION);
+    else sessionStorage.setItem(MARCA_REINSTALACION, valor);
+  } catch {
+    // Sin sessionStorage (modo privado viejo) la reinstalacion se hace
+    // igual; solo se queda sin la segunda recarga y sin el aviso.
+  }
+}
+
 let registro = null;
 // Una sola recarga: el cambio de controlador y la red de seguridad
 // pueden dispararse casi a la vez.
@@ -142,23 +171,74 @@ export async function buscarActualizacion() {
 // y recarga. Es el equivalente a "borrar los datos del sitio" que iOS no
 // ofrece dentro de una aplicacion instalada. Requiere conexion: despues
 // de esto no queda nada guardado con que arrancar.
+//
+// Son DOS recargas, y hacen falta las dos:
+//
+//   1. La de aqui. Llega sin service worker, asi que el navegador sirve
+//      index.html y version.js desde su PROPIA cache HTTP —el CDN de
+//      Pages la sostiene ~10 minutos—: la pantalla seguiria mostrando la
+//      version vieja. Lo que si sale a la red es sw.js con sus
+//      importScripts (por `updateViaCache: 'none'`), asi que el service
+//      worker nuevo se instala con la version buena y precachea de la
+//      red (`cache: 'reload'` en sw.js).
+//   2. La que dispara `controllerchange` cuando ese trabajador nuevo
+//      toma el control. Ahi la pagina ya se sirve del precache recien
+//      bajado, y es la que hace que el usuario VEA la version nueva.
+//
+// Sin la segunda, el boton borraba y volvia a escribir lo mismo: no
+// hacia nada visible, que es justo lo contrario de un ultimo recurso.
 export async function reinstalar() {
-  if ('serviceWorker' in navigator) {
-    const registros = await navigator.serviceWorker.getRegistrations();
-    await Promise.all(registros.map((uno) => uno.unregister()));
-    registro = null;
-  }
-  if ('caches' in self) {
-    const nombres = await caches.keys();
-    await Promise.all(nombres.map((nombre) => caches.delete(nombre)));
+  // Borrar es irreversible y deja al telefono SIN aplicacion hasta que
+  // termine de bajar. Sin conexion no se toca nada: en el lote, la copia
+  // guardada es lo unico con lo que la aplicacion abre.
+  if (navigator.onLine === false) return { estado: 'sin-conexion' };
+
+  const conServiceWorker = 'serviceWorker' in navigator;
+  // Sin service worker no hay segunda recarga que esperar: la
+  // reinstalacion termina en la primera.
+  escribirMarca(conServiceWorker ? 'pendiente' : 'terminada');
+  try {
+    if (conServiceWorker) {
+      const registros = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registros.map((uno) => uno.unregister()));
+      registro = null;
+    }
+    if ('caches' in self) {
+      const nombres = await caches.keys();
+      await Promise.all(nombres.map((nombre) => caches.delete(nombre)));
+    }
+  } catch (error) {
+    escribirMarca(null);
+    throw error;
   }
   recargarUnaVez();
+  return { estado: 'reinstalando' };
+}
+
+// En que punto de una reinstalacion arranco esta carga:
+//   'pendiente' — falta la segunda recarga; hay que avisar que espere.
+//   'terminada' — ya esta; se avisa y la marca se borra (se consume).
+//   null        — arranque normal.
+export function estadoReinstalacion() {
+  const marca = leerMarca();
+  if (marca === 'terminada') escribirMarca(null);
+  return marca === 'pendiente' || marca === 'terminada' ? marca : null;
 }
 
 // Registro del service worker: sitio completo sin conexion tras la
 // primera carga.
 export function iniciarServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
+  // Red de seguridad de la reinstalacion: si el trabajador nuevo nunca
+  // llega a tomar el control —registro fallido, instalacion cortada—,
+  // la marca se borra en silencio. La aplicacion ya funciona (con la
+  // version que haya); lo que se evita es que cada recarga posterior
+  // vuelva a anunciar una reinstalacion que ya no esta en curso.
+  if (leerMarca() === 'pendiente') {
+    setTimeout(() => {
+      if (leerMarca() === 'pendiente') escribirMarca(null);
+    }, LIMITE_REINSTALACION_MS);
+  }
   // updateViaCache: 'none' obliga a pedir sw.js Y version.js a la red en
   // cada revision. Con el default ('imports'), version.js saldria de la
   // cache HTTP —el CDN de Pages la sostiene ~10 minutos— y "Buscar
@@ -186,14 +266,28 @@ export function iniciarServiceWorker() {
       // no debe recargar: la página ya está servida completa y el
       // usuario puede estar a media captura. Solo se recarga cuando ya
       // había un controlador, es decir, en un cambio real de versión.
+      //
+      // La excepción es venir de "Reinstalar desde cero": esta carga
+      // salió de la caché HTTP del navegador y muestra la versión vieja,
+      // así que la primera toma de control SÍ tiene que recargar. Ver
+      // `reinstalar()`.
       let teniaControlador = Boolean(navigator.serviceWorker.controller);
+      const alTomarControl = () => {
+        if (leerMarca() !== 'pendiente') return;
+        escribirMarca('terminada');
+        recargarUnaVez();
+      };
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (!teniaControlador) {
           teniaControlador = true;
+          alTomarControl();
           return;
         }
         recargarUnaVez();
       });
+      // Si el trabajador nuevo reclamó la página antes de que este
+      // listener existiera, el evento ya pasó y nadie recargaría.
+      if (teniaControlador) alTomarControl();
     })
     .catch(() => {
       // Sin service worker la aplicacion funciona igual; solo pierde el
