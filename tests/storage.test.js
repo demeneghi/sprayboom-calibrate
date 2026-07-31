@@ -189,6 +189,87 @@ test('catalogo por separado: exportar, importar y rechazar entradas invalidas', 
   assert.equal(resultado.rechazos.length >= 2, true);
 });
 
+// ---------------------------------------------------------------------
+// Migracion: la geometria de la barra bajo de parametros.geometria a
+// cada barra. Un telefono de campo tiene guardado el esquema viejo; si
+// la migracion falla, la barra queda sin ancho y el volumen por hectarea
+// revienta al abrir la aplicacion.
+// ---------------------------------------------------------------------
+function estadoConGeometriaGlobal({ anchoBarra, numBoquillas, espaciamientoCapturado = null }) {
+  const guardado = sembrarEstado();
+  guardado.parametros.geometria = {
+    largoTabla: 646,
+    distanciaReferencia: 100,
+    anchoBarra,
+    numBoquillas,
+    espaciamientoCapturado,
+  };
+  guardado.equipos = guardado.equipos.map((equipo) => {
+    const viejo = { ...equipo };
+    delete viejo.anchoBarra;
+    delete viejo.numBoquillas;
+    delete viejo.espaciamientoCapturado;
+    return viejo;
+  });
+  return guardado;
+}
+
+test('migracion: la geometria global guardada se copia a cada barra', () => {
+  const backend = backendFalso();
+  backend.setItem(
+    CLAVE_ALMACEN,
+    JSON.stringify(estadoConGeometriaGlobal({ anchoBarra: 12.4, numBoquillas: 18, espaciamientoCapturado: 0.7 }))
+  );
+  const barra = crearAlmacen({ backend }).obtener().equipos[0];
+  assert.equal(barra.anchoBarra, 12.4, 'el ancho capturado por el usuario NO se pierde');
+  assert.equal(barra.numBoquillas, 18);
+  assert.equal(barra.espaciamientoCapturado, 0.7);
+});
+
+test('migracion: sin geometria guardada la barra toma la de la siembra', () => {
+  const backend = backendFalso();
+  const guardado = estadoConGeometriaGlobal({ anchoBarra: 1, numBoquillas: 1 });
+  delete guardado.parametros.geometria.anchoBarra;
+  delete guardado.parametros.geometria.numBoquillas;
+  delete guardado.parametros.geometria.espaciamientoCapturado;
+  backend.setItem(CLAVE_ALMACEN, JSON.stringify(guardado));
+  const barra = crearAlmacen({ backend }).obtener().equipos[0];
+  assert.equal(barra.anchoBarra, sembrarEstado().equipos[0].anchoBarra);
+  assert.equal(barra.numBoquillas, sembrarEstado().equipos[0].numBoquillas);
+  assert.equal(barra.espaciamientoCapturado, null);
+});
+
+test('migracion: un respaldo exportado con el esquema viejo se importa entero', () => {
+  const estado = sembrarEstado();
+  const json = {
+    tipo: 'sprayboom-configuracion',
+    version: VERSION_ESQUEMA,
+    exportado: estadoConGeometriaGlobal({ anchoBarra: 9.5, numBoquillas: 16 }),
+  };
+  const resultado = importarJSON(JSON.stringify(json), estado);
+  assert.equal(resultado.ok, true);
+  assert.equal(resultado.rechazos.length, 0, 'ninguna barra rechazada por los campos nuevos');
+  assert.equal(resultado.estado.equipos[0].anchoBarra, 9.5);
+  assert.equal(resultado.estado.equipos[0].numBoquillas, 16);
+});
+
+test('cada barra guarda su propia geometria: la segunda no hereda la primera', () => {
+  const backend = backendFalso();
+  const almacen = crearAlmacen({ backend });
+  almacen.actualizar((estado) => {
+    const segunda = JSON.parse(JSON.stringify(estado.equipos[0]));
+    segunda.id = 'barra-chica';
+    segunda.nombre = 'Barra chica';
+    segunda.anchoBarra = 6;
+    segunda.numBoquillas = 10;
+    estado.equipos.push(segunda);
+  });
+  const recargado = crearAlmacen({ backend }).obtener();
+  assert.equal(recargado.equipos[0].anchoBarra, 15.47);
+  assert.equal(recargado.equipos[1].anchoBarra, 6);
+  assert.equal(recargado.equipos[1].numBoquillas, 10);
+});
+
 test('CSV: BOM UTF-8, separador coma y escape de comillas', () => {
   const csv = aCSV(['Fecha', 'Nota'], [['2026-07-30', 'dice "aforo", con coma']]);
   assert.equal(csv.charCodeAt(0), 0xfeff, 'inicia con BOM');

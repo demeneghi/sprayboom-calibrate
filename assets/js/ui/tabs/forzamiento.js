@@ -119,21 +119,8 @@ export function render(panel, ctx) {
     return (avisos ?? []).filter((a) => a.codigo !== AVISO_SOLUBILIDAD.codigo);
   }
 
-  function parametrosGeometria() {
-    const p = ctx.estado().parametros;
-    return {
-      largoTabla: p.geometria.largoTabla,
-      anchoBarra: p.geometria.anchoBarra,
-      numBoquillas: p.geometria.numBoquillas,
-      distanciaReferencia: p.geometria.distanciaReferencia,
-      espaciamientoCapturado: p.geometria.espaciamientoCapturado,
-      espaciamientoMinimoPlausible: p.umbrales.espaciamientoMinimoPlausible,
-      umbralDiscrepanciaPct: p.umbrales.umbralDiscrepanciaMetodos,
-    };
-  }
-
   function hectareasDeTabla() {
-    return geometria(parametrosGeometria()).valores.hectareasPorTabla;
+    return geometria(ctx.parametrosGeometria()).valores.hectareasPorTabla;
   }
 
   // Linea de contexto del circuito de gas: que numeros se estan usando.

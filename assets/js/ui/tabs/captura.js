@@ -63,26 +63,13 @@ export function render(panel, ctx) {
     return Number(aSistema(magnitud, valorMetrico, sistema).toPrecision(6));
   }
 
-  function parametrosGeometria() {
-    const par = ctx.estado().parametros;
-    return {
-      largoTabla: par.geometria.largoTabla,
-      anchoBarra: par.geometria.anchoBarra,
-      numBoquillas: par.geometria.numBoquillas,
-      distanciaReferencia: par.geometria.distanciaReferencia,
-      espaciamientoCapturado: par.geometria.espaciamientoCapturado,
-      espaciamientoMinimoPlausible: par.umbrales.espaciamientoMinimoPlausible,
-      umbralDiscrepanciaPct: par.umbrales.umbralDiscrepanciaMetodos,
-    };
-  }
-
   // Precarga del espaciamiento: el efectivo de la geometria configurada
   // (capturado si existe; si no, derivado por el dominio). Editable solo
   // en el borrador de esta pestana.
   function espaciamientoPrecargaM() {
     if (Number.isFinite(borrador.espaciamientoM)) return borrador.espaciamientoM;
     try {
-      return geometria(parametrosGeometria()).valores.espaciamientoEfectivo;
+      return geometria(ctx.parametrosGeometria()).valores.espaciamientoEfectivo;
     } catch {
       return null;
     }
@@ -173,7 +160,7 @@ export function render(panel, ctx) {
     ayuda:
       ctx.estado().catalogo.length === 0
         ? 'El catálogo está vacío: agrega boquillas en Sistema, Configuración.'
-        : 'Se precarga la boquilla del equipo activo. El caudal de catálogo es el de una boquilla NUEVA: contra él se estima el desgaste.',
+        : 'Se precarga la boquilla de la barra activa. El caudal de catálogo es el de una boquilla NUEVA: contra él se estima el desgaste.',
   });
   const campoBoquilla = el(
     'div',
@@ -184,7 +171,7 @@ export function render(panel, ctx) {
   );
 
   // ---------------- Renglones de volumenes recogidos ----------------
-  const numBoquillasConfig = p.geometria.numBoquillas;
+  const numBoquillasConfig = ctx.equipoActivo()?.numBoquillas;
   const semillaRenglones =
     Number.isFinite(numBoquillasConfig) && numBoquillasConfig >= 1
       ? Math.floor(numBoquillasConfig)
@@ -386,7 +373,7 @@ export function render(panel, ctx) {
         // derivado del ancho entre el numero de boquillas configurados.
         if (espaciamientoM !== null) {
           try {
-            const g = geometria({ ...parametrosGeometria(), espaciamientoCapturado: espaciamientoM });
+            const g = geometria({ ...ctx.parametrosGeometria(), espaciamientoCapturado: espaciamientoM });
             nodos.push(...pintarAvisos(g.avisos));
           } catch {
             // La geometria configurada no bloquea el aforo: el volumen

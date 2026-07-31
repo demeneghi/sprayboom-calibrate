@@ -127,13 +127,26 @@ verificar(/por boquilla/i.test(texto) && /por barra/i.test(texto), 'Gasto: ambos
 verificar(/Verificado por dos rutas|verificación/i.test(texto), 'Gasto: verificación redundante visible');
 verificar(/desglose/i.test(texto), 'Gasto: desglose paso a paso disponible');
 
-// ---------- Cambio de unidades a imperial ----------
-await pagina.selectOption('#selector-unidades', 'imperial');
-await pagina.waitForTimeout(300);
+// ---------- Cambio de unidades: vive SOLO en Configuración ----------
+verificar(
+  (await pagina.locator('#selector-unidades').count()) === 0,
+  'Encabezado: el selector de unidades ya no está ahí'
+);
+
+async function fijarUnidades(valor) {
+  await pagina.goto(`${base}#/sistema/configuracion`, { waitUntil: 'networkidle' });
+  await pagina.waitForTimeout(300);
+  // exact: el boton de ayuda del campo se llama "Ayuda sobre Sistema de unidades".
+  await pagina.getByLabel('Sistema de unidades', { exact: true }).selectOption(valor);
+  await pagina.waitForTimeout(300);
+  await pagina.goto(`${base}#/calibrar/gasto`, { waitUntil: 'networkidle' });
+  await pagina.waitForTimeout(400);
+}
+
+await fijarUnidades('imperial');
 texto = await pagina.locator('#panel').innerText();
 verificar(/gal\/acre|GPA|gal\/min|psi/i.test(texto), 'Imperial: la pantalla muestra unidades imperiales');
-await pagina.selectOption('#selector-unidades', 'metrico');
-await pagina.waitForTimeout(200);
+await fijarUnidades('metrico');
 
 // ---------- Boquillas: candidatas ----------
 await pagina.goto(`${base}#/calibrar/boquillas`, { waitUntil: 'networkidle' });
@@ -163,6 +176,41 @@ texto = await pagina.locator('#panel').innerText();
 verificar(/600/.test(texto) && /ISO 10625/.test(texto), 'Metodología: factor 600 y tabla ISO presentes');
 verificar(/S572/.test(texto), 'Metodología: ediciones S572 presentes');
 verificar(/exporta|respaldo|navegador/i.test(texto), 'Metodología: limitación de datos locales declarada');
+
+// ---------- Barras de aplicacion: alta y geometria propia ----------
+await pagina.goto(`${base}#/sistema/configuracion`, { waitUntil: 'networkidle' });
+await pagina.waitForTimeout(400);
+texto = await pagina.locator('#panel').innerText();
+verificar(/Barras de aplicación/.test(texto), 'Configuración: la sección se llama Barras de aplicación');
+verificar(
+  /Ancho de barra de aplicación/.test(texto) && /Número de boquillas instaladas/.test(texto),
+  'Barra: el ancho y el número de boquillas son campos de la barra'
+);
+const botonAgregarBarra = pagina.getByRole('button', { name: 'Agregar barra' });
+verificar((await botonAgregarBarra.count()) === 1, 'Barra: el botón de agregar existe');
+await botonAgregarBarra.click();
+await pagina.waitForTimeout(500);
+const opcionesBarra = await pagina.locator('#selector-equipo option').count();
+verificar(opcionesBarra === 2, `Barra: la nueva aparece en el selector del encabezado (${opcionesBarra})`);
+await pagina.getByRole('textbox', { name: 'Ancho de barra de aplicación' }).fill('8');
+await pagina.getByRole('textbox', { name: 'Número de boquillas instaladas' }).fill('16');
+await pagina.waitForTimeout(400);
+const derivado = await pagina
+  .locator('.resultado', { hasText: 'Espaciamiento derivado' })
+  .first()
+  .innerText();
+verificar(
+  /0[.,]5/.test(derivado),
+  `Barra: el espaciamiento derivado sigue a la geometría de ESTA barra, 8 / 16 = 0.5 m (${derivado.replace(/\n/g, ' ')})`
+);
+await pagina.getByRole('button', { name: 'Eliminar esta barra' }).click();
+await pagina.waitForTimeout(300);
+await pagina.getByRole('button', { name: 'Eliminar', exact: true }).click();
+await pagina.waitForTimeout(500);
+verificar(
+  (await pagina.locator('#selector-equipo option').count()) === 1,
+  'Barra: se puede eliminar y el selector vuelve a una sola'
+);
 
 // ---------- Service worker y recarga sin conexion ----------
 await pagina.goto(base, { waitUntil: 'networkidle' });

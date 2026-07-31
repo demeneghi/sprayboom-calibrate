@@ -188,7 +188,7 @@ function diferenciasSnapshot(snapshot, parametrosVigentes, tractorVigente, equip
   if (snapEquipo && equipoVigente) {
     if (snapEquipo.id !== equipoVigente.id) {
       diferencias.push({
-        etiqueta: 'Equipo activo',
+        etiqueta: 'Barra activa',
         unidad: '',
         antes: snapEquipo.nombre ?? snapEquipo.id,
         ahora: equipoVigente.nombre ?? equipoVigente.id,
@@ -231,7 +231,7 @@ export function render(panel, ctx) {
     return (
       prueba.parametros?.equipo?.nombre ??
       ctx.estado().equipos.find((e) => e.id === prueba.equipoId)?.nombre ??
-      'equipo sin registrar'
+      'barra sin registrar'
     );
   }
 
@@ -469,7 +469,7 @@ export function render(panel, ctx) {
         .map((v) => formatear(aSistema('volumenChico', v, sistema), 1, { fijos: false }))
         .join(', ') || '—';
     const filas = [
-      ['Equipo', nombreEquipoPrueba(prueba)],
+      ['Barra', nombreEquipoPrueba(prueba)],
       ['Boquilla de referencia', nombreBoquillaPrueba(prueba)],
       [
         etiquetaConUnidad('Presión de trabajo', unidadPresion),
@@ -527,7 +527,7 @@ export function render(panel, ctx) {
       el(
         'p',
         { clase: 'ayuda' },
-        `Calculado con el tractor ${snapshot.tractor?.nombre ?? '—'} y el equipo ${snapshot.equipo?.nombre ?? '—'}.`
+        `Calculado con el tractor ${snapshot.tractor?.nombre ?? '—'} y la barra ${snapshot.equipo?.nombre ?? '—'}.`
       )
     );
 
@@ -626,7 +626,7 @@ export function render(panel, ctx) {
             valorLegible(snapshot.equipo[campo]) ?? '—',
           ]),
       ];
-      cuerpoSnapshot.push(el('p', { clase: 'etiqueta' }, 'Equipo del registro'), tablaClaveValor(filas));
+      cuerpoSnapshot.push(el('p', { clase: 'etiqueta' }, 'Barra del registro'), tablaClaveValor(filas));
     }
     if (cuerpoSnapshot.length > 0) {
       nodos.push(

@@ -250,19 +250,6 @@ export function render(panel, ctx) {
   const zonaTdf = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } });
   const zonaGeometria = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } });
 
-  function parametrosGeometria() {
-    const p = ctx.estado().parametros;
-    return {
-      largoTabla: p.geometria.largoTabla,
-      anchoBarra: p.geometria.anchoBarra,
-      numBoquillas: p.geometria.numBoquillas,
-      distanciaReferencia: p.geometria.distanciaReferencia,
-      espaciamientoCapturado: p.geometria.espaciamientoCapturado,
-      espaciamientoMinimoPlausible: p.umbrales.espaciamientoMinimoPlausible,
-      umbralDiscrepanciaPct: p.umbrales.umbralDiscrepanciaMetodos,
-    };
-  }
-
   function recalcular() {
     const estado = ctx.estado();
     const p = estado.parametros;
@@ -500,13 +487,13 @@ export function render(panel, ctx) {
     const rpm = modo === 'marcha' ? campoRpm.obtener() : null;
     const nodos = [];
     if (!equipo) {
-      nodos.push(el('p', { clase: 'texto-suave' }, 'Sin equipo de aplicación configurado.'));
+      nodos.push(el('p', { clase: 'texto-suave' }, 'Sin barra de aplicación configurada.'));
     } else if (equipo.accionamiento !== 'tdf') {
       nodos.push(
         el(
           'p',
           { clase: 'texto-suave' },
-          'La bomba de este equipo no es de TDF: su velocidad no depende del régimen del motor.'
+          'La bomba de esta barra no es de TDF: su velocidad no depende del régimen del motor.'
         )
       );
     } else if (rpm === null) {
@@ -568,7 +555,7 @@ export function render(panel, ctx) {
   }
 
   function pintarGeometria() {
-    const g = geometria(parametrosGeometria());
+    const g = geometria(ctx.parametrosGeometria());
     reemplazar(
       zonaGeometria,
       el(

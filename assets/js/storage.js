@@ -99,6 +99,37 @@ export function adoptarVelocidadesDeFabrica(tractoresGuardados, tractoresSemilla
 }
 
 // ---------------------------------------------------------------------
+// Migracion: la geometria de la barra pasa de global a cada barra
+//
+// El ancho de barra, el numero de boquillas y el espaciamiento vivian en
+// parametros.geometria, uno solo para toda la aplicacion. Ahora son de
+// cada barra. Un telefono que ya uso la aplicacion tiene sus barras
+// guardadas SIN esos tres campos: sin esto quedarian vacios y el calculo
+// de volumen por hectarea reventaria al abrir. Se copia lo que el
+// usuario tenia capturado en la geometria global —era el ancho de su
+// barra— y solo si tampoco esta, la semilla.
+//
+// La version del esquema NO sube: subirla mandaria todo lo guardado al
+// respaldo y el telefono arrancaria con defaults, que es justo lo que
+// esta migracion evita.
+// ---------------------------------------------------------------------
+const CAMPOS_GEOMETRIA_BARRA = ['anchoBarra', 'numBoquillas', 'espaciamientoCapturado'];
+
+export function migrarGeometriaABarras(equiposGuardados, geometriaGuardada, equipoSemilla) {
+  if (!Array.isArray(equiposGuardados)) return equiposGuardados;
+  return equiposGuardados.map((equipo) => {
+    if (!equipo || typeof equipo !== 'object') return equipo;
+    const migrado = { ...equipo };
+    for (const campo of CAMPOS_GEOMETRIA_BARRA) {
+      if (migrado[campo] !== undefined) continue;
+      const global = geometriaGuardada?.[campo];
+      migrado[campo] = global === undefined ? (equipoSemilla?.[campo] ?? null) : global;
+    }
+    return migrado;
+  });
+}
+
+// ---------------------------------------------------------------------
 // Almacen con pub/sub y autosave
 // ---------------------------------------------------------------------
 export function crearAlmacen({ backend = null, alFallarEscritura = null } = {}) {
@@ -146,6 +177,11 @@ export function crearAlmacen({ backend = null, alFallarEscritura = null } = {}) 
             tractores: adoptarVelocidadesDeFabrica(
               cargado.tractores ?? semilla.tractores,
               semilla.tractores
+            ),
+            equipos: migrarGeometriaABarras(
+              cargado.equipos ?? semilla.equipos,
+              cargado.parametros?.geometria,
+              semilla.equipos[0]
             ),
           };
         } else {
@@ -378,7 +414,17 @@ export function importarJSON(texto, estadoActual) {
   const tractores = validarColeccion(importado.tractores, COTAS_TRACTOR, 'tractores', rechazos, validarTractor);
   if (tractores && tractores.length > 0) nuevo.tractores = tractores;
 
-  const equipos = validarColeccion(importado.equipos, COTAS_EQUIPO, 'equipos', rechazos, validarEquipo);
+  // Un respaldo exportado ANTES de que la geometria bajara a cada barra
+  // trae el ancho y las boquillas en parametros.geometria: se copian a
+  // las barras antes de validar, o cada barra se rechazaria entera por
+  // tres campos que ese archivo no podia traer.
+  const equipos = validarColeccion(
+    migrarGeometriaABarras(importado.equipos, importado.parametros?.geometria, EQUIPOS_SIEMBRA[0]),
+    COTAS_EQUIPO,
+    'equipos',
+    rechazos,
+    validarEquipo
+  );
   if (equipos && equipos.length > 0) nuevo.equipos = equipos;
 
   const gases = validarColeccion(importado.gases, COTAS_GAS, 'gases', rechazos);
