@@ -449,54 +449,59 @@ export function render(panel, ctx) {
     pintarGeometria();
   }
 
+  // Solo las marchas que SI reproducen la velocidad con el motor dentro
+  // de su rango de trabajo. Antes se listaban todas y cada fila cargaba
+  // una columna "Estado" con su chip: en teléfono esa tercera columna no
+  // cabía y la tabla se iba a scroll horizontal, para acabar mostrando
+  // diez renglones inservibles. Lo que no se puede usar no se imprime;
+  // el rango del motor queda en el pie.
   function pintarMarchasQueReproducen(velocidadObjetivoKmh) {
-    const filas = marchasParaVelocidad({ tractor, velocidadObjetivoKmh });
+    const filas = marchasParaVelocidad({ tractor, velocidadObjetivoKmh }).filter(
+      (fila) => !fila.fueraDeRango
+    );
+    const pie = el(
+      'p',
+      { clase: 'ayuda' },
+      `Rango de trabajo del motor: ${tractor.regimenMinimo} a ${tractor.regimenMaximo} rpm.`
+    );
+    if (filas.length === 0) {
+      reemplazar(
+        zonaMarchasQueReproducen,
+        el('h3', { clase: 'etiqueta' }, 'Marchas que reproducen esta velocidad'),
+        el(
+          'p',
+          { clase: 'texto-suave' },
+          'Ninguna marcha de este tractor reproduce esta velocidad con el motor dentro de su rango de trabajo.'
+        ),
+        pie
+      );
+      return;
+    }
     reemplazar(
       zonaMarchasQueReproducen,
       el('h3', { clase: 'etiqueta' }, 'Marchas que reproducen esta velocidad'),
       el(
-        'div',
-        { clase: 'scroll-x' },
+        'table',
+        { clase: 'tabla tabla--numerica' },
         el(
-          'table',
-          { clase: 'tabla tabla--numerica' },
-          el(
-            'thead',
-            {},
+          'thead',
+          {},
+          el('tr', {}, el('th', {}, 'Marcha'), el('th', { clase: 'numero' }, 'rpm requeridas'))
+        ),
+        el(
+          'tbody',
+          {},
+          filas.map((fila) =>
             el(
               'tr',
               {},
-              el('th', {}, 'Marcha'),
-              el('th', {}, 'rpm requeridas'),
-              el('th', {}, 'Estado')
-            )
-          ),
-          el(
-            'tbody',
-            {},
-            filas.map((fila) =>
-              el(
-                'tr',
-                {},
-                el('td', {}, fila.etiqueta),
-                el('td', { clase: 'numero' }, formatear(fila.rpmRequeridas, 0)),
-                el(
-                  'td',
-                  {},
-                  fila.fueraDeRango
-                    ? el('span', { clase: 'badge badge--destructivo' }, 'fuera de rango')
-                    : el('span', { clase: 'badge badge--secundario' }, 'en rango')
-                )
-              )
+              el('td', {}, fila.etiqueta),
+              el('td', { clase: 'numero' }, formatear(fila.rpmRequeridas, 0))
             )
           )
         )
       ),
-      el(
-        'p',
-        { clase: 'ayuda' },
-        `Rango de trabajo del motor: ${tractor.regimenMinimo} a ${tractor.regimenMaximo} rpm.`
-      )
+      pie
     );
   }
 
