@@ -45,10 +45,10 @@ export function render(panel, ctx) {
   const botonMarcha = el('button', { clase: 'boton boton--contorno', 'aria-pressed': 'false' }, 'Desde marcha y rpm');
   const botonReporte = el('button', { clase: 'boton boton--contorno', 'aria-pressed': 'false' }, 'Desde reporte de campo');
   function pintarModo() {
+    // El resalte del modo elegido lo pinta components.css desde
+    // `aria-pressed`: no se intercambian variantes de boton aqui.
     botonMarcha.setAttribute('aria-pressed', modo === 'marcha' ? 'true' : 'false');
     botonReporte.setAttribute('aria-pressed', modo === 'reporte' ? 'true' : 'false');
-    botonMarcha.classList.toggle('boton--secundario', modo === 'marcha');
-    botonReporte.classList.toggle('boton--secundario', modo === 'reporte');
     zonaMarcha.classList.toggle('oculto', modo !== 'marcha');
     zonaReporte.classList.toggle('oculto', modo !== 'reporte');
   }
@@ -600,7 +600,7 @@ export function render(panel, ctx) {
         titulo: 'Avance',
         descripcion: `Velocidad y tiempo por tabla del ${tractor.nombre}.`,
       },
-      el('div', { estilo: { display: 'flex', gap: '0.5rem' } }, botonMarcha, botonReporte),
+      el('div', { clase: 'grupo-modo' }, botonMarcha, botonReporte),
       zonaMarcha,
       zonaReporte
     ),
