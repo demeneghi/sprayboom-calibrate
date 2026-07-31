@@ -20,7 +20,7 @@ Esta aplicación calcula calibraciones agrícolas: un número mal calculado tien
 el cultivo. Nada se da por terminado sin pasar, como mínimo, lo que corre CI:
 
 ```bash
-npm test                                   # 131 pruebas de dominio (node:test)
+npm test                                   # pruebas de dominio (node:test)
 node tools/verificar-contraste.mjs         # contraste AA de tokens y colores ISO
 node tools/generar-precache.mjs            # regenera precache.js (lista del service worker)
 node tools/acentuar.mjs $(find assets/js -name '*.js' | sort)
@@ -30,12 +30,20 @@ node tools/humo.mjs && node tools/interaccion.mjs   # navegador real, viewport d
 Los dos últimos necesitan Chromium: `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --no-save
 playwright` y `export CHROMIUM_PATH="$(command -v google-chrome || command -v chromium)"`.
 
-## Versión del service worker — REGLA DURA
+## Versión del service worker — la estampa el despliegue
 
-**Todo cambio en archivos del sitio** (`index.html`, `componentes.html`, `404.html`,
-`manifest.webmanifest`, `sw.js`, `assets/`) **obliga a subir `self.SPRAYBOOM_VERSION` en
-`version.js`**. Sin eso, el service worker de los teléfonos en campo conserva la caché vieja y la
-gente nunca recibe el cambio. CI lo bloquea en cada pull request.
+**No subas `version.js` a mano: ya no hace falta.** La versión de la caché la escribe
+`tools/sellar-version.mjs` desde `pages.yml`, con la fecha y el commit que se publica. Cada
+despliegue recibe una versión distinta por construcción, así que el teléfono en campo siempre
+detecta el service worker nuevo.
+
+Antes había una regla dura que obligaba a subir esa línea en todo pull request. Se quitó porque
+era el conflicto de git más frecuente del repositorio —dos ramas en paralelo chocaban siempre en
+el mismo renglón— y porque el sello de despliegue da una garantía **más fuerte**: no depende de
+que nadie se acuerde.
+
+En el repositorio `version.js` dice `'dev'`. Es lo que ven `humo.mjs`, `interaccion.mjs` y quien
+abra el sitio desde el disco.
 
 ## Sin `innerHTML` — REGLA DURA
 

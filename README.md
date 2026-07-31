@@ -38,8 +38,8 @@ Pages. Si algo falla, no se publica: una calibración rota no llega al campo.
 ## Aplicación instalable (PWA) y funciones de campo
 
 - **Sin conexión**: tras la primera carga, el service worker precachea el sitio completo; la
-  aplicación abre y calcula sin señal. Al publicar cambios hay que subir la versión en
-  `version.js`; la aplicación avisa "hay una versión nueva" con botón de actualizar.
+  aplicación abre y calcula sin señal. Cada despliegue estampa una versión nueva de la caché,
+  así que la aplicación avisa "hay una versión nueva" con botón de actualizar.
 - **Instalable**: desde el navegador del teléfono, "Agregar a pantalla de inicio". El manifiesto
   usa rutas relativas y funciona bajo el subdirectorio de Pages.
 - **Compartir por URL**: el botón de compartir del encabezado codifica los valores capturados de
@@ -85,10 +85,16 @@ batería como compuerta del despliegue: nada llega a `main` publicable sin pasar
 
 | Job | Qué valida |
 |---|---|
-| `pruebas` | Las 131 pruebas de dominio con `node:test` |
+| `pruebas` | Las pruebas de dominio con `node:test` |
 | `estatico` | Sintaxis de todos los JS (`node --check`), manifest JSON válido, prohibición de `.innerHTML`, contraste AA de tokens y colores ISO, `precache.js` al día, ortografía de textos visibles al día |
 | `humo` | Playwright con el Chrome del runner: 10 rutas x 2 viewports de teléfono y la interacción completa, incluida la recarga sin conexión |
-| `version-sw` | Solo en PR: si cambian archivos del sitio, `version.js` debe subir; si no, los teléfonos en campo conservan la caché vieja y nunca reciben el cambio |
+
+La versión de la caché **no** se sube en el pull request: la estampa el despliegue
+(`tools/sellar-version.mjs` desde `pages.yml`, con la fecha y el commit). Antes había una
+compuerta `version-sw` que la exigía en todo PR que tocara el sitio; se quitó porque era el
+conflicto de git más frecuente del repositorio y porque el sello de despliegue garantiza más:
+cada publicación recibe una versión distinta por construcción, sin depender de que alguien se
+acuerde.
 
 Los iconos PNG del manifest no se regeneran en CI a propósito: el render de Chromium no es
 idéntico bit a bit entre versiones y daría falsos fallos.
@@ -106,6 +112,7 @@ CHROMIUM_PATH=/opt/pw-browsers/chromium node tools/generar-iconos.mjs   # PNG de
 CHROMIUM_PATH=... node tools/humo.mjs               # humo: 10 rutas x 2 viewports de teléfono
 CHROMIUM_PATH=... node tools/interaccion.mjs        # interacción completa + recarga sin conexión
 node tools/acentuar.mjs <archivos>      # ortografía de textos visibles
+node tools/sellar-version.mjs <sello>   # solo lo corre el despliegue (pages.yml)
 ```
 
 ## Sistema de diseño
@@ -151,7 +158,7 @@ componentes.html      muestra del sistema de diseño en ambos temas
 manifest.webmanifest  PWA
 sw.js                 service worker (precache versionado)
 precache.js           lista de precache, GENERADA (merge=union, ver .gitattributes)
-version.js            versión de la caché del service worker
+version.js            versión de la caché, la ESTAMPA el despliegue (dice 'dev' en el repo)
 .claude/rules/        reglas del proyecto (sistema de diseño)
 assets/
   css/                tokens (temas claro y oscuro), base, componentes

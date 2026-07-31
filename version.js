@@ -1,10 +1,13 @@
-// Version de la cache del service worker. SUBE este numero en cada
-// despliegue que cambie archivos: el SW instala la nueva cache, borra
-// las viejas en activate y la aplicacion avisa "nueva version
-// disponible". GitHub Pages cachea ~10 minutos en CDN; esta version
-// explicita es lo que garantiza la invalidacion correcta en el
-// telefono.
+// Version de la cache del service worker: la ESTAMPA el despliegue.
+//
+// No se edita a mano y no hace falta subirla en un pull request: lo hace
+// tools/sellar-version.mjs desde pages.yml, con la fecha y el commit que
+// se publica. Asi cada despliegue invalida la cache por construccion y
+// dos ramas dejan de chocar en esta linea.
+//
+// El valor commiteado es la marca de desarrollo: es la que ven las
+// herramientas que sirven el sitio desde el disco.
 //
 // Script clasico a proposito (sin export): lo consume sw.js via
 // importScripts.
-self.SPRAYBOOM_VERSION = '2026-07-31.8';
+self.SPRAYBOOM_VERSION = 'dev';
