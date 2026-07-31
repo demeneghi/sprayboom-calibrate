@@ -8,6 +8,7 @@ import { el, limpiar } from './ui/dom.js';
 import { crearTabs } from './ui/tabs.js';
 import { mostrarAvisoPersistente, mostrarToast } from './ui/toast.js';
 import { confirmar } from './ui/dialog.js';
+import { iniciarServiceWorker } from './ui/actualizar.js';
 import {
   armarUrlCompartir,
   compartirUrl,
@@ -345,59 +346,6 @@ async function aplicarEstadoCompartido(consulta) {
   renderizar();
 }
 
-// ---------------------------------------------------------------------
-// Service worker: sitio completo sin conexion tras la primera carga
-// ---------------------------------------------------------------------
-function registrarServiceWorker() {
-  if (!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker
-    .register('./sw.js')
-    .then((registro) => {
-      // Si ya habia una version nueva esperando desde una visita
-      // anterior, avisar de inmediato.
-      if (registro.waiting && navigator.serviceWorker.controller) {
-        const esperando = registro.waiting;
-        mostrarToast('Hay una versión nueva de la aplicación.', {
-          duracionMs: 0,
-          accionTexto: 'Actualizar',
-          alAccionar: () => esperando.postMessage('SALTAR_ESPERA'),
-        });
-      }
-      registro.addEventListener('updatefound', () => {
-        const nuevo = registro.installing;
-        if (!nuevo) return;
-        nuevo.addEventListener('statechange', () => {
-          if (nuevo.state === 'installed' && navigator.serviceWorker.controller) {
-            mostrarToast('Hay una versión nueva de la aplicación.', {
-              duracionMs: 0,
-              accionTexto: 'Actualizar',
-              alAccionar: () => nuevo.postMessage('SALTAR_ESPERA'),
-            });
-          }
-        });
-      });
-      // La primera toma de control (clients.claim en la primera visita)
-      // no debe recargar: la página ya está servida completa y el
-      // usuario puede estar a media captura. Solo se recarga cuando ya
-      // había un controlador, es decir, en un cambio real de versión.
-      let teniaControlador = Boolean(navigator.serviceWorker.controller);
-      let recargando = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!teniaControlador) {
-          teniaControlador = true;
-          return;
-        }
-        if (recargando) return;
-        recargando = true;
-        location.reload();
-      });
-    })
-    .catch(() => {
-      // Sin service worker la aplicacion funciona igual; solo pierde el
-      // uso sin conexion.
-    });
-}
-
 // Arranque
 llenarSelectoresEncabezado();
 if (!location.hash) {
@@ -408,4 +356,7 @@ renderizar();
 if (rutaActual.consulta) {
   aplicarEstadoCompartido(rutaActual.consulta);
 }
-registrarServiceWorker();
+// Service worker: sitio completo sin conexion tras la primera carga. El
+// registro, el aviso de version nueva y la actualizacion a mano viven en
+// ui/actualizar.js.
+iniciarServiceWorker();

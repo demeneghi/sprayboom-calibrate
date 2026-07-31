@@ -23,6 +23,11 @@
       document.documentElement.dataset.theme = tema;
     })();
   </script>
+  <!-- Version del paquete que este navegador tiene cargado. El service
+       worker la lee via importScripts; la pantalla de Configuración la
+       muestra junto al botón de actualizar. Script clásico: estampa
+       self.SPRAYBOOM_VERSION antes de que corra el módulo. -->
+  <script src="./version.js"></script>
   <link rel="stylesheet" href="./assets/css/tokens.css">
   <link rel="stylesheet" href="./assets/css/base.css">
   <link rel="stylesheet" href="./assets/css/components.css">

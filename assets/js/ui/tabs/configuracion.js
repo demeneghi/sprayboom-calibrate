@@ -15,6 +15,7 @@ import { crearCampoNumerico, crearCampoSelect, crearInterruptor } from '../campo
 import { formatear } from '../formato.js';
 import { confirmar } from '../dialog.js';
 import { mostrarToast } from '../toast.js';
+import { buscarActualizacion, reinstalar, versionInstalada } from '../actualizar.js';
 import { estiloBadgeIso } from '../color.js';
 import { aSistema, unidad } from '../../domain/units.js';
 import {
@@ -51,6 +52,20 @@ import {
 } from '../../storage.js';
 
 export const id = 'configuracion';
+
+// Respuesta en palabras de cada estado de la busqueda de version nueva.
+// Quien lee esto esta de pie en el lote: cada mensaje dice que paso y
+// que hacer, sin hablar de caches ni de service workers.
+const MENSAJES_ACTUALIZACION = {
+  'al-dia': 'Ya tienes la última versión publicada.',
+  'sin-conexion': 'Sin conexión con el servidor. Conéctate a datos o wifi y vuelve a intentar.',
+  descargando:
+    'La versión nueva se está descargando. Espera un momento y vuelve a tocar el botón.',
+  error:
+    'La descarga se interrumpió. Vuelve a intentar; si sigue igual, usa «Reinstalar desde cero».',
+  'sin-soporte':
+    'Este navegador no guarda la aplicación para uso sin conexión: siempre carga la última versión al abrirla.',
+};
 
 const ETIQUETAS_BOMBA = { positiva: 'Desplazamiento positivo', centrifuga: 'Centrífuga', independiente: 'Motor independiente' };
 const ETIQUETAS_ACCIONAMIENTO = { tdf: 'Toma de fuerza', hidraulico: 'Hidráulico', 'motor-propio': 'Motor propio' };
@@ -1090,9 +1105,103 @@ export function render(panel, ctx) {
   });
 
   // ----------------------------------------------------------------
+  // Actualizacion de la aplicacion
+  //
+  // En un iPhone con la aplicacion en la pantalla de inicio no hay barra
+  // de direcciones: no se puede recargar ni borrar la cache a mano. Sin
+  // este boton, un telefono que se quedo con la version vieja no tiene
+  // como salir de ahi.
+  // ----------------------------------------------------------------
+  const version = versionInstalada();
+  const lineaVersion = el(
+    'p',
+    { clase: 'texto-meta' },
+    'Versión instalada: ',
+    el('span', { clase: 'mono' }, version ?? 'desconocida')
+  );
+  const estadoActualizacion = el('p', {
+    clase: 'ayuda',
+    role: 'status',
+    'aria-live': 'polite',
+  });
+  const botonBuscar = el('button', { clase: 'boton' }, 'Buscar actualización');
+  botonBuscar.addEventListener('click', async () => {
+    botonBuscar.disabled = true;
+    botonBuscar.textContent = 'Buscando…';
+    estadoActualizacion.textContent = 'Preguntando al servidor si hay una versión nueva…';
+    let recargaEnCamino = false;
+    try {
+      const resultado = await buscarActualizacion();
+      if (resultado.estado === 'lista') {
+        recargaEnCamino = true;
+        estadoActualizacion.textContent =
+          'Versión nueva lista. La aplicación se recarga sola en un momento.';
+        mostrarToast('Versión nueva encontrada: actualizando…');
+        resultado.aplicar();
+        return;
+      }
+      estadoActualizacion.textContent = MENSAJES_ACTUALIZACION[resultado.estado];
+      if (resultado.estado === 'sin-conexion') {
+        mostrarToast(MENSAJES_ACTUALIZACION['sin-conexion'], { tipo: 'destructivo' });
+      }
+    } catch (error) {
+      estadoActualizacion.textContent = `${MENSAJES_ACTUALIZACION.error} (${String(error?.message ?? error)})`;
+    } finally {
+      // Con la recarga en camino, reactivar el botón solo invita a
+      // tocarlo otra vez mientras la pantalla se va.
+      if (!recargaEnCamino) {
+        botonBuscar.disabled = false;
+        botonBuscar.textContent = 'Buscar actualización';
+      }
+    }
+  });
+
+  const botonReinstalar = el('button', { clase: 'boton boton--contorno' }, 'Reinstalar desde cero');
+  botonReinstalar.addEventListener('click', async () => {
+    const ok = await confirmar({
+      titulo: 'Reinstalar la aplicación desde cero',
+      descripcion:
+        'Se borra la copia guardada en el teléfono y se descarga todo otra vez. Tu configuración, la bitácora y las pruebas de captura NO se tocan: se guardan aparte. Necesitas conexión: mientras se descarga, la aplicación no funciona sin señal.',
+      confirmarTexto: 'Reinstalar',
+      destructivo: true,
+    });
+    if (!ok) return;
+    botonReinstalar.disabled = true;
+    botonBuscar.disabled = true;
+    estadoActualizacion.textContent = 'Borrando la copia guardada y recargando…';
+    try {
+      await reinstalar();
+    } catch (error) {
+      estadoActualizacion.textContent = `No se pudo borrar la copia guardada: ${String(error?.message ?? error)}`;
+      botonReinstalar.disabled = false;
+      botonBuscar.disabled = false;
+    }
+  });
+
+  // ----------------------------------------------------------------
   // Montaje
   // ----------------------------------------------------------------
   panel.append(
+    seccion(
+      {
+        titulo: 'Actualizar la aplicación',
+        descripcion:
+          'La aplicación se guarda completa en el teléfono para funcionar sin señal en el lote. Con este botón pides la versión nueva cuando te avisan que ya hay una; en iPhone, abierta desde la pantalla de inicio, es la única forma.',
+      },
+      lineaVersion,
+      el(
+        'div',
+        { estilo: { display: 'flex', flexDirection: 'column', gap: '0.5rem' } },
+        botonBuscar,
+        botonReinstalar
+      ),
+      estadoActualizacion,
+      el(
+        'p',
+        { clase: 'ayuda' },
+        'Si acaban de publicar el cambio, el servidor puede tardar unos minutos en entregarlo. Si dice que ya estás al día y aun así falta el cambio, espera y vuelve a intentar antes de reinstalar.'
+      )
+    ),
     seccion(
       {
         titulo: 'Respaldo de datos',
