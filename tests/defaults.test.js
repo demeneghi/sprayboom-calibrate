@@ -103,12 +103,81 @@ test('tractores de siembra: tabla de velocidades completa y regimenes coherentes
       }
     }
   }
-  // El nominal del 5715 esta pendiente de confirmar; el del 6603 verificado.
+  // Los dos regimenes nominales estan verificados contra fuente citada.
   const jd5715 = TRACTORES_SIEMBRA.find((t) => t.id === 'jd5715');
   const jd6603 = TRACTORES_SIEMBRA.find((t) => t.id === 'jd6603');
-  assert.equal(jd5715.regimenNominalVerificado, 'pendiente');
+  assert.equal(jd5715.regimenNominalVerificado, true);
+  assert.equal(jd5715.regimenNominal, 2400);
   assert.equal(jd6603.regimenNominalVerificado, true);
   assert.equal(jd6603.regimenNominal, 2100);
+  for (const tractor of [jd5715, jd6603]) {
+    assert.ok(
+      typeof tractor.regimenNominalOrigen === 'string' &&
+        tractor.regimenNominalOrigen.length > 0,
+      `${tractor.id}: el regimen nominal verificado exige citar su origen`
+    );
+  }
+});
+
+// Las tablas son del fabricante, no estimaciones: si alguien las vuelve a
+// tocar, esta prueba dice exactamente que numero cambio.
+test('tractores de siembra: tablas de fabrica exactas y marcadas como capturado', () => {
+  const esperado = {
+    jd5715: {
+      regimenNominal: 2400,
+      kmh: [
+        [2.1, 3.1, 4.5],
+        [5.0, 7.2, 10.8],
+        [13.7, 19.8, 29.8],
+      ],
+    },
+    jd6603: {
+      regimenNominal: 2100,
+      kmh: [
+        [3.1, 4.3, 5.3],
+        [6.6, 9.0, 11.3],
+        [18.3, 25.1, 31.2],
+      ],
+    },
+  };
+  for (const [id, ref] of Object.entries(esperado)) {
+    const tractor = TRACTORES_SIEMBRA.find((t) => t.id === id);
+    assert.ok(tractor, `falta el tractor ${id}`);
+    assert.equal(tractor.regimenNominal, ref.regimenNominal, `${id}: regimen nominal`);
+    ref.kmh.forEach((marchas, rango) =>
+      marchas.forEach((kmh, indice) => {
+        const fila = tractor.velocidades.find(
+          (v) => v.rango === rango && v.marcha === indice + 1
+        );
+        const etiqueta = `${tractor.etiquetasRango[rango]}${indice + 1}`;
+        assert.ok(fila, `${id}: falta la marcha ${etiqueta}`);
+        assert.equal(fila.kmhNominal, kmh, `${id} ${etiqueta}: km/h nominales`);
+        assert.equal(fila.origen, 'capturado', `${id} ${etiqueta}: origen`);
+      })
+    );
+  }
+});
+
+// El salto entre rangos de una caja real es constante: es la comprobacion
+// que delata una tabla inventada a ojo.
+test('tractores de siembra: los saltos de rango son coherentes entre si', () => {
+  for (const tractor of TRACTORES_SIEMBRA) {
+    const kmh = (rango, marcha) =>
+      tractor.velocidades.find((v) => v.rango === rango && v.marcha === marcha).kmhNominal;
+    for (let rango = 1; rango < tractor.numRangos; rango += 1) {
+      const saltos = [];
+      for (let marcha = 1; marcha <= tractor.marchasPorRango; marcha += 1) {
+        saltos.push(kmh(rango, marcha) / kmh(rango - 1, marcha));
+      }
+      const menor = Math.min(...saltos);
+      const mayor = Math.max(...saltos);
+      assert.ok(
+        (mayor - menor) / menor < 0.06,
+        `${tractor.id}: el salto al rango ${tractor.etiquetasRango[rango]} no es constante ` +
+          `(${saltos.map((s) => s.toFixed(3)).join(', ')})`
+      );
+    }
+  }
 });
 
 test('equipos de siembra dentro de cotas y con enums validos', () => {

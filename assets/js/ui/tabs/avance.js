@@ -178,8 +178,8 @@ export function render(panel, ctx) {
         el(
           'p',
           { clase: 'ayuda' },
-          `${fila.etiqueta} usa un valor capturado a mano (${valor} nominales), sin medición de ` +
-            'campo que lo respalde. Calibrala para que quede respaldada.'
+          `${fila.etiqueta} usa un valor de tabla (${valor} nominales), sin medición de ` +
+            'campo que lo respalde. Calíbrala para que quede respaldada.'
         )
       );
       return;
