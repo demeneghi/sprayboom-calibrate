@@ -130,6 +130,41 @@ export function migrarGeometriaABarras(equiposGuardados, geometriaGuardada, equi
 }
 
 // ---------------------------------------------------------------------
+// Migracion: la presion atmosferica del sitio pasa a derivarse de la
+// altitud
+//
+// Antes `parametros.sitio.presionAtmosfericaLocal` era un campo
+// obligatorio con default 14.7 psia (nivel del mar). Ahora se deriva de
+// `altitudM` y ese campo queda como ANULACION MANUAL, donde vacio
+// significa derivada.
+//
+// Un telefono que ya uso la aplicacion trae 14.7 guardado. Sin esto, ese
+// 14.7 se leeria como una anulacion manual y la altitud —lo que este
+// cambio vino a habilitar— no serviria de nada en las unidades que ya
+// estan en campo, en silencio.
+//
+// Solo se limpia cuando el valor guardado es EXACTAMENTE el default
+// anterior: nadie lo tocó. Un valor distinto salio de una decision del
+// usuario y se conserva como anulacion manual. La presion derivada de 0 m
+// es 14.696 psia contra los 14.7 anteriores: 0.002% de diferencia en el
+// factor del rotametro, invisible en campo.
+//
+// La version del esquema NO sube, por el mismo motivo que la migracion
+// de la geometria: subirla mandaria todo lo guardado al respaldo.
+// ---------------------------------------------------------------------
+export const PRESION_ATMOSFERICA_DEFAULT_ANTERIOR = 14.7;
+
+export function migrarSitioAAltitud(sitioFusionado, sitioGuardado) {
+  if (!sitioFusionado || typeof sitioFusionado !== 'object') return sitioFusionado;
+  // Ya conoce la altitud: se guardo con el esquema nuevo, nada que hacer.
+  if (sitioGuardado?.altitudM !== undefined) return sitioFusionado;
+  if (sitioGuardado?.presionAtmosfericaLocal !== PRESION_ATMOSFERICA_DEFAULT_ANTERIOR) {
+    return sitioFusionado;
+  }
+  return { ...sitioFusionado, presionAtmosfericaLocal: null };
+}
+
+// ---------------------------------------------------------------------
 // Almacen con pub/sub y autosave
 // ---------------------------------------------------------------------
 export function crearAlmacen({ backend = null, alFallarEscritura = null } = {}) {
@@ -169,6 +204,7 @@ export function crearAlmacen({ backend = null, alFallarEscritura = null } = {}) 
           for (const grupo of Object.keys(semilla.parametros)) {
             parametros[grupo] = { ...semilla.parametros[grupo], ...(cargado.parametros?.[grupo] ?? {}) };
           }
+          parametros.sitio = migrarSitioAAltitud(parametros.sitio, cargado.parametros?.sitio);
           estado = {
             ...semilla,
             ...cargado,
@@ -410,6 +446,10 @@ export function importarJSON(texto, estadoActual) {
   const nuevo = clonar(estadoActual);
 
   nuevo.parametros = validarParametros(importado.parametros, estadoActual.parametros, rechazos);
+  // Un respaldo exportado antes de que la presion del sitio se derivara
+  // de la altitud trae el 14.7 de default: se limpia igual que al cargar
+  // lo guardado, o restaurarlo dejaria la altitud sin efecto.
+  nuevo.parametros.sitio = migrarSitioAAltitud(nuevo.parametros.sitio, importado.parametros?.sitio);
 
   const tractores = validarColeccion(importado.tractores, COTAS_TRACTOR, 'tractores', rechazos, validarTractor);
   if (tractores && tractores.length > 0) nuevo.tractores = tractores;

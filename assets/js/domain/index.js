@@ -12,6 +12,7 @@ export * as bomba from './pump.js';
 export * as boquillas from './nozzles.js';
 export * as agua from './water.js';
 export * as captura from './capture.js';
+export * as atmosfera from './atmosphere.js';
 export * as gas from './gas.js';
 export * as rotametro from './flowmeter.js';
 export * as mezcla from './mix.js';

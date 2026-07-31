@@ -58,6 +58,30 @@ test('R_GAS imperial coherente con la R universal SI', () => {
   cercanoRel(derivada, C.R_GAS, 5e-4, 'R_GAS 10.7316');
 });
 
+test('el exponente de la ISA sale de la gravedad, el aire y la R universal', () => {
+  // exponente = gravedad * masa_molar_aire / (R_universal * gradiente).
+  // El valor canonico esta publicado redondeado a seis cifras, de ahi la
+  // tolerancia de 2e-5.
+  const derivado =
+    (C.SI_GRAVEDAD * C.SI_MASA_MOLAR_AIRE) /
+    (C.SI_R_UNIVERSAL * C.SI_GRADIENTE_TERMICO_K_POR_M);
+  cercanoRel(derivado, C.EXPONENTE_ISA, 2e-5, 'EXPONENTE_ISA 5.25588');
+});
+
+test('el gradiente de la ISA es el termico entre la temperatura al nivel del mar', () => {
+  const derivado = C.SI_GRADIENTE_TERMICO_K_POR_M / C.SI_TEMPERATURA_NIVEL_MAR_K;
+  cercanoRel(derivado, C.GRADIENTE_ISA_POR_M, 1e-5, 'GRADIENTE_ISA_POR_M');
+});
+
+test('la presion al nivel del mar es la misma en psia y en pascales', () => {
+  cercanoRel(
+    C.SI_PRESION_NIVEL_MAR_PA / C.SI_PA_POR_PSI,
+    C.PRESION_NIVEL_MAR_PSIA,
+    1e-5,
+    'PRESION_NIVEL_MAR_PSIA 14.6959'
+  );
+});
+
 test('offset Rankine coherente con offsets SI', () => {
   // 0 F = 459.67 R; 0 C = 273.15 K; 0 C = 32 F; K y R difieren en escala 5/9
   const derivado = C.SI_K_OFFSET_CELSIUS / C.SI_F_A_C_FACTOR - C.SI_F_A_C_RESTA;

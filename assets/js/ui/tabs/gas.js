@@ -380,7 +380,7 @@ export function render(panel, ctx) {
             }),
             pintarResultado({
               etiqueta: 'Presión atmosférica local',
-              valor: p.sitio.presionAtmosfericaLocal,
+              valor: ctx.atmosferaSitio().valores.presionPsia,
               unidad: 'psia',
               decimales: 2,
             })
@@ -388,7 +388,11 @@ export function render(panel, ctx) {
           el(
             'p',
             { clase: 'ayuda' },
-            'Son dos parámetros distintos: la estándar es la condición a la que el fabricante calibró la escala del tubo; la local es la presión absoluta del sitio. El despeje de presión resta la atmosférica LOCAL, no la estándar. Ambas se editan en Sistema, Configuración.'
+            'Son dos parámetros distintos: la estándar es la condición a la que el fabricante calibró la escala del tubo; la local es la presión absoluta del sitio. El despeje de presión resta la atmosférica LOCAL, no la estándar. ' +
+              (ctx.atmosferaSitio().valores.anulado
+                ? 'La local está anulada a mano.'
+                : `La local sale de los ${formatear(p.sitio.altitudM, 0)} m de altitud del sitio.`) +
+              ' Ambas se editan en Sistema, Configuración.'
           )
         );
       } catch (error) {
@@ -441,7 +445,7 @@ export function render(panel, ctx) {
         const rotametro = ctx.rotametroActivo();
         const base = {
           gPorScf: gEfectivoValor,
-          presionAtmosfericaLocal: p.sitio.presionAtmosfericaLocal,
+          presionAtmosfericaLocal: ctx.presionAtmosfericaLocal(),
           presionEstandarCalibracion: gas.presionEstandarPsia,
         };
         const comunes = {
@@ -451,7 +455,7 @@ export function render(panel, ctx) {
           gPorScf: gEfectivoValor,
           gPorScfAnulado: gEfectivoAnulado,
           presionEstandarCalibracionPsia: gas.presionEstandarPsia,
-          presionAtmosfericaLocalPsia: p.sitio.presionAtmosfericaLocal,
+          presionAtmosfericaLocalPsia: ctx.presionAtmosfericaLocal(),
           rotametroId: rotametro?.id ?? null,
           rotametroModelo: rotametro?.modelo ?? null,
           escalaMinScfm: rotametro?.escalaMin ?? null,

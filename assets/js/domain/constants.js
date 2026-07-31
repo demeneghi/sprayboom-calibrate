@@ -74,6 +74,19 @@ export const OFFSET_RANKINE = 459.67; // grados F a grados Rankine
 export const LBMOL_A_MOL = 453.592; // mol por lbmol
 
 // ---------------------------------------------------------------------
+// Atmosfera estandar internacional (ISA), capa troposferica
+//
+// La presion atmosferica absoluta de un sitio se deriva de su altitud
+// con la ley de potencia de la ISA. Estos tres son los valores
+// PUBLICADOS de la norma; el grupo SI_* de mas abajo vuelve a derivar el
+// mismo resultado desde la fisica (gravedad, masa molar del aire, R
+// universal y gradiente termico) para la ruta redundante.
+// ---------------------------------------------------------------------
+export const PRESION_NIVEL_MAR_PSIA = 14.6959; // 101325 Pa expresados en psia
+export const GRADIENTE_ISA_POR_M = 2.25577e-5; // 1/m: gradiente termico entre la temperatura al nivel del mar
+export const EXPONENTE_ISA = 5.25588; // gravedad * masa molar / (R * gradiente), valor publicado
+
+// ---------------------------------------------------------------------
 // Porcentaje
 // ---------------------------------------------------------------------
 export const PORCIENTO = 100;
@@ -107,3 +120,12 @@ export const SI_R_UNIVERSAL = 8.314462618; // Pa*m3 / (mol*K), valor SI 2019
 export const SI_K_OFFSET_CELSIUS = 273.15;
 export const SI_F_A_C_RESTA = 32; // grados F que se restan antes de escalar a C
 export const SI_F_A_C_FACTOR = 5 / 9; // factor de escala de grados F a C
+
+// Atmosfera ISA por sus magnitudes fisicas, no por el exponente ya
+// resuelto: la ruta redundante deriva el exponente de estos valores, asi
+// que un error de dedo en EXPONENTE_ISA hace discrepar a las dos rutas.
+export const SI_PRESION_NIVEL_MAR_PA = 101325; // Pa
+export const SI_GRAVEDAD = 9.80665; // m/s2, gravedad estandar
+export const SI_MASA_MOLAR_AIRE = 0.0289644; // kg/mol, aire seco de la ISA
+export const SI_GRADIENTE_TERMICO_K_POR_M = 0.0065; // K/m, troposfera
+export const SI_TEMPERATURA_NIVEL_MAR_K = 288.15; // K

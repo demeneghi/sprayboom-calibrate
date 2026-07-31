@@ -270,6 +270,52 @@ test('cada barra guarda su propia geometria: la segunda no hereda la primera', (
   assert.equal(recargado.equipos[1].numBoquillas, 10);
 });
 
+// La presion del sitio pasa de capturarse a derivarse de la altitud.
+// Un telefono que ya uso la aplicacion trae el 14.7 de default guardado:
+// si se leyera como anulacion manual, la altitud no serviria de nada en
+// las unidades que ya estan en campo, y en silencio.
+function estadoConPresionGuardada(presion) {
+  const estado = sembrarEstado();
+  estado.parametros.sitio = { presionAtmosfericaLocal: presion };
+  return estado;
+}
+
+test('migracion: el 14.7 que nadie toco pasa a derivarse de la altitud', () => {
+  const backend = backendFalso();
+  backend.setItem(CLAVE_ALMACEN, JSON.stringify(estadoConPresionGuardada(14.7)));
+  const sitio = crearAlmacen({ backend }).obtener().parametros.sitio;
+  assert.equal(sitio.presionAtmosfericaLocal, null, 'deja de anular');
+  assert.equal(sitio.altitudM, 0, 'la altitud aparece con su siembra');
+});
+
+test('migracion: una presion propia se conserva como anulacion manual', () => {
+  const backend = backendFalso();
+  backend.setItem(CLAVE_ALMACEN, JSON.stringify(estadoConPresionGuardada(12.3)));
+  const sitio = crearAlmacen({ backend }).obtener().parametros.sitio;
+  assert.equal(sitio.presionAtmosfericaLocal, 12.3, 'lo que el usuario decidió NO se pierde');
+});
+
+test('migracion: quien ya guardo altitud no se vuelve a migrar', () => {
+  const backend = backendFalso();
+  const guardado = sembrarEstado();
+  guardado.parametros.sitio = { altitudM: 1500, presionAtmosfericaLocal: 14.7 };
+  backend.setItem(CLAVE_ALMACEN, JSON.stringify(guardado));
+  const sitio = crearAlmacen({ backend }).obtener().parametros.sitio;
+  assert.equal(sitio.altitudM, 1500);
+  assert.equal(sitio.presionAtmosfericaLocal, 14.7, 'con altitud presente el 14.7 es una decisión');
+});
+
+test('migracion: un respaldo viejo con el 14.7 tambien se limpia al importarlo', () => {
+  const json = {
+    tipo: 'sprayboom-configuracion',
+    version: VERSION_ESQUEMA,
+    exportado: estadoConPresionGuardada(14.7),
+  };
+  const resultado = importarJSON(JSON.stringify(json), sembrarEstado());
+  assert.equal(resultado.ok, true);
+  assert.equal(resultado.estado.parametros.sitio.presionAtmosfericaLocal, null);
+});
+
 test('CSV: BOM UTF-8, separador coma y escape de comillas', () => {
   const csv = aCSV(['Fecha', 'Nota'], [['2026-07-30', 'dice "aforo", con coma']]);
   assert.equal(csv.charCodeAt(0), 0xfeff, 'inicia con BOM');

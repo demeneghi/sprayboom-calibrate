@@ -26,6 +26,11 @@ import {
   SI_K_OFFSET_CELSIUS,
   SI_F_A_C_RESTA,
   SI_F_A_C_FACTOR,
+  SI_PRESION_NIVEL_MAR_PA,
+  SI_GRAVEDAD,
+  SI_MASA_MOLAR_AIRE,
+  SI_GRADIENTE_TERMICO_K_POR_M,
+  SI_TEMPERATURA_NIVEL_MAR_K,
 } from './constants.js';
 
 // Tolerancia relativa para dos rutas que deberian ser matematicamente
@@ -36,6 +41,12 @@ export const TOLERANCIA_REDUNDANTE = 1e-9;
 // (R_GAS imperial a 6 cifras contra la R universal SI): la diferencia
 // legitima es del orden de 1e-4.
 export const TOLERANCIA_REDUNDANTE_GAS = 5e-4;
+
+// Tolerancia de la presion por altitud: la ruta canonica usa el
+// exponente publicado de la ISA (5.25588) y la redundante lo deriva de
+// la gravedad, la masa molar del aire y la R universal, que da
+// 5.2557860. La diferencia legitima es del orden de 1.5e-5.
+export const TOLERANCIA_REDUNDANTE_ATMOSFERA = 5e-5;
 
 export function errorRelativo(a, b) {
   const base = Math.max(Math.abs(a), Math.abs(b), Number.MIN_VALUE);
@@ -92,6 +103,20 @@ export function gPorScfRutaSI({ pesoMolecular, presionEstandarPsia, temperaturaE
   const molPorM3 = presionPa / (SI_R_UNIVERSAL * temperaturaK);
   const molPorScf = molPorM3 * SI_M3_POR_FT3;
   return molPorScf * pesoMolecular;
+}
+
+// Presion atmosferica por altitud en SI puro: pascales, metros y kelvin.
+// El exponente NO se toma prestado de la ruta canonica; se deriva de la
+// gravedad estandar, la masa molar del aire seco, la R universal y el
+// gradiente termico de la troposfera. Asi, si EXPONENTE_ISA o
+// GRADIENTE_ISA_POR_M se escriben mal, las dos rutas discrepan.
+export function presionAtmosfericaRutaSI({ altitudM }) {
+  const exponente =
+    (SI_GRAVEDAD * SI_MASA_MOLAR_AIRE) / (SI_R_UNIVERSAL * SI_GRADIENTE_TERMICO_K_POR_M);
+  const razonTemperaturas =
+    1 - (SI_GRADIENTE_TERMICO_K_POR_M * altitudM) / SI_TEMPERATURA_NIVEL_MAR_K;
+  const presionPa = SI_PRESION_NIVEL_MAR_PA * razonTemperaturas ** exponente;
+  return presionPa / SI_PA_POR_PSI;
 }
 
 // Masa de gas recompuesta: el factor de presion se recalcula pasando por

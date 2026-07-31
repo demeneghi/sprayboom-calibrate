@@ -28,6 +28,7 @@ self.SPRAYBOOM_PRECACHE = [
   './assets/js/data/droplet-classes.js',
   './assets/js/data/iso-colors.js',
   './assets/js/data/nozzle-catalog.js',
+  './assets/js/domain/atmosphere.js',
   './assets/js/domain/capture.js',
   './assets/js/domain/constants.js',
   './assets/js/domain/defaults.js',
