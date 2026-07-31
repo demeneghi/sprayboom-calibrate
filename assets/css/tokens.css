@@ -167,6 +167,13 @@
      los bloques de abajo lo encienden. */
   --touch-floor: 0px;
 
+  /* Boton "?" de ayuda de una etiqueta. Es el UNICO control que no
+     toma el piso tactil: a 44px rompe la linea de la etiqueta y separa
+     el rotulo de su campo. Cumple el minimo de objetivo tactil por
+     otra via (area ampliada con un pseudo-elemento que no ocupa lugar
+     en el flujo), documentada en `.claude/rules/design-system.md`. */
+  --ayuda-boton-tam: 22px;
+
   /* Geometria del chip (badge). Valores COMPACTOS; en pantalla tactil
      suben un escalon en el bloque de mas abajo. El chip es el unico
      consumidor de estos tokens: cambiar el escalon de una superficie

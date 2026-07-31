@@ -112,6 +112,44 @@ Son cinco, y ninguna es cosmética.
   (`input`, `select`), que conservan `--control-h` como en Sherman: subirlos a 44px deja el
   encabezado fijo y los formularios densos comiéndose la pantalla.
 
+## Ayuda contextual de un campo
+
+- **El texto de ayuda de un campo no se imprime siempre.** Vive en un globo que abre el botón
+  **`?`** de la etiqueta. Con las ayudas siempre visibles, una pantalla de cinco campos se leía
+  como un muro de párrafos grises con los campos perdidos entre ellos.
+- **Lo produce `campos.js`, no la pantalla.** `crearCampoNumerico`, `crearCampoSelect` y
+  `crearInterruptor` reciben `ayuda` y arman solos el botón y el globo. Un campo montado a mano
+  usa **`crearEtiquetaConAyuda`** (etiqueta + botón) o `crearAyuda` (botón + globo sueltos).
+  **Prohibido** volver a escribir un `<p class="ayuda">` bajo un campo.
+- **`.ayuda` a secas sigue siendo válida** para la nota de una sección —pie de tabla, aclaración de
+  un bloque—, es decir, donde no hay etiqueta de la que colgar un botón.
+- **Solo un globo abierto a la vez** en toda la pantalla: dos o tres consultados a la vez devuelven
+  el muro que este patrón vino a quitar. El estado lo lleva `campos.js`.
+- **El globo va en el flujo, no flotando.** Una tarjeta recorta lo que se sale de ella y, en un
+  teléfono, un globo absoluto acaba tapando el campo que explica. Empujar el contenido hacia abajo
+  es lo único que se pinta sin recortes en cualquier superficie, incluido el cuerpo de un diálogo.
+- **El globo va debajo del control, no entre la etiqueta y el control.** En medio, el rótulo se
+  separa de su campo y deja de leerse a cuál pertenece el control que queda abajo.
+- **El botón va al extremo derecho de la fila de la etiqueta**, no pegado al texto: así cae en el
+  mismo eje vertical en toda la columna —se encuentra sin leer— y la puntita del globo apunta
+  hacia él desde una posición fija.
+- **El botón queda fuera del `<label>`.** Dentro, pulsarlo activaría el control (el interruptor se
+  encendería solo) y su texto ensuciaría el nombre accesible de la etiqueta y las pruebas que leen
+  `input.labels[0]`.
+- **Estado y accesibilidad por atributo:** `aria-expanded` en el botón —que además es lo que
+  `components.css` pinta con el acento del módulo, igual que la opción elegida de un grupo—,
+  `aria-controls` hacia el globo y `aria-describedby` del control hacia el mismo globo. El nombre
+  accesible es `Ayuda sobre <etiqueta>`, no el signo suelto. `Escape` cierra el globo y **no** se
+  propaga: quien abrió una ayuda dentro de un diálogo espera cerrar la ayuda, no perder lo
+  capturado.
+- **Excepción declarada al piso táctil.** El botón `?` es el único control que **no** toma
+  `--touch-floor`: a 44px rompe la línea de la etiqueta y separa el rótulo de su campo. Mide
+  `--ayuda-boton-tam` (22px, por encima del mínimo AA de 24px contando su borde y holgura) y
+  amplía el área real con un pseudo-elemento que **no ocupa lugar en el flujo**: ancho hasta
+  `--touch-floor`, alto solo hasta `--ayuda-boton-tam + 10px`. El alto se queda corto **a
+  propósito** — a los lados del botón no hay nada más que tocar, pero arriba y abajo están los
+  controles de los campos vecinos y un área de 44px de alto les robaría el toque.
+
 ## Selección dentro de un grupo de opciones
 
 - **El estado lo dice el atributo, no una clase de variante que el consumidor intercambia.** Un
@@ -187,6 +225,7 @@ suelto. Lo mismo con cada color ISO sembrado.
 - Fijar el tamaño de un chip en el consumidor: lo saca del escalón táctil.
 - Señalar la opción elegida intercambiando variantes de botón, o maquetar el grupo con un
   `display: flex` en línea: la etiqueta larga se sale de la tarjeta.
+- Imprimir la ayuda de un campo como párrafo fijo bajo el control: va en el globo del botón `?`.
 - Sumar relleno a una tarjeta desde su contenido.
 - Apilar campos en un `<div>` sin clase: quedan sin separación y el anillo de foco pisa la
   etiqueta del campo de abajo.

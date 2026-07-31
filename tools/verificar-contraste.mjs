@@ -55,6 +55,8 @@ const PARES = [
   ['muted-foreground', 'background'],
   ['muted-foreground', 'card'],
   ['muted-foreground', 'muted'],
+  // Globo de ayuda de un campo: texto pleno sobre la superficie mate.
+  ['foreground', 'muted'],
   ['primary-foreground', 'primary'],
   ['secondary-foreground', 'secondary'],
   ['accent-foreground', 'accent'],
