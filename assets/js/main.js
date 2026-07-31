@@ -226,6 +226,13 @@ function renderizar({ conservarPosicion = false } = {}) {
   const idEnfocado = conservarPosicion ? document.activeElement?.id : null;
 
   panel.setAttribute('aria-labelledby', `subnav-${seccion.id}-tab-${tab.id}`);
+  // El acento de color identifica al MODULO (la seccion), no a la
+  // pantalla: `components.css` lee este dato para teñir la banda de
+  // las tarjetas, la pestaña activa y el bloque de resultado. Va en
+  // <html> —como el tema— porque la subnavegacion vive en el
+  // encabezado y los dialogos cuelgan de <body>, fuera del panel. Las
+  // diez pestañas NO tienen color propio a proposito.
+  document.documentElement.dataset.seccion = seccion.id;
   limpiar(panel);
   try {
     tab.modulo.render(panel, ctx);

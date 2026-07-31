@@ -108,6 +108,34 @@ CHROMIUM_PATH=... node tools/interaccion.mjs        # interacción completa + re
 node tools/acentuar.mjs <archivos>      # ortografía de textos visibles
 ```
 
+## Sistema de diseño
+
+La interfaz sigue el **marco de diseño Sherman**, reproducido en CSS nativo (sin librerías ni
+build). La regla completa, con lo que se copió tal cual y lo que se adaptó, vive en
+[`.claude/rules/design-system.md`](.claude/rules/design-system.md); `componentes.html` es la
+muestra viva de todos los componentes en ambos temas.
+
+En corto:
+
+- **Color por token, nunca suelto.** `assets/css/tokens.css` es la única fuente: superficies,
+  texto, estados semánticos (éxito, información, advertencia, destructivo, neutro) y acento por
+  sección. El verde de marca (`#006045` en claro, `#5cd4a4` en oscuro) es el color de la acción
+  principal, la pestaña activa y el anillo de foco.
+- **El color identifica al módulo, no a la pantalla.** Tres acentos, uno por sección de la
+  navegación inferior (Calibrar, Registrar, Sistema). Las diez pestañas no tienen color propio a
+  propósito: inventar diez tonos convierte la señal en adorno.
+- **Geometría en px, no en `rem`.** La raíz de este proyecto mide 14px y la de Sherman 16px, así
+  que lo que representa una medida física (piso táctil de 44px, alto de control, alto de chip,
+  radio) se declara en píxeles para que mida lo mismo en los dos.
+- **El piso táctil vive en `--touch-floor`** y se aplica en dos reglas y solo ahí: alto en todo
+  botón y ancho **solo** en el botón de icono, que es cuadrado siempre. Los campos de captura
+  conservan `--control-h`.
+- **La geometría del chip vive en seis tokens `--badge-*`** y el chip es su único consumidor; en
+  pantalla táctil sube un escalón sin tocar una clase.
+- **Contraste AA verificado en CI:** `tools/verificar-contraste.mjs` recorre los pares de tokens
+  en ambos temas (texto sobre fondo, chip sobre su fondo, acento sobre tarjeta) y falla por debajo
+  de 4.5:1.
+
 ## Importante: dónde viven los datos
 
 **Los datos viven en este navegador y en este dispositivo.** Si se borran los datos del sitio o se cambia de teléfono, se pierden. La exportación a JSON (configuración y catálogo) y a CSV (bitácora) es el único respaldo real y la única forma de pasar datos entre dispositivos. Exporta con regularidad. La aplicación muestra este aviso de forma visible.
@@ -123,9 +151,10 @@ componentes.html      muestra del sistema de diseño en ambos temas
 manifest.webmanifest  PWA
 sw.js                 service worker (precache versionado)
 version.js            versión de la caché del service worker
+.claude/rules/        reglas del proyecto (sistema de diseño)
 assets/
   css/                tokens (temas claro y oscuro), base, componentes
-  fonts/              Inter autohospedada + licencia OFL
+  fonts/              Inter e IBM Plex Mono autohospedadas + licencia OFL
   icons/              iconos PWA y favicon
   js/
     domain/           cálculo puro: constantes, unidades, defaults, velocidad,

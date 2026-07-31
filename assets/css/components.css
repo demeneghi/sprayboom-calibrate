@@ -1,6 +1,63 @@
-/* Componentes: reproduccion de la anatomia shadcn en CSS nativo.
-   Sin librerias. Areas tactiles minimas de 44px aunque el control
-   visual mida 36px (se extiende el area de toque con ::after). */
+/* Componentes: anatomia del sistema Sherman reproducida en CSS nativo.
+   Sin librerias.
+
+   Reglas duras que este archivo implementa (detalle y justificacion en
+   `.claude/rules/design-system.md`):
+
+   - El piso tactil vive en `--touch-floor` y se aplica en DOS reglas y
+     solo ahi: alto en todo boton, y ancho SOLO en el boton de icono
+     (si sube solo el alto, un boton de 36px queda 36x44, aplastado en
+     el eje X). Encender el piso en una superficie nueva es declarar el
+     token, nunca repetir `min-height` en el consumidor.
+   - La geometria del chip vive en los seis tokens `--badge-*` y el
+     chip es su UNICO consumidor.
+   - El relleno de una tarjeta lo pone su superficie, nunca su
+     contenido.
+   - El color identifica al MODULO (seccion), no a la pantalla: el
+     acento entra por `--acento` / `--acento-texto`, que fija
+     `[data-seccion]`. */
+
+/* ------------------------------------------------------------------ */
+/* Acento por seccion                                                  */
+/* ------------------------------------------------------------------ */
+/* El acento se declara en la RAIZ, no en el panel: la subnavegacion
+   vive en el encabezado y los dialogos y avisos cuelgan de <body>, asi
+   que anclarlo al panel dejaba fuera del color justo a las piezas que
+   dicen donde estas. `main.js` estampa `data-seccion` en <html> igual
+   que hace con el tema. Valor neutro por defecto, para el arranque y
+   para cualquier superficie sin seccion. El selector es de atributo
+   (no `:root[...]`) para que un bloque anidado pueda declarar su
+   propio modulo: asi la galeria de `componentes.html` muestra los
+   tres acentos en la misma pagina.
+
+   Dos variables, no una:
+
+   --acento        cromado (banda, borde, tinte de fondo). Puede ser
+                   neutro sin perder nada.
+   --acento-texto  IDENTIDAD: el titulo de la tarjeta y la cifra del
+                   resultado. Cuando el acento es neutro NO se atenua a
+                   gris, se lee a pleno contraste — con un solo token,
+                   el dato principal de la pantalla quedaba en gris
+                   claro en la seccion Sistema. */
+:root {
+  --acento: var(--acento-sistema);
+  --acento-texto: var(--foreground);
+}
+
+[data-seccion='calibrar'] {
+  --acento: var(--acento-calibrar);
+  --acento-texto: var(--acento-calibrar);
+}
+
+[data-seccion='registrar'] {
+  --acento: var(--acento-registrar);
+  --acento-texto: var(--acento-registrar);
+}
+
+[data-seccion='sistema'] {
+  --acento: var(--acento-sistema);
+  --acento-texto: var(--foreground);
+}
 
 /* ------------------------------------------------------------------ */
 /* Card                                                                */
@@ -13,17 +70,25 @@
   box-shadow: var(--shadow-sm);
 }
 
+/* Banda de identidad: franja con el cromado del modulo, como la
+   cabecera de tarjeta de Sherman. Es lo que permite reconocer de un
+   vistazo en que seccion estas cuando la pantalla es una columna de
+   tarjetas casi identicas. */
 .card__encabezado {
-  padding: 1rem 1rem 0;
+  padding: 0.7rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.15rem;
+  background-color: hsl(var(--acento) / 0.1);
+  border-bottom: 1px solid hsl(var(--acento) / 0.28);
+  border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0;
 }
 
 .card__titulo {
   font-size: 1.07rem;
   font-weight: 600;
   letter-spacing: -0.01em;
+  color: hsl(var(--acento-texto));
 }
 
 .card__descripcion {
@@ -47,7 +112,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  height: 2.57rem; /* 36px con base 14 */
+  height: var(--control-h);
   padding: 0 1rem;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
@@ -61,11 +126,16 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Area tactil minima de 44px sin agrandar el control visual */
-.boton::after {
-  content: '';
-  position: absolute;
-  inset: -4px;
+/* Piso tactil, regla 1 de 2: el alto. */
+.boton {
+  min-height: var(--touch-floor, 0px);
+}
+
+/* Piso tactil, regla 2 de 2: el ancho, SOLO en el boton de icono. Un
+   boton que solo lleva un icono es cuadrado siempre; sin esta regla el
+   piso lo dejaria en 36x44. */
+.boton--icono {
+  min-width: var(--touch-floor, 0px);
 }
 
 .boton:active {
@@ -112,7 +182,7 @@
 }
 
 .boton--icono {
-  width: 2.57rem;
+  width: var(--control-h);
   padding: 0;
 }
 
@@ -135,8 +205,13 @@
   line-height: 1;
 }
 
+/* Los campos de captura NO reciben el piso tactil: conservan
+   `--control-h`, igual que en Sherman. El piso es de los elementos que
+   se pulsan una vez (boton, pestana, opcion de lista), no de los que
+   se enfocan para escribir; subirlos a 44px deja el encabezado fijo y
+   los formularios densos comiendose la pantalla. */
 .entrada {
-  height: 2.57rem; /* 36px */
+  height: var(--control-h);
   width: 100%;
   padding: 0 0.75rem;
   border: 1px solid hsl(var(--input));
@@ -147,6 +222,18 @@
 
 .entrada::placeholder {
   color: hsl(var(--muted-foreground));
+}
+
+/* Cantidades y medidas: monoespaciadas, tabulares y alineadas a la
+   derecha, tambien cuando se capturan (regla de numeros de Sherman).
+   La marca es `inputmode="decimal"`, que es lo que emite
+   `crearCampoNumerico`; no se repite la familia en cada consumidor. */
+.entrada[inputmode='decimal'],
+.entrada[type='number'],
+.entrada.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 /* Solo lectura: campo de resultado activo, visualmente distinto del
@@ -189,7 +276,7 @@
 .selector select {
   appearance: none;
   -webkit-appearance: none;
-  height: 2.57rem;
+  height: var(--control-h);
   width: 100%;
   padding: 0 2.2rem 0 0.75rem;
   border: 1px solid hsl(var(--input));
@@ -240,11 +327,11 @@
 
 .tabs__disparador {
   flex: 0 0 auto;
-  border: 0;
+  border: 1px solid transparent;
   background: transparent;
   color: hsl(var(--muted-foreground));
   padding: 0.5rem 0.8rem;
-  min-height: 2.5rem;
+  min-height: var(--touch-floor, 2.5rem);
   border-radius: var(--radius-md);
   font-weight: 500;
   font-size: 0.95rem;
@@ -253,9 +340,14 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Pestana activa: superficie propia MAS el acento del modulo en el
+   texto y el borde, igual que el item de ruta actual del menu lateral
+   de Sherman. Con solo el cambio de fondo, en oscuro no se distinguia. */
 .tabs__disparador[aria-selected='true'] {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
+  background-color: hsl(var(--card));
+  border-color: hsl(var(--acento) / 0.45);
+  color: hsl(var(--acento-texto));
+  font-weight: 600;
   box-shadow: var(--shadow-sm);
 }
 
@@ -273,43 +365,68 @@
   font-weight: 500;
   text-align: left;
   padding: 0.5rem 0.6rem;
+  background-color: hsl(var(--muted) / 0.6);
   border-bottom: 1px solid hsl(var(--border));
   white-space: nowrap;
 }
 
+/* Jerarquia de bordes: la linea entre filas pesa menos que el marco de
+   la seccion, para que la tabla no compita con la tarjeta que la
+   contiene. */
 .tabla td {
   padding: 0.55rem 0.6rem;
-  border-bottom: 1px solid hsl(var(--border));
+  border-bottom: 1px solid hsl(var(--border-sutil));
   vertical-align: middle;
 }
 
-.tabla tbody tr:active {
-  background-color: hsl(var(--muted) / 0.5);
+/* Mismo tinte de acento para el hover y para la fila marcada, como en
+   los listados de Sherman: gris fuerte en la seleccion se lee como
+   "deshabilitado". */
+.tabla tbody tr:hover td,
+.tabla tbody tr:active td {
+  background-color: hsl(var(--primary) / 0.08);
+}
+
+.tabla tbody tr[data-seleccionada='true'] td {
+  background-color: hsl(var(--primary) / 0.08);
+}
+
+.tabla tbody tr[data-seleccionada='true'] td:first-child {
+  box-shadow: inset 3px 0 0 0 hsl(var(--primary));
 }
 
 .tabla--numerica td.numero,
 .tabla td.numero {
   text-align: right;
-  font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
 /* ------------------------------------------------------------------ */
 /* Badge                                                               */
 /* ------------------------------------------------------------------ */
+/* La geometria sale ENTERA de los tokens `--badge-*`: alto, relleno,
+   hueco, tamano de texto e interlineado. En pantalla tactil suben un
+   escalon (24px / 14px) sin tocar una sola clase de este archivo. */
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: var(--badge-gap);
+  height: var(--badge-h);
   border: 1px solid transparent;
   border-radius: 9999px;
-  padding: 0.1rem 0.6rem;
-  font-size: 0.8rem;
+  padding-inline: var(--badge-px);
+  font-size: var(--badge-text);
+  line-height: var(--badge-leading);
   font-weight: 600;
-  line-height: 1.4;
   background-color: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   white-space: nowrap;
+}
+
+.badge > svg {
+  width: var(--badge-icon);
+  height: var(--badge-icon);
 }
 
 .badge--secundario {
@@ -323,21 +440,44 @@
   color: hsl(var(--foreground));
 }
 
-.badge--destructivo {
-  background-color: hsl(var(--destructive));
-  color: hsl(var(--destructive-foreground));
+/* Chips de estado semantico: borde + fondo + texto del mismo estado,
+   como los badges de dominio de Sherman. La paleta vive en los tokens;
+   no se escriben colores sueltos por pantalla. */
+.badge--exito {
+  background-color: hsl(var(--exito-fondo));
+  border-color: hsl(var(--exito-borde) / 0.5);
+  color: hsl(var(--exito));
+}
+
+.badge--info {
+  background-color: hsl(var(--info-fondo));
+  border-color: hsl(var(--info-borde) / 0.5);
+  color: hsl(var(--info));
 }
 
 .badge--advertencia {
-  background-color: hsl(var(--warning));
-  color: hsl(var(--warning-foreground));
+  background-color: hsl(var(--warning-fondo));
+  border-color: hsl(var(--warning-borde) / 0.5);
+  color: hsl(var(--warning));
+}
+
+.badge--destructivo {
+  background-color: hsl(var(--destructive-fondo));
+  border-color: hsl(var(--destructive-borde) / 0.5);
+  color: hsl(var(--destructive-texto));
+}
+
+.badge--neutro {
+  background-color: hsl(var(--neutro-fondo));
+  border-color: hsl(var(--neutro-borde) / 0.5);
+  color: hsl(var(--neutro));
 }
 
 /* Badge de color ISO: el fondo y el texto se asignan EN LINEA desde
    data/iso-colors.js (los colores son datos); aqui solo la forma. */
 .badge--iso {
   border-color: hsl(var(--border));
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
 }
 
 .muestra-color {
@@ -351,14 +491,18 @@
 /* ------------------------------------------------------------------ */
 /* Alert                                                               */
 /* ------------------------------------------------------------------ */
+/* Cada variante lleva fondo, borde y texto del estado, no solo un
+   borde teñido: un aviso que solo cambia el color del marco pasa
+   desapercibido en una columna de tarjetas. */
 .alerta {
   border: 1px solid hsl(var(--border));
+  border-left-width: 3px;
   border-radius: var(--radius);
   padding: 0.75rem 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  background-color: hsl(var(--card));
+  background-color: hsl(var(--muted) / 0.5);
 }
 
 .alerta__titulo {
@@ -371,21 +515,52 @@
   color: hsl(var(--muted-foreground));
 }
 
-.alerta--destructiva {
-  border-color: hsl(var(--destructive) / 0.6);
-  color: hsl(var(--destructive-texto));
+.alerta--info {
+  background-color: hsl(var(--info-fondo));
+  border-color: hsl(var(--info-borde) / 0.45);
+  border-left-color: hsl(var(--info));
 }
 
-.alerta--destructiva .alerta__descripcion {
-  color: hsl(var(--destructive-texto) / 0.9);
+.alerta--info .alerta__titulo {
+  color: hsl(var(--info));
+}
+
+.alerta--info .alerta__descripcion {
+  color: hsl(var(--info));
+}
+
+.alerta--exito {
+  background-color: hsl(var(--exito-fondo));
+  border-color: hsl(var(--exito-borde) / 0.45);
+  border-left-color: hsl(var(--exito));
+}
+
+.alerta--exito .alerta__titulo,
+.alerta--exito .alerta__descripcion {
+  color: hsl(var(--exito));
 }
 
 .alerta--advertencia {
-  border-color: hsl(var(--warning) / 0.7);
+  background-color: hsl(var(--warning-fondo));
+  border-color: hsl(var(--warning-borde) / 0.45);
+  border-left-color: hsl(var(--warning));
 }
 
-.alerta--advertencia .alerta__titulo {
+.alerta--advertencia .alerta__titulo,
+.alerta--advertencia .alerta__descripcion {
   color: hsl(var(--warning));
+}
+
+.alerta--destructiva {
+  background-color: hsl(var(--destructive-fondo));
+  border-color: hsl(var(--destructive-borde) / 0.45);
+  border-left-color: hsl(var(--destructive-texto));
+  color: hsl(var(--destructive-texto));
+}
+
+.alerta--destructiva .alerta__titulo,
+.alerta--destructiva .alerta__descripcion {
+  color: hsl(var(--destructive-texto));
 }
 
 /* ------------------------------------------------------------------ */
@@ -447,10 +622,11 @@ dialog.dialogo::backdrop {
   background-color: hsl(var(--popover));
   color: hsl(var(--popover-foreground));
   border: 1px solid hsl(var(--border));
+  border-left: 3px solid hsl(var(--primary));
   border-radius: var(--radius);
   padding: 0.7rem 0.9rem;
   font-size: 0.93rem;
-  box-shadow: 0 6px 20px rgb(0 0 0 / 0.3);
+  box-shadow: var(--shadow-md);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -458,7 +634,8 @@ dialog.dialogo::backdrop {
 }
 
 .toast--destructivo {
-  border-color: hsl(var(--destructive) / 0.6);
+  border-color: hsl(var(--destructive-borde) / 0.6);
+  border-left-color: hsl(var(--destructive-texto));
   color: hsl(var(--destructive-texto));
 }
 
@@ -527,11 +704,14 @@ dialog.dialogo::backdrop {
   transform: rotate(45deg) translateY(-1px);
 }
 
+/* Fila con control: al objetivo tactil, como la fila de menu de
+   Sherman. En px, no en `rem`: la raiz de este proyecto mide 14px y
+   `2.75rem` daria 38.5px, por debajo del objetivo. */
 .fila-control {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  min-height: 2.75rem;
+  min-height: var(--touch-floor, 2.5rem);
 }
 
 /* ------------------------------------------------------------------ */
@@ -564,20 +744,21 @@ dialog.dialogo::backdrop {
   padding: 0.55rem 0.6rem;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  min-height: 2.75rem;
+  min-height: var(--touch-floor, 2.5rem);
   font-size: 0.95rem;
 }
 
 .combobox__opcion[aria-selected='true'],
 .combobox__opcion:hover {
-  background-color: hsl(var(--accent));
-  color: hsl(var(--accent-foreground));
+  background-color: hsl(var(--primary) / 0.12);
+  color: hsl(var(--foreground));
 }
 
 .combobox__detalle {
   color: hsl(var(--muted-foreground));
   font-size: 0.83rem;
   margin-left: auto;
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -590,14 +771,17 @@ dialog.dialogo::backdrop {
 /* ------------------------------------------------------------------ */
 /* Resultados y desglose                                               */
 /* ------------------------------------------------------------------ */
+/* El resultado es lo que la persona vino a leer: lleva el acento del
+   modulo, no el gris de un campo cualquiera. */
 .resultado {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
   padding: 0.6rem 0.75rem;
-  border: 1px dashed hsl(var(--border));
+  border: 1px solid hsl(var(--acento) / 0.25);
+  border-left: 3px solid hsl(var(--acento) / 0.55);
   border-radius: var(--radius-md);
-  background-color: hsl(var(--muted) / 0.35);
+  background-color: hsl(var(--acento) / 0.06);
 }
 
 .resultado__etiqueta {
@@ -618,8 +802,21 @@ dialog.dialogo::backdrop {
   color: hsl(var(--muted-foreground));
 }
 
+.resultado--principal {
+  border-color: hsl(var(--acento) / 0.45);
+  border-left-color: hsl(var(--acento));
+  background-color: hsl(var(--acento) / 0.1);
+}
+
 .resultado--principal .resultado__valor {
   font-size: 2rem;
+  color: hsl(var(--acento-texto));
+}
+
+.resultado--error {
+  border-color: hsl(var(--destructive-borde) / 0.5);
+  border-left-color: hsl(var(--destructive-texto));
+  background-color: hsl(var(--destructive-fondo));
 }
 
 .resultado--error .resultado__valor {
@@ -642,7 +839,7 @@ dialog.dialogo::backdrop {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 2.75rem;
+  min-height: var(--touch-floor, 2.5rem);
 }
 
 .desglose summary::after {
@@ -670,7 +867,7 @@ dialog.dialogo::backdrop {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
-  border-left: 2px solid hsl(var(--border));
+  border-left: 2px solid hsl(var(--acento) / 0.35);
   padding-left: 0.6rem;
 }
 
@@ -696,12 +893,17 @@ dialog.dialogo::backdrop {
   color: hsl(var(--muted-foreground));
 }
 
+/* Verificacion correcta: verde del token de exito, no un color suelto. */
+.verificacion--ok {
+  color: hsl(var(--exito));
+}
+
 .verificacion--ok::before {
   content: '';
   width: 0.32rem;
   height: 0.6rem;
-  border-right: 2px solid hsl(140 60% 45%);
-  border-bottom: 2px solid hsl(140 60% 45%);
+  border-right: 2px solid hsl(var(--exito));
+  border-bottom: 2px solid hsl(var(--exito));
   transform: rotate(45deg);
   flex: 0 0 auto;
 }
@@ -743,11 +945,13 @@ dialog.dialogo::backdrop {
 .marcha__velocidad {
   font-size: 0.8rem;
   color: hsl(var(--muted-foreground));
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
 .marcha[aria-pressed='true'] {
   background-color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
 }
 
@@ -774,10 +978,10 @@ dialog.dialogo::backdrop {
 }
 
 .nav-inferior__boton {
-  border: 0;
+  border: 1px solid transparent;
   background: transparent;
   color: hsl(var(--muted-foreground));
-  min-height: 3.15rem;
+  min-height: var(--touch-floor, 3.15rem);
   border-radius: var(--radius-md);
   font-size: 0.86rem;
   font-weight: 500;
@@ -790,9 +994,28 @@ dialog.dialogo::backdrop {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Seccion actual: el color es del MODULO, uno por seccion, declarado
+   aqui y en ningun otro sitio. */
 .nav-inferior__boton[aria-current='true'] {
-  color: hsl(var(--foreground));
-  background-color: hsl(var(--accent));
+  font-weight: 600;
+}
+
+.nav-inferior__boton[data-seccion='calibrar'][aria-current='true'] {
+  color: hsl(var(--acento-calibrar));
+  background-color: hsl(var(--acento-calibrar) / 0.12);
+  border-color: hsl(var(--acento-calibrar) / 0.35);
+}
+
+.nav-inferior__boton[data-seccion='registrar'][aria-current='true'] {
+  color: hsl(var(--acento-registrar));
+  background-color: hsl(var(--acento-registrar) / 0.12);
+  border-color: hsl(var(--acento-registrar) / 0.35);
+}
+
+.nav-inferior__boton[data-seccion='sistema'][aria-current='true'] {
+  color: hsl(var(--acento-sistema));
+  background-color: hsl(var(--acento-sistema) / 0.12);
+  border-color: hsl(var(--acento-sistema) / 0.35);
 }
 
 .nav-inferior__icono {
@@ -826,7 +1049,6 @@ dialog.dialogo::backdrop {
 }
 
 .encabezado__fila .selector select {
-  height: 2.4rem;
   font-size: 0.9rem;
 }
 
