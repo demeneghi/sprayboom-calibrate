@@ -1,8 +1,9 @@
 # Despliegue automático del sitio a GitHub Pages.
 #
-# El repositorio ES el sitio: no hay paso de compilación. Este flujo corre
-# las pruebas de dominio y, solo si pasan, empaqueta la raíz del repositorio
-# y la publica en Pages. Una calibración rota no se publica.
+# El repositorio ES el sitio: no hay paso de compilación. Este flujo
+# corre la batería completa de validaciones (ci.yml) y, solo si pasa,
+# empaqueta la raíz del repositorio y la publica en Pages. Una
+# calibración rota no se publica.
 name: Desplegar en GitHub Pages
 
 on:
@@ -21,25 +22,21 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  pruebas:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Pruebas de dominio (node:test, sin dependencias)
-        run: npm test
+  validar:
+    uses: ./.github/workflows/ci.yml
 
   desplegar:
-    needs: pruebas
+    needs: validar
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.despliegue.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Configurar Pages (la primera vez intenta activarlo)
+      # La primera activación de Pages es manual (Settings, Pages,
+      # Source: GitHub Actions): el token del flujo no tiene permiso
+      # para crearla. Ya activada, este paso solo lee la configuración.
+      - name: Configurar Pages
         uses: actions/configure-pages@v5
         with:
           enablement: true

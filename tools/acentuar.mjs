@@ -135,7 +135,11 @@ function procesarArchivo(ruta) {
   const original = readFileSync(ruta, 'utf8');
   // Literales: comilla simple, doble o de plantilla, con escapes.
   const regexLiteral = /('(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`)/g;
-  const nuevo = original.replace(regexLiteral, (literal) => {
+  const nuevo = original.replace(regexLiteral, (literal, _grupo, indice) => {
+    // Un valor de `clase:` es una lista de clases CSS: lleva espacios
+    // pero no es texto visible y acentuarlo rompe los selectores.
+    const antes = original.slice(Math.max(0, indice - 24), indice);
+    if (/clase:\s*$/.test(antes)) return literal;
     const delimitador = literal[0];
     const cuerpo = literal.slice(1, -1);
     if (!cuerpo.includes(' ')) return literal; // codigos, clases, rutas

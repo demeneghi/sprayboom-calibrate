@@ -1,0 +1,123 @@
+# Validaciones de integración continua.
+#
+# Corre en cada pull request y también como compuerta del despliegue
+# (pages.yml la reutiliza vía workflow_call). Una calibración mal
+# calculada tiene consecuencias graves en el cultivo: nada entra a main
+# sin pasar la batería completa.
+name: Validaciones
+
+on:
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # Las 131 pruebas de dominio: cálculo redundante, parametrización,
+  # bordes, propiedades, datos con fuentes, storage y regresiones de la
+  # auditoría adversarial.
+  pruebas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Pruebas de dominio (node:test, sin dependencias)
+        run: npm test
+
+  # Verificaciones estáticas: sintaxis, reglas del proyecto y artefactos
+  # generados al día.
+  estatico:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Sintaxis de todos los modulos JS
+        run: |
+          find assets/js tools tests -name '*.js' -o -name '*.mjs' | sort | xargs -n1 node --check
+          node --check sw.js
+          node --check version.js
+          echo "Sintaxis en orden."
+      - name: Manifest PWA es JSON valido
+        run: |
+          node --input-type=module -e "import { readFileSync } from 'node:fs'; JSON.parse(readFileSync('manifest.webmanifest', 'utf8'));"
+          echo "Manifest en orden."
+      - name: Prohibido innerHTML (regla del proyecto, los nodos se construyen con textContent)
+        run: |
+          if grep -rn '\.innerHTML' assets/js; then
+            echo "ERROR: uso de innerHTML detectado."
+            exit 1
+          fi
+          echo "Sin innerHTML."
+      - name: Contraste AA de tokens y colores ISO
+        run: node tools/verificar-contraste.mjs
+      - name: Precache del service worker al dia
+        run: |
+          node tools/generar-precache.mjs
+          git diff --exit-code sw.js || {
+            echo "ERROR: la lista de precache de sw.js no corresponde a los archivos del sitio."
+            echo "Correr: node tools/generar-precache.mjs y commitear el resultado."
+            exit 1
+          }
+      - name: Ortografia de los textos visibles al dia
+        run: |
+          node tools/acentuar.mjs $(find assets/js -name '*.js' | sort)
+          git diff --exit-code -- assets || {
+            echo "ERROR: hay textos visibles sin acentuar."
+            echo "Correr: node tools/acentuar.mjs sobre los archivos listados arriba y commitear."
+            exit 1
+          }
+
+  # Humo e interacción reales en viewport de teléfono, servidas bajo el
+  # subdirectorio simulado de Pages, con el Chrome del runner.
+  humo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Instalar la libreria de playwright (sin descargar navegadores)
+        run: PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --no-save playwright
+      - name: Humo (10 rutas x 2 viewports) e interaccion completa con recarga sin conexion
+        run: |
+          export CHROMIUM_PATH="$(command -v google-chrome || command -v chromium-browser || command -v chromium)"
+          echo "Navegador: $CHROMIUM_PATH"
+          node tools/humo.mjs
+          node tools/interaccion.mjs
+
+  # Si un PR cambia archivos del sitio, la versión del service worker
+  # debe subir; si no, los teléfonos en campo se quedan con la caché
+  # vieja y nunca reciben el cambio.
+  version-sw:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Cambios del sitio exigen subir la version en version.js
+        env:
+          BASE: ${{ github.base_ref }}
+        run: |
+          git fetch origin "$BASE" --quiet
+          cambios="$(git diff --name-only "origin/$BASE...HEAD")"
+          echo "Archivos cambiados contra $BASE:"
+          echo "$cambios"
+          if echo "$cambios" | grep -qE '^(index\.html|componentes\.html|404\.html|manifest\.webmanifest|sw\.js|assets/)'; then
+            if ! echo "$cambios" | grep -qx 'version.js'; then
+              echo "ERROR: cambian archivos del sitio pero version.js no sube."
+              echo "Sin subir la version, el service worker de los telefonos en campo conserva la cache vieja."
+              exit 1
+            fi
+          fi
+          echo "Guarda de version en orden."
