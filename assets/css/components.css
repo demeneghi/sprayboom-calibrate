@@ -1102,3 +1102,216 @@ dialog.dialogo::backdrop {
   padding: 0.4rem 0.75rem;
   text-align: center;
 }
+
+/* ------------------------------------------------------------------ */
+/* Rotametro: el instrumento dibujado (tubo conico + escala)           */
+/* ------------------------------------------------------------------ */
+/* El SVG lo arma `assets/js/ui/tabs/gas.js`, que solo pone geometria y
+   clases: TODO el color vive aqui y sale de tokens, como cualquier
+   otro componente. Igual que en el resto del sistema, el estado lo
+   dice un ATRIBUTO (`data-fuera`), no una clase de variante que el
+   consumidor intercambie: con la lectura fuera de escala, el flotador,
+   su guia y su cifra pasan del verde de marca al ambar de advertencia
+   cambiando dos variables locales, no diez reglas. */
+.instrumento {
+  --instrumento-senda: var(--primary);
+  --instrumento-cifra: var(--foreground);
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  margin: 0 auto;
+}
+
+.instrumento[data-fuera='true'] {
+  --instrumento-senda: var(--warning);
+  --instrumento-cifra: var(--warning);
+}
+
+/* Chasis: bloque de acrilico, conexion roscada arriba y tuerca abajo. */
+.instrumento__cuerpo {
+  fill: hsl(var(--muted) / 0.6);
+  stroke: hsl(var(--border));
+  stroke-width: 1.5;
+}
+
+.instrumento__conexion {
+  fill: hsl(var(--secondary));
+  stroke: hsl(var(--border));
+  stroke-width: 1.5;
+}
+
+.instrumento__tuerca {
+  fill: hsl(var(--neutro-fondo));
+  stroke: hsl(var(--neutro-borde));
+  stroke-width: 1.5;
+}
+
+.instrumento__estria {
+  stroke: hsl(var(--neutro-borde));
+  stroke-width: 1;
+}
+
+.instrumento__rosca {
+  stroke: hsl(var(--border));
+  stroke-width: 1;
+}
+
+.instrumento__banda {
+  stroke: hsl(var(--border));
+  stroke-width: 1;
+}
+
+/* Un instrumento que ademas captura se toca: el cursor y el resalte del
+   toque lo declaran. El area util es el dibujo entero, muy por encima
+   del piso tactil. */
+.instrumento[data-captura='true'] {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.instrumento[data-captura='true']:active {
+  opacity: 0.9;
+}
+
+/* Caratula del manometro: bisel, fondo y aguja. */
+.instrumento__bisel {
+  fill: hsl(var(--secondary));
+  stroke: hsl(var(--border));
+  stroke-width: 3;
+}
+
+.instrumento__caratula {
+  fill: hsl(var(--background));
+  stroke: hsl(var(--border));
+  stroke-width: 1;
+}
+
+.instrumento__aguja {
+  fill: hsl(var(--instrumento-senda));
+}
+
+.instrumento__eje {
+  fill: hsl(var(--muted-foreground));
+  stroke: hsl(var(--card));
+  stroke-width: 1.5;
+}
+
+/* Tubo conico: vidrio sobre el chasis, con el brillo de la pared. */
+.instrumento__tubo {
+  fill: hsl(var(--background) / 0.7);
+  stroke: hsl(var(--muted-foreground) / 0.55);
+  stroke-width: 1.5;
+}
+
+.instrumento__cuello {
+  fill: hsl(var(--background) / 0.7);
+  stroke: hsl(var(--muted-foreground) / 0.35);
+  stroke-width: 1;
+}
+
+.instrumento__brillo {
+  fill: hsl(var(--foreground) / 0.07);
+}
+
+.instrumento__vastago {
+  stroke: hsl(var(--muted-foreground) / 0.4);
+  stroke-width: 2;
+}
+
+/* Columna de gas por debajo del flotador: lo que se lee de un vistazo. */
+.instrumento__columna {
+  fill: hsl(var(--instrumento-senda) / 0.18);
+}
+
+/* Escala grabada: raya menor de resolucion, raya mayor numerada. */
+.instrumento__raya {
+  stroke: hsl(var(--muted-foreground) / 0.6);
+  stroke-width: 1;
+}
+
+.instrumento__rayamayor {
+  stroke: hsl(var(--foreground) / 0.8);
+  stroke-width: 1.6;
+}
+
+.instrumento__numero {
+  fill: hsl(var(--muted-foreground));
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+}
+
+.instrumento__unidad {
+  fill: hsl(var(--muted-foreground));
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
+/* Serigrafia del instrumento (modelo y condicion de calibracion). */
+.instrumento__grabado {
+  fill: hsl(var(--muted-foreground) / 0.85);
+  font-size: 8px;
+  letter-spacing: 0.04em;
+}
+
+/* Flotador y su lectura. */
+.instrumento__flotador {
+  fill: hsl(var(--instrumento-senda));
+  stroke: hsl(var(--card));
+  stroke-width: 1.5;
+}
+
+.instrumento__guia {
+  stroke: hsl(var(--instrumento-senda));
+  stroke-width: 1.2;
+  stroke-dasharray: 3 3;
+}
+
+.instrumento__pastilla {
+  fill: hsl(var(--instrumento-senda) / 0.14);
+  stroke: hsl(var(--instrumento-senda));
+  stroke-width: 1;
+}
+
+.instrumento__lectura {
+  fill: hsl(var(--instrumento-cifra));
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Fila de captura del instrumento: menos, cifra y mas. Es la forma de
+   subir o bajar un escalon con guantes, sin abrir el teclado; el
+   escalon es la resolucion legible del instrumento, no un numero
+   inventado en la pantalla. El alto de los botones lo sigue mandando el
+   piso tactil de `.boton`. */
+.captura {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.captura__valor {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  min-width: 4.5rem;
+  text-align: right;
+}
+
+.captura__unidad {
+  color: hsl(var(--muted-foreground));
+  font-size: var(--text-meta);
+  min-width: 3rem;
+}
+
+.captura .boton--icono {
+  font-size: 1.4rem;
+  line-height: 1;
+}

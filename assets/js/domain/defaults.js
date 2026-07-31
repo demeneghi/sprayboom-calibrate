@@ -105,6 +105,32 @@ export const PARAMETROS = {
     },
   },
 
+  manometro: {
+    etiqueta: 'Manómetro del rotámetro',
+    campos: {
+      escalaMaxPsi: {
+        valor: 60,
+        etiqueta: 'Fondo de escala del manómetro',
+        unidad: 'psi',
+        magnitud: null,
+        min: 5,
+        max: 600,
+        origen:
+          'La carátula del manómetro a la entrada del tubo, de 0 a este valor. Solo dibuja el instrumento y avisa cuando la presión sale de escala: nunca recorta un cálculo.',
+      },
+      resolucionPsi: {
+        valor: 1,
+        etiqueta: 'Resolución legible del manómetro',
+        unidad: 'psi',
+        magnitud: null,
+        min: 0.1,
+        max: 25,
+        origen:
+          'La raya más fina de la carátula. Es también el escalón de los botones más y menos con los que se captura la presión en campo.',
+      },
+    },
+  },
+
   agronomicos: {
     etiqueta: 'Parámetros agronómicos de forzamiento',
     campos: {
