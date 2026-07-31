@@ -224,6 +224,11 @@
   /* Sombras */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.1);
+  /* Sombra del globo de ayuda: desplazada abajo-derecha, no centrada.
+     Es la de Sherman (`form-label-with-help.svelte`) y es lo que hace
+     que el globo se lea FLOTANDO sobre el formulario en vez de pegado
+     a el. */
+  --shadow-globo: 3px 5px 10px -2px rgb(0 0 0 / 0.1), 6px 10px 22px -4px rgb(0 0 0 / 0.14);
 }
 
 /* Tema oscuro (neutros de Sherman) */
@@ -288,6 +293,7 @@
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
   --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.5);
+  --shadow-globo: 3px 5px 10px -2px rgb(0 0 0 / 0.32), 6px 10px 22px -4px rgb(0 0 0 / 0.42);
 }
 
 /* Automatico: sigue al sistema. Duplicado necesario del bloque oscuro
@@ -349,6 +355,7 @@
 
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
     --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.5);
+    --shadow-globo: 3px 5px 10px -2px rgb(0 0 0 / 0.32), 6px 10px 22px -4px rgb(0 0 0 / 0.42);
   }
 }
 

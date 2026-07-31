@@ -15,23 +15,37 @@ function idUnico(prefijo) {
 // muro de texto que este patron vino a quitar.
 let cerrarAyudaAbierta = null;
 
+// Geometria del globo flotante. Va en pixeles porque son medidas
+// fisicas (la raiz mide 14px, no 16), igual que el resto del sistema.
+const GLOBO_ANCHO_MAX = 288; // el mismo tope que el tooltip de Sherman
+const GLOBO_SEPARACION = 8; // hueco entre el boton "?" y el globo
+const GLOBO_MARGEN = 8; // aire minimo contra los bordes de la pantalla
+const GLOBO_FLECHA_MIN = 12; // la puntita no se pega a la esquina redondeada
+
+// La capa superior del navegador (`popover`) es lo unico que no recorta
+// una tarjeta y lo unico que se pinta por ENCIMA de un dialogo modal.
+// Donde no exista, el globo sigue flotando con `position: fixed`.
+const SOPORTA_POPOVER =
+  typeof HTMLElement !== 'undefined' && typeof HTMLElement.prototype.showPopover === 'function';
+
 /* Ayuda contextual de un campo: el texto ya no se imprime siempre bajo
    el control. Vive en un globo que abre el boton "?" de la etiqueta y
-   que se cierra al volver a pulsarlo, con Escape o al abrir la ayuda de
-   otro campo.
+   que se cierra al volver a pulsarlo, con Escape, al tocar fuera o al
+   abrir la ayuda de otro campo.
 
-   El globo va EN EL FLUJO, no flotando: una tarjeta recorta lo que se
-   sale de ella, y en un telefono un globo absoluto acaba tapando el
-   propio campo que explica. Empujar el contenido hacia abajo es lo que
-   se puede pintar sin recortes en cualquier superficie. Y va DEBAJO del
-   control, no entre la etiqueta y el: en medio, el rotulo se separa de
-   su campo y deja de leerse a cual pertenece. */
+   El globo FLOTA, no ocupa lugar en el flujo (se copia el tooltip de
+   Sherman): abrir una ayuda ya no empuja el formulario hacia abajo ni
+   descoloca el campo que se estaba leyendo. Para que la tarjeta no lo
+   recorte se pinta en la capa superior; la posicion la calcula
+   `colocar()` y la escribe en variables CSS, asi que el globo se
+   coloca donde de verdad cabe y la puntita sigue apuntando al boton. */
 export function crearAyuda({ idCampo, etiqueta, texto }) {
   const globo = el(
     'p',
     { clase: 'ayuda ayuda--globo oculto', id: `${idCampo}-ayuda`, role: 'note' },
     texto
   );
+  if (SOPORTA_POPOVER) globo.setAttribute('popover', 'manual');
   const boton = el(
     'button',
     {
@@ -44,30 +58,102 @@ export function crearAyuda({ idCampo, etiqueta, texto }) {
     '?'
   );
 
+  let abierto = false;
+
+  // Se mide con el globo ya visible: el ancho sale de `max-content`
+  // acotado por el tope, asi que no depende de donde este colocado y
+  // medir no obliga a pintarlo dos veces.
+  function colocar() {
+    const marco = boton.getBoundingClientRect();
+    const anchoMax = Math.min(GLOBO_ANCHO_MAX, window.innerWidth - GLOBO_MARGEN * 2);
+    globo.style.setProperty('--globo-ancho-max', `${anchoMax}px`);
+    const caja = globo.getBoundingClientRect();
+
+    // Arriba por defecto, como en Sherman: el control que la ayuda
+    // explica queda justo debajo del boton, asi que un globo hacia
+    // abajo taparia el campo que se acaba de consultar.
+    const cabeArriba = marco.top >= caja.height + GLOBO_SEPARACION + GLOBO_MARGEN;
+    const arriba = cabeArriba || marco.top > window.innerHeight - marco.bottom;
+    const y = arriba ? marco.top - GLOBO_SEPARACION - caja.height : marco.bottom + GLOBO_SEPARACION;
+
+    // Alineado por la derecha con el boton (que vive en el extremo
+    // derecho de la etiqueta) y metido dentro de la pantalla.
+    const xMaximo = window.innerWidth - GLOBO_MARGEN - caja.width;
+    const x = Math.max(GLOBO_MARGEN, Math.min(marco.right - caja.width, xMaximo));
+
+    const centroBoton = marco.left + marco.width / 2 - x;
+    const flecha = Math.max(
+      GLOBO_FLECHA_MIN,
+      Math.min(centroBoton, caja.width - GLOBO_FLECHA_MIN)
+    );
+
+    globo.dataset.lado = arriba ? 'arriba' : 'abajo';
+    globo.style.setProperty('--globo-x', `${Math.round(x)}px`);
+    globo.style.setProperty('--globo-y', `${Math.round(Math.max(GLOBO_MARGEN, y))}px`);
+    globo.style.setProperty('--globo-flecha', `${Math.round(flecha)}px`);
+  }
+
+  // Al desplazar o girar el telefono el globo persigue a su boton. Si
+  // el panel se volvio a dibujar mientras estaba abierto, el boton ya
+  // no esta en la pagina y el globo se cierra en vez de quedar suelto.
+  function alMover() {
+    if (!boton.isConnected) cerrar();
+    else colocar();
+  }
+
+  function alPulsarFuera(evento) {
+    if (!boton.isConnected) {
+      cerrar();
+      return;
+    }
+    // El toque sobre el propio boton lo resuelve su `click` (alternar).
+    if (boton.contains(evento.target) || globo.contains(evento.target)) return;
+    cerrar();
+  }
+
+  // Escape cierra la ayuda y NO llega al dialogo que la contiene: quien
+  // abrio un globo espera cerrar el globo, no perder lo capturado.
+  function alTeclear(evento) {
+    if (evento.key !== 'Escape') return;
+    evento.stopPropagation();
+    evento.preventDefault();
+    const teniaFoco = boton.contains(document.activeElement);
+    cerrar();
+    if (teniaFoco) boton.focus();
+  }
+
   function cerrar() {
+    if (!abierto) return;
+    abierto = false;
     boton.setAttribute('aria-expanded', 'false');
     globo.classList.add('oculto');
+    if (SOPORTA_POPOVER && globo.matches(':popover-open')) globo.hidePopover();
+    window.removeEventListener('scroll', alMover, true);
+    window.removeEventListener('resize', alMover);
+    document.removeEventListener('pointerdown', alPulsarFuera, true);
+    document.removeEventListener('keydown', alTeclear, true);
     if (cerrarAyudaAbierta === cerrar) cerrarAyudaAbierta = null;
   }
 
   function abrir() {
+    if (abierto) return;
     if (cerrarAyudaAbierta && cerrarAyudaAbierta !== cerrar) cerrarAyudaAbierta();
+    abierto = true;
     boton.setAttribute('aria-expanded', 'true');
     globo.classList.remove('oculto');
+    if (SOPORTA_POPOVER && globo.isConnected) globo.showPopover();
+    colocar();
+    // El scroll no burbujea: hay que escucharlo en fase de captura.
+    window.addEventListener('scroll', alMover, true);
+    window.addEventListener('resize', alMover);
+    document.addEventListener('pointerdown', alPulsarFuera, true);
+    document.addEventListener('keydown', alTeclear, true);
     cerrarAyudaAbierta = cerrar;
   }
 
   boton.addEventListener('click', () => {
-    if (boton.getAttribute('aria-expanded') === 'true') cerrar();
+    if (abierto) cerrar();
     else abrir();
-  });
-  // Escape cierra la ayuda y NO llega al dialogo que la contiene: quien
-  // abrio un globo espera cerrar el globo, no perder lo capturado.
-  boton.addEventListener('keydown', (evento) => {
-    if (evento.key === 'Escape' && boton.getAttribute('aria-expanded') === 'true') {
-      evento.stopPropagation();
-      cerrar();
-    }
   });
 
   return { boton, globo, cerrar };

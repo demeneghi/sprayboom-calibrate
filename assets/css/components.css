@@ -406,33 +406,67 @@
   color: hsl(var(--acento-texto));
 }
 
-/* El globo va EN EL FLUJO, no flotando: una tarjeta recorta lo que se
-   sale de ella y, en un telefono, un globo absoluto acaba tapando el
-   campo que explica. Y va DEBAJO del control: entre la etiqueta y el
-   control, el rotulo se separa de su campo. */
+/* El globo FLOTA sobre la pantalla, igual que el tooltip de Sherman:
+   no ocupa lugar en el flujo, asi que pedir la ayuda ya no empuja el
+   formulario hacia abajo ni descoloca lo que se estaba leyendo.
+
+   Se pinta en la CAPA SUPERIOR (atributo `popover`, que `campos.js`
+   pone cuando el navegador lo soporta): es lo unico que no recorta una
+   tarjeta y lo unico que queda por ENCIMA de un dialogo modal. Donde
+   no exista la capa superior, `position: fixed` + `z-index` deja el
+   mismo resultado fuera de un dialogo.
+
+   La posicion la calcula `campos.js` y la escribe en `--globo-x` /
+   `--globo-y`; el lado elegido va en `data-lado`. `inset: auto` es
+   obligatorio: el navegador da `inset: 0` a todo `[popover]` y, con
+   `top` y `bottom` a la vez, el globo se estiraria hasta el pie de la
+   pantalla. */
 .ayuda--globo {
-  position: relative;
+  position: fixed;
+  inset: auto;
+  top: var(--globo-y, 0);
+  left: var(--globo-x, 0);
+  z-index: 70;
+  margin: 0;
+  width: max-content;
+  max-width: var(--globo-ancho-max, 288px);
+  overflow: visible;
   padding: 0.5rem 0.65rem;
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius-md);
-  background-color: hsl(var(--muted));
-  color: hsl(var(--foreground));
-  box-shadow: var(--shadow-sm);
+  background-color: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  box-shadow: var(--shadow-globo);
 }
 
-/* Puntita hacia arriba, en el eje del boton "?": cuadrado girado, con
-   solo dos lados de borde para que continue el del globo. */
+/* Puntita hacia el boton "?": cuadrado girado, con solo dos lados de
+   borde para que continue el del globo. Su posicion horizontal la fija
+   `campos.js` en `--globo-flecha` (el centro del boton), asi que sigue
+   apuntando al boton aunque el globo se haya recorrido para no salirse
+   de la pantalla. */
 .ayuda--globo::before {
   content: '';
   position: absolute;
-  top: -5px;
-  right: 7px;
+  left: var(--globo-flecha, 12px);
   width: 8px;
   height: 8px;
-  background-color: hsl(var(--muted));
+  margin-left: -4px;
+  background-color: hsl(var(--popover));
+  transform: rotate(45deg);
+}
+
+/* Globo arriba del boton (el caso normal): la puntita cuelga por abajo. */
+.ayuda--globo[data-lado='arriba']::before {
+  bottom: -5px;
+  border-right: 1px solid hsl(var(--border));
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+/* Globo abajo (cuando arriba no cabe): la puntita sale por arriba. */
+.ayuda--globo[data-lado='abajo']::before {
+  top: -5px;
   border-left: 1px solid hsl(var(--border));
   border-top: 1px solid hsl(var(--border));
-  transform: rotate(45deg);
 }
 
 /* ------------------------------------------------------------------ */

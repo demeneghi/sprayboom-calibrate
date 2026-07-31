@@ -174,11 +174,25 @@ Son cinco, y ninguna es cosmética.
   un bloque—, es decir, donde no hay etiqueta de la que colgar un botón.
 - **Solo un globo abierto a la vez** en toda la pantalla: dos o tres consultados a la vez devuelven
   el muro que este patrón vino a quitar. El estado lo lleva `campos.js`.
-- **El globo va en el flujo, no flotando.** Una tarjeta recorta lo que se sale de ella y, en un
-  teléfono, un globo absoluto acaba tapando el campo que explica. Empujar el contenido hacia abajo
-  es lo único que se pinta sin recortes en cualquier superficie, incluido el cuerpo de un diálogo.
-- **El globo va debajo del control, no entre la etiqueta y el control.** En medio, el rótulo se
-  separa de su campo y deja de leerse a cuál pertenece el control que queda abajo.
+- **El globo flota: no ocupa lugar en el flujo.** Es el tooltip de Sherman
+  (`form-label-with-help.svelte`) llevado a CSS nativo. Antes se empujaba el contenido hacia abajo
+  para no pelear con el recorte de la tarjeta, y el precio era que abrir una ayuda descolocaba la
+  pantalla: los campos de abajo saltaban y había que volver a buscar dónde se iba.
+- **Se pinta en la capa superior del navegador**, con el atributo `popover` que `campos.js` pone
+  cuando existe. Es lo único que **no** recorta una tarjeta y lo único que queda **por encima de un
+  diálogo modal** (los diálogos son `<dialog>` con `showModal`, así que también viven en esa capa).
+  Donde no haya soporte, el globo cae a `position: fixed` con `z-index`: sigue flotando, y solo
+  dentro de un diálogo quedaría por debajo.
+- **La posición la calcula `campos.js`, no el CSS.** `colocar()` escribe `--globo-x`, `--globo-y`,
+  `--globo-flecha` y `data-lado`; el CSS solo los consume. **Prohibido** anclar el globo con
+  `position: absolute` respecto al campo: vuelve el recorte de la tarjeta.
+- **El globo va arriba del botón `?` por defecto.** El control que la ayuda explica está justo
+  debajo de la etiqueta: un globo hacia abajo tapa el campo que se acaba de consultar. Solo se va
+  abajo cuando arriba no cabe, y horizontalmente se recorre para no salirse de la pantalla —la
+  puntita sigue apuntando al botón porque su posición se calcula aparte.
+- **Se cierra al tocar fuera, al pulsar otra vez el botón, con `Escape` o al abrir otra ayuda.** Un
+  globo flotante tapa lo que tiene debajo, así que quitarlo de en medio no puede depender de
+  acertarle al mismo botón de 22px.
 - **El botón va al extremo derecho de la fila de la etiqueta**, no pegado al texto: así cae en el
   mismo eje vertical en toda la columna —se encuentra sin leer— y la puntita del globo apunta
   hacia él desde una posición fija.
@@ -277,6 +291,8 @@ suelto. Lo mismo con cada color ISO sembrado.
 - Señalar la opción elegida intercambiando variantes de botón, o maquetar el grupo con un
   `display: flex` en línea: la etiqueta larga se sale de la tarjeta.
 - Imprimir la ayuda de un campo como párrafo fijo bajo el control: va en el globo del botón `?`.
+- Devolver el globo de ayuda al flujo (o anclarlo con `position: absolute` dentro del campo): abrir
+  una ayuda volvería a empujar los campos de abajo, y dentro de una tarjeta el globo se recorta.
 - Sumar relleno a una tarjeta desde su contenido.
 - Apilar campos en un `<div>` sin clase: quedan sin separación y el anillo de foco pisa la
   etiqueta del campo de abajo.
