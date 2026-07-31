@@ -10,13 +10,16 @@ Cubre tres dominios de cálculo encadenados, todos resolubles en ambos sentidos 
 
 ## Publicación en GitHub Pages
 
-El sitio no tiene paso de compilación: el repositorio ES el sitio. Método de despliegue recomendado:
+El sitio no tiene paso de compilación: el repositorio ES el sitio. El despliegue está
+automatizado con GitHub Actions (`.github/workflows/pages.yml`): cada push a `main` corre las
+131 pruebas de dominio y, solo si pasan, publica la raíz del repositorio en Pages. Si las
+pruebas fallan, no se publica: una calibración rota no llega al campo.
 
-1. Hacer merge de la rama de trabajo a `main`.
-2. En GitHub: Settings, Pages, Source: **Deploy from a branch**, Branch: `main`, carpeta `/ (root)`.
-3. El sitio queda en `https://<usuario>.github.io/sprayboom-calibrate/`.
-
-No se necesita GitHub Actions porque no hay nada que compilar.
+- **Primera vez**: el flujo intenta activar Pages por sí solo. Si ese paso falla por permisos,
+  se activa una vez a mano en Settings, Pages, Source: **GitHub Actions**, y se relanza el
+  flujo desde la pestaña Actions.
+- El sitio queda en `https://<usuario>.github.io/sprayboom-calibrate/`.
+- No hay nada que compilar; el flujo solo prueba, empaqueta y publica.
 
 **Requisito de plan**: GitHub Pages en un repositorio privado requiere plan de pago (Pro, Team o Enterprise). Si el repositorio es privado y la cuenta es gratuita, hay que hacer el repositorio público antes de activar Pages.
 
@@ -92,6 +95,7 @@ node tools/acentuar.mjs <archivos>      # ortografía de textos visibles
 ## Estructura
 
 ```
+.github/workflows/    despliegue a Pages: prueba y publica en cada push a main
 index.html            aplicación (una sola página, navegación por hash)
 componentes.html      muestra del sistema de diseño en ambos temas
 404.html              redirige a ./ conservando el hash
