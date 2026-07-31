@@ -33,6 +33,9 @@ jobs:
       url: ${{ steps.despliegue.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       # La primera activación de Pages es manual (Settings, Pages,
       # Source: GitHub Actions): el token del flujo no tiene permiso
       # para crearla. Ya activada, este paso solo lee la configuración.
@@ -40,6 +43,15 @@ jobs:
         uses: actions/configure-pages@v5
         with:
           enablement: true
+      # La versión de la caché la estampa el despliegue, no un pull
+      # request. Cada publicación recibe una versión distinta por
+      # construcción, así que el teléfono en campo siempre detecta el
+      # service worker nuevo; y nadie tiene que acordarse de subir la
+      # línea, que era lo que hacía chocar a dos ramas en paralelo.
+      - name: Sellar la versión de la caché con la fecha y el commit
+        run: |
+          node tools/sellar-version.mjs "$(date -u +%Y-%m-%d).${GITHUB_SHA::7}"
+          cat version.js
       - name: Empaquetar la raíz del repositorio
         uses: actions/upload-pages-artifact@v3
         with:

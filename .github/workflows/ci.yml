@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 jobs:
-  # Las 131 pruebas de dominio: cálculo redundante, parametrización,
+  # Las pruebas de dominio (142 al escribir esto): cálculo redundante, parametrización,
   # bordes, propiedades, datos con fuentes, storage y regresiones de la
   # auditoría adversarial.
   pruebas:
@@ -44,6 +44,7 @@ jobs:
           find assets/js tools tests -name '*.js' -o -name '*.mjs' | sort | xargs -n1 node --check
           node --check sw.js
           node --check version.js
+          node --check precache.js
           echo "Sintaxis en orden."
       - name: Manifest PWA es JSON valido
         run: |
@@ -61,9 +62,10 @@ jobs:
       - name: Precache del service worker al dia
         run: |
           node tools/generar-precache.mjs
-          git diff --exit-code sw.js || {
-            echo "ERROR: la lista de precache de sw.js no corresponde a los archivos del sitio."
+          git diff --exit-code precache.js || {
+            echo "ERROR: la lista de precache.js no corresponde a los archivos del sitio."
             echo "Correr: node tools/generar-precache.mjs y commitear el resultado."
+            echo "(Si un merge la dejo duplicada o desordenada, esto la deja canonica.)"
             exit 1
           }
       - name: Ortografia de los textos visibles al dia
@@ -94,30 +96,14 @@ jobs:
           node tools/humo.mjs
           node tools/interaccion.mjs
 
-  # Si un PR cambia archivos del sitio, la versión del service worker
-  # debe subir; si no, los teléfonos en campo se quedan con la caché
-  # vieja y nunca reciben el cambio.
-  version-sw:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Cambios del sitio exigen subir la version en version.js
-        env:
-          BASE: ${{ github.base_ref }}
-        run: |
-          git fetch origin "$BASE" --quiet
-          cambios="$(git diff --name-only "origin/$BASE...HEAD")"
-          echo "Archivos cambiados contra $BASE:"
-          echo "$cambios"
-          if echo "$cambios" | grep -qE '^(index\.html|componentes\.html|404\.html|manifest\.webmanifest|sw\.js|assets/)'; then
-            if ! echo "$cambios" | grep -qx 'version.js'; then
-              echo "ERROR: cambian archivos del sitio pero version.js no sube."
-              echo "Sin subir la version, el service worker de los telefonos en campo conserva la cache vieja."
-              exit 1
-            fi
-          fi
-          echo "Guarda de version en orden."
+  # La version de la cache YA NO se sube a mano en el pull request: la
+  # estampa el despliegue (tools/sellar-version.mjs desde pages.yml).
+  # Antes habia aqui una compuerta `version-sw` que exigia subir esa
+  # linea en todo PR que tocara el sitio; era el conflicto de git mas
+  # frecuente del repositorio, porque dos ramas en paralelo chocaban
+  # siempre en el mismo renglon. El sello de despliegue da una garantia
+  # mas fuerte: cada publicacion recibe una version distinta por
+  # construccion, sin depender de que alguien se acuerde.
+  #
+  # Que la compuerta si verifica todavia, en el job `estatico`:
+  # que version.js y precache.js sean JS valido.

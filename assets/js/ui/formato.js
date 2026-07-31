@@ -44,6 +44,24 @@ export function formatearTiempo(segundos) {
   return `${minutos} min ${resto} s`;
 }
 
+// Fecha y hora en formato corto de es-MX. El formateador se construye
+// una sola vez: Intl.DateTimeFormat es caro y estas listas se repintan
+// en cada cambio de borrador.
+const FORMATO_FECHA = new Intl.DateTimeFormat('es-MX', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+
+// Formatea una fecha ISO. `vacio` es lo que regresa cuando la fecha
+// falta o no es valida: por defecto el guion largo del estado neutro,
+// igual que `formatear`. Quien necesite RAMIFICAR sobre la ausencia
+// —omitir la linea entera en vez de imprimir un guion— pasa
+// `{ vacio: null }` y prueba el resultado.
+export function formatearFecha(iso, { vacio = '—' } = {}) {
+  const fecha = new Date(iso ?? NaN);
+  return Number.isNaN(fecha.getTime()) ? vacio : FORMATO_FECHA.format(fecha);
+}
+
 // Interpreta una captura de texto como numero (acepta coma decimal).
 // Regresa null para vacio o no numerico: el llamador decide el aviso.
 export function aNumero(texto) {

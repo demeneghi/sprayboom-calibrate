@@ -1,0 +1,7 @@
+# precache.js es 100% generado por tools/generar-precache.mjs. Resolver
+# a mano un conflicto en el es trabajo tirado: la union se queda con las
+# lineas de ambas ramas y la herramienta la vuelve a dejar canonica.
+# El job `estatico` de CI verifica que quedo al dia, asi que una union
+# mal ordenada no puede llegar a main sin que alguien corra la
+# herramienta.
+precache.js merge=union
