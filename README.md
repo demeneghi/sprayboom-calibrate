@@ -11,15 +11,16 @@ Cubre tres dominios de cálculo encadenados, todos resolubles en ambos sentidos 
 ## Publicación en GitHub Pages
 
 El sitio no tiene paso de compilación: el repositorio ES el sitio. El despliegue está
-automatizado con GitHub Actions (`.github/workflows/pages.yml`): cada push a `main` corre las
-131 pruebas de dominio y, solo si pasan, publica la raíz del repositorio en Pages. Si las
-pruebas fallan, no se publica: una calibración rota no llega al campo.
+automatizado con GitHub Actions (`.github/workflows/pages.yml`): cada push a `main` corre la
+batería completa de validaciones de CI y, solo si pasa, publica la raíz del repositorio en
+Pages. Si algo falla, no se publica: una calibración rota no llega al campo.
 
-- **Primera vez**: el flujo intenta activar Pages por sí solo. Si ese paso falla por permisos,
-  se activa una vez a mano en Settings, Pages, Source: **GitHub Actions**, y se relanza el
-  flujo desde la pestaña Actions.
+- **Primera vez**: hay que activar Pages una única vez a mano en Settings, Pages, Source:
+  **GitHub Actions** (el token del flujo no tiene permiso para crearla solo: la corrida falla
+  en "Configurar Pages" hasta hacerlo). Después, cada merge a `main` despliega sin pasos
+  manuales; el flujo también se puede relanzar desde la pestaña Actions.
 - El sitio queda en `https://<usuario>.github.io/sprayboom-calibrate/`.
-- No hay nada que compilar; el flujo solo prueba, empaqueta y publica.
+- No hay nada que compilar; el flujo solo valida, empaqueta y publica.
 
 **Requisito de plan**: GitHub Pages en un repositorio privado requiere plan de pago (Pro, Team o Enterprise). Si el repositorio es privado y la cuenta es gratuita, hay que hacer el repositorio público antes de activar Pages.
 
@@ -77,6 +78,25 @@ npm test
 
 npm solo se usa para herramientas de desarrollo; el sitio publicado no depende de npm ni de ningún paquete.
 
+### Integración continua
+
+`.github/workflows/ci.yml` corre en cada pull request, y `pages.yml` reutiliza la misma
+batería como compuerta del despliegue: nada llega a `main` publicable sin pasar por aquí.
+
+| Job | Qué valida |
+|---|---|
+| `pruebas` | Las 131 pruebas de dominio con `node:test` |
+| `estatico` | Sintaxis de todos los JS (`node --check`), manifest JSON válido, prohibición de `.innerHTML`, contraste AA de tokens y colores ISO, precache de `sw.js` al día, ortografía de textos visibles al día |
+| `humo` | Playwright con el Chrome del runner: 10 rutas x 2 viewports de teléfono y la interacción completa, incluida la recarga sin conexión |
+| `version-sw` | Solo en PR: si cambian archivos del sitio, `version.js` debe subir; si no, los teléfonos en campo conservan la caché vieja y nunca reciben el cambio |
+
+Los iconos PNG del manifest no se regeneran en CI a propósito: el render de Chromium no es
+idéntico bit a bit entre versiones y daría falsos fallos.
+
+Para que GitHub bloquee el merge cuando un check falla hay que exigirlo en una regla de rama
+(Settings, Rules, Rulesets, "Require status checks to pass" sobre `main`); eso no se puede
+configurar desde archivos del repositorio.
+
 Herramientas de desarrollo (ninguna es requisito del sitio publicado):
 
 ```bash
@@ -95,7 +115,7 @@ node tools/acentuar.mjs <archivos>      # ortografía de textos visibles
 ## Estructura
 
 ```
-.github/workflows/    despliegue a Pages: prueba y publica en cada push a main
+.github/workflows/    CI en cada PR (ci.yml) y despliegue a Pages en cada push a main (pages.yml)
 index.html            aplicación (una sola página, navegación por hash)
 componentes.html      muestra del sistema de diseño en ambos temas
 404.html              redirige a ./ conservando el hash
