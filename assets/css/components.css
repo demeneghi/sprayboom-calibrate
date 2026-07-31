@@ -606,6 +606,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* El titulo de una columna de cifras se alinea con sus cifras: a la
+   derecha. Con el titulo a la izquierda y el numero a la derecha, en
+   una tabla angosta los dos parecen columnas distintas. */
+.tabla th.numero {
+  text-align: right;
+}
+
 /* ------------------------------------------------------------------ */
 /* Badge                                                               */
 /* ------------------------------------------------------------------ */
