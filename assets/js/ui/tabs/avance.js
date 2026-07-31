@@ -52,6 +52,10 @@ export function render(panel, ctx) {
   const tractor = ctx.tractorActivo();
   const sistema = ctx.sistema();
   const unidadVelocidad = unidad('velocidad', sistema);
+  // Longitud del tramo, en las unidades elegidas. Se arma una vez y se
+  // repite en cada rotulo que hable de "tramo".
+  const distanciaReferencia = ctx.estado().parametros.geometria.distanciaReferencia;
+  const tramoTexto = `${formatear(aSistema('distancia', distanciaReferencia, sistema), 0)} ${unidad('distancia', sistema)}`;
 
   // ---------------- Modo ----------------
   const botonMarcha = el('button', { clase: 'boton boton--contorno', 'aria-pressed': 'false' }, 'Desde marcha y rpm');
@@ -209,11 +213,15 @@ export function render(panel, ctx) {
   );
 
   // ---------------- Reporte de campo ----------------
+  // El tramo es la distancia de referencia configurada, y va DICHA en la
+  // pantalla, no escondida en la ayuda: "segundos por tramo" a secas no
+  // significa nada en campo, porque el mismo tiempo es una velocidad
+  // distinta en un tramo de 50 m que en uno de 100 m.
   const campoSegundos = crearCampoNumerico({
-    etiqueta: 'Segundos por tramo',
+    etiqueta: `Segundos por tramo de ${tramoTexto}`,
     unidad: 's',
     valorInicial: borrador.segundosPorTramo ?? null,
-    ayuda: 'Tiempo medido para recorrer la distancia de referencia. El reporte de campo es siempre más confiable que la marcha teórica.',
+    ayuda: `Tiempo medido para recorrer el tramo de ${tramoTexto}. Esa distancia de referencia se edita en Sistema, Configuración. El reporte de campo es siempre más confiable que la marcha teórica.`,
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { segundosPorTramo: valor });
       recalcular();
@@ -233,7 +241,11 @@ export function render(panel, ctx) {
     },
   });
   zonaCronometro.append(
-    el('p', { clase: 'ayuda' }, 'Cronómetro: arranca al entrar al tramo y para al salir.'),
+    el(
+      'p',
+      { clase: 'ayuda' },
+      `Cronómetro: arranca al entrar al tramo de ${tramoTexto} y para al salir.`
+    ),
     cronometro.elemento
   );
   const zonaMarchasQueReproducen = el('div', {});
@@ -295,7 +307,13 @@ export function render(panel, ctx) {
       } else {
         const segundos = campoSegundos.obtener();
         if (segundos === null) {
-          nodos.push(el('p', { clase: 'texto-suave' }, 'Captura los segundos por tramo para calcular.'));
+          nodos.push(
+            el(
+              'p',
+              { clase: 'texto-suave' },
+              `Captura los segundos que tarda en recorrer el tramo de ${tramoTexto} para calcular.`
+            )
+          );
         } else {
           velocidadTeorica = velocidadDesdeReporte({
             segundosPorTramo: segundos,
@@ -389,7 +407,7 @@ export function render(panel, ctx) {
             'div',
             { estilo: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' } },
             pintarResultado({
-              etiqueta: 'Segundos por tramo',
+              etiqueta: `Segundos por tramo de ${tramoTexto}`,
               valor: resultadoAvance.valores.segundosPorTramo,
               unidad: 's',
               decimales: 1,
@@ -603,7 +621,7 @@ export function render(panel, ctx) {
     }
     const p = ctx.estado().parametros;
     const campoSegundosMedidos = crearCampoNumerico({
-      etiqueta: `Segundos medidos por tramo de ${formatear(aSistema('distancia', p.geometria.distanciaReferencia, sistema), 0)} ${unidad('distancia', sistema)}`,
+      etiqueta: `Segundos medidos por tramo de ${tramoTexto}`,
       unidad: 's',
     });
     const campoRpmMedidas = crearCampoNumerico({

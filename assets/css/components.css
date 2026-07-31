@@ -1481,3 +1481,46 @@ dialog.dialogo::backdrop {
   font-size: var(--text-xl);
   line-height: 1;
 }
+
+/* ------------------------------------------------------------------ */
+/* Cronometro integrado                                                */
+/* ------------------------------------------------------------------ */
+/* El layout vive aqui y no en `cronometro.js`: el consumidor solo
+   declara las clases, igual que con `.grupo-modo`. */
+.cronometro {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.cronometro__pantalla {
+  font-size: var(--text-cifra-xl);
+  text-align: center;
+}
+
+/* La fila de acciones ENVUELVE. Con los tres botones en una sola fila
+   flex y el `white-space: nowrap` del boton, la etiqueta larga de la
+   accion de traspaso ("Usar como segundos por tramo") se salia de la
+   tarjeta y quedaba cortada contra el borde de la pantalla: el mismo
+   defecto que `.grupo-modo` resuelve para el grupo de opciones. */
+.cronometro__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cronometro__acciones .boton {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: normal;
+  height: auto;
+  padding-block: 0.4rem;
+  line-height: 1.2;
+}
+
+/* Arrancar y Reiniciar se reparten un renglon; la accion de traspaso
+   se lleva el suyo completo, que es la que trae el texto largo. */
+.cronometro__usar {
+  flex-basis: 100%;
+}
