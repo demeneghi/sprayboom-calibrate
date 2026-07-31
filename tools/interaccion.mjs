@@ -177,6 +177,54 @@ verificar(/600/.test(texto) && /ISO 10625/.test(texto), 'Metodología: factor 60
 verificar(/S572/.test(texto), 'Metodología: ediciones S572 presentes');
 verificar(/exporta|respaldo|navegador/i.test(texto), 'Metodología: limitación de datos locales declarada');
 
+// ---------- Sitio: la presion atmosferica sale de la altitud ----------
+await pagina.goto(`${base}#/sistema/configuracion`, { waitUntil: 'networkidle' });
+await pagina.waitForTimeout(400);
+const campoAltitud = pagina.getByRole('textbox', { name: 'Altitud del sitio' });
+verificar((await campoAltitud.count()) === 1, 'Sitio: el campo de altitud existe');
+const presionEnUso = pagina.locator('.resultado', { hasText: 'Presión atmosférica local en uso' }).first();
+await campoAltitud.fill('2000');
+await pagina.waitForTimeout(300);
+let lecturaPresion = await presionEnUso.innerText();
+verificar(
+  /11[.,]53/.test(lecturaPresion),
+  `Sitio: 2000 m dan 11.53 psia (${lecturaPresion.replace(/\n/g, ' ')})`
+);
+verificar(
+  /Derivada de 2,?000 m/.test(await pagina.locator('#panel').innerText()),
+  'Sitio: la pantalla dice de dónde sale la presión'
+);
+
+// La anulacion manual gana, y al vaciarla vuelve la derivacion.
+const campoPresion = pagina.getByRole('textbox', { name: 'Presión atmosférica local' });
+await campoPresion.fill('12');
+await pagina.waitForTimeout(300);
+lecturaPresion = await presionEnUso.innerText();
+verificar(/12[.,]00/.test(lecturaPresion), 'Sitio: la anulación manual gana sobre la altitud');
+verificar(
+  /Anulada a mano/.test(await pagina.locator('#panel').innerText()),
+  'Sitio: se dice que la altitud dejó de usarse'
+);
+await campoPresion.fill('');
+await pagina.waitForTimeout(300);
+lecturaPresion = await presionEnUso.innerText();
+verificar(/11[.,]53/.test(lecturaPresion), 'Sitio: al vaciar la anulación vuelve la derivación');
+
+// El GPS: Playwright entrega posicion SIN altitud, que es justo el caso
+// del telefono que ubica por wifi. Debe decirlo, no romperse.
+const botonGps = pagina.getByRole('button', { name: 'Usar la altitud del GPS' });
+verificar((await botonGps.count()) === 1, 'Sitio: el botón del GPS existe');
+await contexto.grantPermissions(['geolocation']);
+await contexto.setGeolocation({ latitude: 20.6736, longitude: -103.344, accuracy: 12 });
+await botonGps.click();
+await pagina.waitForTimeout(1500);
+verificar(
+  /no la altitud/i.test(await pagina.locator('body').innerText()),
+  'Sitio: sin altitud del GPS se explica por qué, en vez de fallar'
+);
+await campoAltitud.fill('0');
+await pagina.waitForTimeout(300);
+
 // ---------- Barras de aplicacion: alta y geometria propia ----------
 await pagina.goto(`${base}#/sistema/configuracion`, { waitUntil: 'networkidle' });
 await pagina.waitForTimeout(400);

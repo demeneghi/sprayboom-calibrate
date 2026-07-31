@@ -43,6 +43,9 @@ import {
   LBMOL_A_MOL,
   SI_R_UNIVERSAL,
   PORCIENTO,
+  PRESION_NIVEL_MAR_PSIA,
+  GRADIENTE_ISA_POR_M,
+  EXPONENTE_ISA,
 } from '../../domain/constants.js';
 import {
   paso,
@@ -951,17 +954,24 @@ export function render(panel, ctx) {
           }),
           pintarResultado({
             etiqueta: 'Presión atmosférica local (sitio)',
-            valor: p.sitio.presionAtmosfericaLocal,
+            valor: ctx.presionAtmosfericaLocal(),
             unidad: 'psia',
             decimales: 2,
           })
+        ),
+        el(
+          'p',
+          { clase: 'ayuda' },
+          ctx.atmosferaSitio().valores.anulado
+            ? 'La presión atmosférica local está anulada a mano en Configuración; la derivada de la altitud no se está usando.'
+            : `La presión atmosférica local se deriva de los ${formatear(p.sitio.altitudM, 0)} m de altitud del sitio con la atmósfera estándar internacional: P = ${PRESION_NIVEL_MAR_PSIA} * (1 - ${GRADIENTE_ISA_POR_M} * altitud)^${EXPONENTE_ISA}. Baja 1 psi cada 574 m.`
         )
       );
       const psiCapturada = ctx.borrador('gas').psiManometrica;
       if (gas && Number.isFinite(psiCapturada)) {
         const factor = factorPresion({
           psiManometrica: psiCapturada,
-          presionAtmosfericaLocal: p.sitio.presionAtmosfericaLocal,
+          presionAtmosfericaLocal: ctx.presionAtmosfericaLocal(),
           presionEstandarCalibracion: gas.presionEstandarPsia,
         });
         cuerpo.push(

@@ -38,6 +38,7 @@ import {
   ROTAMETROS_SIEMBRA,
 } from '../../domain/defaults.js';
 import { validarValor } from '../../domain/validate.js';
+import { presionAtmosfericaEfectiva } from '../../domain/atmosphere.js';
 import { geometria, factorDeMedicion } from '../../domain/speed.js';
 import { gPorScfEfectivo } from '../../domain/gas.js';
 import { validarContraIso } from '../../domain/nozzles.js';
@@ -72,6 +73,31 @@ const MENSAJES_ACTUALIZACION = {
   reinstalarSinConexion:
     'Sin conexión: no se borró nada. La copia guardada es lo único con lo que la aplicación abre en el lote. Conéctate a datos o wifi y vuelve a intentar.',
 };
+
+// Ubicacion por GPS para rellenar la altitud del sitio.
+//
+// Vale la pena porque el error del GPS es despreciable para lo que se
+// necesita: la presion cae 0.0017 psi por metro, asi que equivocarse los
+// 10-30 m tipicos de la altitud satelital mueve el resultado un 0.08%,
+// contra el 3.3% de suponer el nivel del mar estando a 2200 m.
+//
+// Dos limitaciones, ambas dichas en pantalla cuando ocurren: hay
+// telefonos que dan la posicion sin altitud (cuando ubican por wifi en
+// vez de por satelite), y fijar un satelite tarda. El GPS SI funciona
+// sin senal de datos, que es la condicion normal en el lote.
+const GPS_ESPERA_MS = 20000;
+
+const MENSAJES_GPS = {
+  1: 'No hay permiso de ubicación. Concédelo para este sitio en los ajustes del navegador, o escribe la altitud a mano.',
+  2: 'El teléfono no pudo fijar la posición. Sal a cielo abierto y vuelve a intentar, o escribe la altitud a mano.',
+  3: 'El GPS tardó demasiado. Sal a cielo abierto y vuelve a intentar, o escribe la altitud a mano.',
+};
+
+function posicionActual(opciones) {
+  return new Promise((resolver, rechazar) => {
+    navigator.geolocation.getCurrentPosition(resolver, rechazar, opciones);
+  });
+}
 
 const ETIQUETAS_BOMBA = { positiva: 'Desplazamiento positivo', centrifuga: 'Centrífuga', independiente: 'Motor independiente' };
 const ETIQUETAS_ACCIONAMIENTO = { tdf: 'Toma de fuerza', hidraulico: 'Hidráulico', 'motor-propio': 'Motor propio' };
@@ -156,8 +182,121 @@ export function render(panel, ctx) {
     }
   }
 
+  // ----------------------------------------------------------------
+  // Sitio: la presion atmosferica se DERIVA de la altitud
+  //
+  // Nadie trae un barometro al lote, pero la altitud del rancho se sabe
+  // —y si no, la da el GPS del telefono—, asi que ese es el dato que se
+  // captura. La presion en uso se muestra aqui mismo, con su origen,
+  // porque es la que corrige el rotametro y antes se quedaba en 14.7
+  // sin que nada lo dijera.
+  // ----------------------------------------------------------------
+  const zonaAtmosfera = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.5rem' } });
+
+  function pintarAtmosfera() {
+    const sitio = ctx.estado().parametros.sitio;
+    try {
+      const atmosfera = presionAtmosfericaEfectiva({ sitio });
+      reemplazar(
+        zonaAtmosfera,
+        el(
+          'div',
+          { clase: 'resultado' },
+          el('span', { clase: 'resultado__etiqueta' }, 'Presión atmosférica local en uso'),
+          el('span', { clase: 'resultado__valor', estilo: { fontSize: 'var(--text-lg)' } },
+            `${formatear(atmosfera.valores.presionPsia, 2)} psia`)
+        ),
+        el(
+          'p',
+          { clase: 'ayuda' },
+          atmosfera.valores.anulado
+            ? 'Anulada a mano: los metros de altitud no se están usando. Vacía el campo de la presión para que vuelva a derivarse.'
+            : `Derivada de ${formatear(sitio.altitudM, 0)} m de altitud con la atmósfera estándar internacional.`
+        ),
+        // Los avisos de tipo info ya los dice la línea de arriba con las
+        // palabras de esta pantalla; aquí solo se pinta lo que es error.
+        ...pintarAvisos(atmosfera.avisos.filter((a) => a.tipo !== 'info'))
+      );
+    } catch (error) {
+      reemplazar(zonaAtmosfera, el('p', { clase: 'campo__error' }, String(error.message ?? error)));
+    }
+  }
+
+  function botonAltitudGps(campoAltitud) {
+    const boton = el('button', { type: 'button', clase: 'boton boton--contorno' }, 'Usar la altitud del GPS');
+    boton.addEventListener('click', async () => {
+      if (!navigator.geolocation) {
+        mostrarToast(
+          'Este navegador no comparte la ubicación con la aplicación. Escribe la altitud a mano.',
+          { tipo: 'destructivo', duracionMs: 9000 }
+        );
+        return;
+      }
+      boton.disabled = true;
+      boton.textContent = 'Buscando el GPS…';
+      try {
+        const posicion = await posicionActual({
+          enableHighAccuracy: true,
+          timeout: GPS_ESPERA_MS,
+          maximumAge: 0,
+        });
+        const altitud = posicion.coords.altitude;
+        if (!Number.isFinite(altitud)) {
+          mostrarToast(
+            'Este teléfono dio la posición pero no la altitud: pasa cuando ubica por wifi en vez de por satélite. Sal a cielo abierto y vuelve a intentar, o escríbela a mano.',
+            { tipo: 'destructivo', duracionMs: 11000 }
+          );
+          return;
+        }
+        // La altitud del GPS es sobre el elipsoide WGS84, no sobre el
+        // nivel del mar; en México difieren unos 10-20 m, que en presión
+        // son 0.03 psi. Se acepta y no se corrige por el geoide.
+        const metros = Math.round(altitud);
+        const defAltitud = PARAMETROS.sitio.campos.altitudM;
+        const veredicto = validarValor(defAltitud, metros);
+        if (!veredicto.ok) {
+          mostrarToast(`El GPS dio ${metros} m. ${veredicto.mensaje}`, {
+            tipo: 'destructivo',
+            duracionMs: 9000,
+          });
+          return;
+        }
+        campoAltitud.fijar(metros);
+        campoAltitud.fijarError(null);
+        almacen.actualizar((estado) => {
+          estado.parametros.sitio.altitudM = metros;
+        }, 'borrador');
+        pintarAtmosfera();
+
+        const precision = posicion.coords.altitudeAccuracy;
+        const margen = Number.isFinite(precision) ? ` (± ${Math.round(precision)} m)` : '';
+        // Con la anulación manual puesta, la altitud recién traída no
+        // cambia nada: decirlo aquí evita creer que el botón sirvió.
+        const anulada = ctx.estado().parametros.sitio.presionAtmosfericaLocal !== null;
+        mostrarToast(
+          `Altitud del GPS: ${metros} m${margen}.` +
+            (anulada
+              ? ' Ojo: la presión sigue anulada a mano, así que esta altitud no se está usando.'
+              : ''),
+          { duracionMs: anulada ? 11000 : 6000 }
+        );
+      } catch (error) {
+        mostrarToast(
+          MENSAJES_GPS[error?.code] ??
+            'No se pudo leer la ubicación. Escribe la altitud a mano.',
+          { tipo: 'destructivo', duracionMs: 9000 }
+        );
+      } finally {
+        boton.disabled = false;
+        boton.textContent = 'Usar la altitud del GPS';
+      }
+    });
+    return boton;
+  }
+
   function tarjetaGrupo(nombreGrupo, defGrupo) {
     const campos = [];
+    const controles = {};
     for (const [nombreCampo, defCampo] of Object.entries(defGrupo.campos)) {
       const campo = crearCampoNumerico({
         etiqueta: defCampo.etiqueta,
@@ -171,6 +310,7 @@ export function render(panel, ctx) {
               estado.parametros[nombreGrupo][nombreCampo] = null;
             }, 'borrador');
             pintarDerivados();
+            if (nombreGrupo === 'sitio') pintarAtmosfera();
             return;
           }
           const veredicto = validarValor(defCampo, texto.trim() === '' ? '' : valor);
@@ -183,8 +323,10 @@ export function render(panel, ctx) {
             estado.parametros[nombreGrupo][nombreCampo] = valor;
           }, 'borrador');
           pintarDerivados();
+          if (nombreGrupo === 'sitio') pintarAtmosfera();
         },
       });
+      controles[nombreCampo] = campo;
       campos.push(campo.elemento);
     }
 
@@ -216,7 +358,18 @@ export function render(panel, ctx) {
       mostrarToast(`${defGrupo.etiqueta}: defaults restaurados.`);
     });
 
-    return seccion({ titulo: defGrupo.etiqueta }, ...campos, botonRestaurar);
+    if (nombreGrupo !== 'sitio') {
+      return seccion({ titulo: defGrupo.etiqueta }, ...campos, botonRestaurar);
+    }
+    pintarAtmosfera();
+    return seccion(
+      { titulo: defGrupo.etiqueta },
+      controles.altitudM.elemento,
+      botonAltitudGps(controles.altitudM),
+      zonaAtmosfera,
+      controles.presionAtmosfericaLocal.elemento,
+      botonRestaurar
+    );
   }
 
   // ----------------------------------------------------------------

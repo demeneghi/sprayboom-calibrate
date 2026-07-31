@@ -62,18 +62,37 @@ export const PARAMETROS = {
     },
   },
 
+  // La presion atmosferica del sitio ya NO se captura a mano: se deriva
+  // de la altitud con la atmosfera estandar (domain/atmosphere.js), que
+  // es el dato que quien calibra si conoce —y que el GPS del telefono
+  // puede rellenar. El campo de presion se queda como anulacion manual,
+  // igual que gPorScfManual en los gases: vacio significa derivada.
   sitio: {
     etiqueta: 'Sitio',
     campos: {
+      altitudM: {
+        valor: 0,
+        etiqueta: 'Altitud del sitio',
+        unidad: 'm',
+        magnitud: 'distancia',
+        // Las cotas cubren desde una depresion continental hasta la
+        // agricultura mas alta del mundo, y son las que fijan el rango
+        // util de la anulacion manual de aqui abajo.
+        min: -500,
+        max: 5000,
+        origen:
+          'Metros sobre el nivel del mar del lote. De aquí sale la presión atmosférica que corrige el rotámetro: la presión baja 1 psi cada 574 m, así que un valor aproximado ya es mucho mejor que suponer el nivel del mar. Se puede rellenar con el GPS del teléfono.',
+      },
       presionAtmosfericaLocal: {
-        valor: 14.7,
-        etiqueta: 'Presión atmosférica local',
+        valor: null,
+        etiqueta: 'Presión atmosférica local (anulación manual)',
         unidad: 'psia',
         magnitud: null,
-        min: 8,
+        min: 7.5,
         max: 16,
+        opcional: true,
         origen:
-          'Presión absoluta del sitio. Cerca del nivel del mar coincide con la estándar de calibración del rotámetro; a mayor altitud dejan de coincidir y el despeje de presión debe restar la local.',
+          'Vacío significa derivada de la altitud, que es lo normal. Captúrala solo si tienes una lectura barométrica del día para este lote: entonces gana sobre la derivada. El despeje de presión resta esta atmosférica LOCAL, no la estándar de calibración del rotámetro.',
       },
     },
   },

@@ -4,6 +4,7 @@
 // (#/seccion/tab) porque GitHub Pages no tiene rewrites de servidor.
 
 import { crearAlmacen } from './storage.js';
+import { presionAtmosfericaEfectiva } from './domain/atmosphere.js';
 import { el, limpiar } from './ui/dom.js';
 import { crearTabs } from './ui/tabs.js';
 import { mostrarAvisoPersistente, mostrarToast } from './ui/toast.js';
@@ -135,6 +136,19 @@ export const ctx = {
   gasActivo() {
     const estado = almacen.obtener();
     return estado.gases.find((g) => g.id === estado.gasActivoId) ?? estado.gases[0];
+  },
+  // Presion atmosferica local EFECTIVA del sitio, con su desglose y su
+  // verificacion: derivada de la altitud, salvo que haya una anulacion
+  // manual capturada. Vive aqui —y no repetida en cada pantalla— porque
+  // cuatro pestanas la piden identica y bastaba olvidar una para que esa
+  // siguiera leyendo el campo crudo y calculara con la presion
+  // equivocada.
+  atmosferaSitio() {
+    return presionAtmosfericaEfectiva({ sitio: almacen.obtener().parametros.sitio });
+  },
+  presionAtmosfericaLocal() {
+    return presionAtmosfericaEfectiva({ sitio: almacen.obtener().parametros.sitio }).valores
+      .presionPsia;
   },
   rotametroActivo() {
     const estado = almacen.obtener();

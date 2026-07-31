@@ -126,6 +126,7 @@ export function render(panel, ctx) {
   // Linea de contexto del circuito de gas: que numeros se estan usando.
   function contextoGas(efectivo) {
     const p = ctx.estado().parametros;
+    const atmosfera = ctx.atmosferaSitio();
     return el(
       'p',
       { clase: 'ayuda' },
@@ -133,8 +134,9 @@ export function render(panel, ctx) {
         `${efectivo.valores.anulado ? '(anulación manual)' : '(derivado del peso molecular)'}. ` +
         `Rotámetro ${rotametro.modelo}, escala de ${formatear(rotametro.escalaMin, 1)} a ` +
         `${formatear(rotametro.escalaMax, 1)} SCFM. Presión atmosférica local ` +
-        `${formatear(p.sitio.presionAtmosfericaLocal, 1)} psia; estándar de calibración ` +
-        `${formatear(gas.presionEstandarPsia, 1)} psia.`
+        `${formatear(atmosfera.valores.presionPsia, 1)} psia ` +
+        `${atmosfera.valores.anulado ? '(anulación manual)' : `(derivada de ${formatear(p.sitio.altitudM, 0)} m de altitud)`}; ` +
+        `estándar de calibración ${formatear(gas.presionEstandarPsia, 1)} psia.`
     );
   }
 
@@ -439,7 +441,7 @@ export function render(panel, ctx) {
             hectareasPorTabla: ha,
             tiempoPorTablaS,
             gPorScf,
-            presionAtmosfericaLocal: p.sitio.presionAtmosfericaLocal,
+            presionAtmosfericaLocal: ctx.presionAtmosfericaLocal(),
             presionEstandarCalibracion: gas.presionEstandarPsia,
             modoDespeje,
             scfmDado,
@@ -507,7 +509,7 @@ export function render(panel, ctx) {
               gPorScfAnulado: efectivo.valores.anulado,
               rotametroId: rotametro.id,
               rotametroModelo: rotametro.modelo,
-              presionAtmosfericaLocal: p.sitio.presionAtmosfericaLocal,
+              presionAtmosfericaLocal: ctx.presionAtmosfericaLocal(),
               presionEstandarCalibracion: gas.presionEstandarPsia,
               masaPorTablaG: v.masaPorTablaG,
               volumenAguaPorTablaL: v.volumenAguaPorTablaL,
@@ -620,7 +622,7 @@ export function render(panel, ctx) {
             tiempoPorTablaS: tiempoS,
             hectareasPorTabla: ha,
             gPorScf: efectivo.valores.gPorScf,
-            presionAtmosfericaLocal: p.sitio.presionAtmosfericaLocal,
+            presionAtmosfericaLocal: ctx.presionAtmosfericaLocal(),
             presionEstandarCalibracion: gas.presionEstandarPsia,
             volumenAguaLha,
             dosisObjetivoGha,
@@ -694,7 +696,7 @@ export function render(panel, ctx) {
               gPorScfAnulado: efectivo.valores.anulado,
               rotametroId: rotametro.id,
               rotametroModelo: rotametro.modelo,
-              presionAtmosfericaLocal: p.sitio.presionAtmosfericaLocal,
+              presionAtmosfericaLocal: ctx.presionAtmosfericaLocal(),
               presionEstandarCalibracion: gas.presionEstandarPsia,
               masaPorTablaG: v.masaPorTablaG,
               dosisGha: v.dosisGha,
