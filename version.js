@@ -7,4 +7,4 @@
 //
 // Script clasico a proposito (sin export): lo consume sw.js via
 // importScripts.
-self.SPRAYBOOM_VERSION = '2026-07-31.8';
+self.SPRAYBOOM_VERSION = '2026-07-31.9';

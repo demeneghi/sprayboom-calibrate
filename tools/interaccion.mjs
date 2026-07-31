@@ -185,6 +185,27 @@ if (registrado === 'listo') {
   await contexto.setOffline(false);
 }
 
+// ---------- Actualizar la aplicacion a mano ----------
+// Es la unica salida de un iPhone instalado en pantalla de inicio: sin
+// barra de direcciones no hay recargar ni borrar cache.
+await pagina.goto(`${base}#/sistema/configuracion`, { waitUntil: 'networkidle' });
+await pagina.waitForTimeout(400);
+texto = await pagina.locator('#panel').innerText();
+verificar(/Versión instalada/.test(texto), 'Actualizar: la versión instalada se muestra');
+const botonBuscar = pagina.getByRole('button', { name: 'Buscar actualización' });
+verificar((await botonBuscar.count()) === 1, 'Actualizar: el botón de buscar actualización existe');
+await botonBuscar.click();
+await pagina.waitForTimeout(2500);
+texto = await pagina.locator('#panel').innerText();
+verificar(
+  /última versión publicada/i.test(texto),
+  'Actualizar: sin versión nueva en el servidor, informa que ya está al día'
+);
+verificar(
+  (await pagina.getByRole('button', { name: 'Reinstalar desde cero' }).count()) === 1,
+  'Actualizar: el botón de reinstalar desde cero existe'
+);
+
 await contexto.close();
 await navegador.close();
 servidor.close();
