@@ -11,7 +11,7 @@ import { el, reemplazar } from '../dom.js';
 import { tarjeta, pintarAvisos, pintarDesglose, pintarResultado } from '../render.js';
 import { crearCampoNumerico } from '../campos.js';
 import { crearCronometro } from '../cronometro.js';
-import { formatear, formatearTiempo, formatearPorcentaje } from '../formato.js';
+import { formatear, formatearTiempo, formatearPorcentaje, formatearFecha } from '../formato.js';
 import { confirmar } from '../dialog.js';
 import { mostrarToast } from '../toast.js';
 import { aSistema, unidad } from '../../domain/units.js';
@@ -44,16 +44,6 @@ const MARCA_ORIGEN = {
   capturado: ' (manual)',
   calibrado: ' (medida)',
 };
-
-const FORMATO_FECHA = new Intl.DateTimeFormat('es-MX', {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-});
-
-function formatearFecha(iso) {
-  const fecha = new Date(iso ?? NaN);
-  return Number.isNaN(fecha.getTime()) ? null : FORMATO_FECHA.format(fecha);
-}
 
 export function render(panel, ctx) {
   const borrador = ctx.borrador(id);
@@ -153,7 +143,7 @@ export function render(panel, ctx) {
       return;
     }
     const valor = `${formatear(aSistema('velocidad', fila.kmhNominal, sistema), 2)} ${unidadVelocidad}`;
-    const fecha = formatearFecha(fila.fecha);
+    const fecha = formatearFecha(fila.fecha, { vacio: null });
     if (fila.origen === 'calibrado') {
       reemplazar(
         zonaEstadoMarcha,
