@@ -76,22 +76,9 @@ export function render(panel, ctx) {
     return redondeoLegible(aSistema(magnitud, valorMetrico, sistema));
   }
 
-  function parametrosGeometria() {
-    const p = ctx.estado().parametros;
-    return {
-      largoTabla: p.geometria.largoTabla,
-      anchoBarra: p.geometria.anchoBarra,
-      numBoquillas: p.geometria.numBoquillas,
-      distanciaReferencia: p.geometria.distanciaReferencia,
-      espaciamientoCapturado: p.geometria.espaciamientoCapturado,
-      espaciamientoMinimoPlausible: p.umbrales.espaciamientoMinimoPlausible,
-      umbralDiscrepanciaPct: p.umbrales.umbralDiscrepanciaMetodos,
-    };
-  }
-
   function espaciamientoDeConfiguracion() {
     try {
-      return geometria(parametrosGeometria()).valores.espaciamientoEfectivo;
+      return geometria(ctx.parametrosGeometria()).valores.espaciamientoEfectivo;
     } catch {
       return null;
     }
@@ -164,7 +151,7 @@ export function render(panel, ctx) {
         el(
           'p',
           { clase: 'texto-suave' },
-          'Sin boquilla elegida. Búscala en el catálogo o asígnala al equipo en Sistema, Configuración.'
+          'Sin boquilla elegida. Búscala en el catálogo o asígnala a la barra en Sistema, Configuración.'
         )
       );
       return;
@@ -180,7 +167,7 @@ export function render(panel, ctx) {
           : el('span', { clase: 'badge badge--contorno' }, b.tamanoIso ? `ISO ${b.tamanoIso}` : 'sin código ISO'),
         el('span', {}, `${b.fabricante} ${b.modelo}`),
         b.id === equipo?.boquillaId
-          ? el('span', { clase: 'badge badge--secundario' }, 'instalada en el equipo')
+          ? el('span', { clase: 'badge badge--secundario' }, 'instalada en la barra')
           : null
       ),
       el(
@@ -215,12 +202,11 @@ export function render(panel, ctx) {
     alCambiar: () => recalcular(),
   });
 
-  const parametrosVigentes = ctx.estado().parametros;
   const campoAncho = crearCampoNumerico({
     etiqueta: 'Ancho de la barra',
     unidad: unidadDistancia,
-    valorInicial: precarga('distancia', borrador.anchoBarraM ?? parametrosVigentes.geometria.anchoBarra),
-    ayuda: 'Precargado de la configuración; ajústalo aquí como captura de trabajo sin tocar la configuración.',
+    valorInicial: precarga('distancia', borrador.anchoBarraM ?? equipo?.anchoBarra),
+    ayuda: `Precargado de la barra «${equipo?.nombre ?? 'sin barra'}»; ajústalo aquí como captura de trabajo sin tocar la configuración.`,
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { anchoBarraM: deSistema('distancia', valor, sistema) });
       recalcular();
@@ -229,8 +215,8 @@ export function render(panel, ctx) {
   const campoNumBoquillas = crearCampoNumerico({
     etiqueta: 'Número de boquillas',
     unidad: '',
-    valorInicial: borrador.numBoquillas ?? parametrosVigentes.geometria.numBoquillas,
-    ayuda: 'Precargado de la configuración; cuéntalas en la barra antes de confiar en el número.',
+    valorInicial: borrador.numBoquillas ?? equipo?.numBoquillas,
+    ayuda: 'Precargado de la barra activa; cuéntalas en la barra antes de confiar en el número.',
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { numBoquillas: valor });
       recalcular();
@@ -404,7 +390,7 @@ export function render(panel, ctx) {
         // detecta captura en centimetros y discrepancia contra el
         // derivado del ancho entre el numero de boquillas configurados.
         try {
-          const g = geometria({ ...parametrosGeometria(), espaciamientoCapturado: espaciamientoM });
+          const g = geometria({ ...ctx.parametrosGeometria(), espaciamientoCapturado: espaciamientoM });
           nodos.push(...pintarAvisos(g.avisos));
         } catch {
           // La geometria configurada no bloquea el calculo central: los
@@ -734,7 +720,7 @@ export function render(panel, ctx) {
     const nodos = [];
     try {
       if (!equipo) {
-        nodos.push(el('p', { clase: 'texto-suave' }, 'Sin equipo de aplicación configurado.'));
+        nodos.push(el('p', { clase: 'texto-suave' }, 'Sin barra de aplicación configurada.'));
       } else {
         if (equipo.rpmCalibracion === null || equipo.rpmCalibracion === undefined) {
           nodos.push(
@@ -771,7 +757,7 @@ export function render(panel, ctx) {
                 el(
                   'p',
                   { clase: 'ayuda' },
-                  'El equipo no tiene presión de calibración registrada: se usa la presión capturada arriba como referencia.'
+                  'La barra no tiene presión de calibración registrada: se usa la presión capturada arriba como referencia.'
                 )
               );
             }

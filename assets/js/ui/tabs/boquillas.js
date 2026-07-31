@@ -60,19 +60,6 @@ export function render(panel, ctx) {
   const unidadCaudal = unidad('caudal', sistema);
   const decimalesPresion = sistema === 'imperial' ? 1 : 2;
 
-  function parametrosGeometria() {
-    const p = ctx.estado().parametros;
-    return {
-      largoTabla: p.geometria.largoTabla,
-      anchoBarra: p.geometria.anchoBarra,
-      numBoquillas: p.geometria.numBoquillas,
-      distanciaReferencia: p.geometria.distanciaReferencia,
-      espaciamientoCapturado: p.geometria.espaciamientoCapturado,
-      espaciamientoMinimoPlausible: p.umbrales.espaciamientoMinimoPlausible,
-      umbralDiscrepanciaPct: p.umbrales.umbralDiscrepanciaMetodos,
-    };
-  }
-
   // El borrador guarda SIEMPRE en base metrica; al pintar se convierte
   // al sistema activo (toPrecision evita colas de punto flotante en el
   // input tras una ida y vuelta metrico-imperial).
@@ -89,7 +76,7 @@ export function render(panel, ctx) {
   function espaciamientoPrecargaM() {
     if (Number.isFinite(borrador.espaciamientoM)) return borrador.espaciamientoM;
     try {
-      return geometria(parametrosGeometria()).valores.espaciamientoEfectivo;
+      return geometria(ctx.parametrosGeometria()).valores.espaciamientoEfectivo;
     } catch {
       return null;
     }
@@ -332,7 +319,7 @@ export function render(panel, ctx) {
         // detecta captura en centimetros y discrepancia contra el
         // derivado del ancho entre el numero de boquillas.
         try {
-          const g = geometria({ ...parametrosGeometria(), espaciamientoCapturado: espaciamientoM });
+          const g = geometria({ ...ctx.parametrosGeometria(), espaciamientoCapturado: espaciamientoM });
           nodosResultado.push(...pintarAvisos(g.avisos));
         } catch {
           // La geometria configurada no bloquea la seleccion: el despeje

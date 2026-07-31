@@ -153,15 +153,7 @@ export function render(panel, ctx) {
   }
 
   function geometriaVigente() {
-    return geometria({
-      largoTabla: p.geometria.largoTabla,
-      anchoBarra: p.geometria.anchoBarra,
-      numBoquillas: p.geometria.numBoquillas,
-      distanciaReferencia: p.geometria.distanciaReferencia,
-      espaciamientoCapturado: p.geometria.espaciamientoCapturado,
-      espaciamientoMinimoPlausible: p.umbrales.espaciamientoMinimoPlausible,
-      umbralDiscrepanciaPct: p.umbrales.umbralDiscrepanciaMetodos,
-    });
+    return geometria(ctx.parametrosGeometria());
   }
 
   function boquillaInstalada() {
@@ -246,7 +238,7 @@ export function render(panel, ctx) {
         caudalLmin,
         resultado: null,
         origen:
-          `caudal de la ${instalada.fabricante} ${instalada.modelo} instalada en el equipo, a ` +
+          `caudal de la ${instalada.fabricante} ${instalada.modelo} instalada en la barra, a ` +
           `${formatear(aSistema('presion', presionBar, sistema), 2)} ${unidadPresion} ` +
           (equipo.presionCalibracion !== null && equipo.presionCalibracion !== undefined
             ? '(presión de la última calibración)'
@@ -266,7 +258,7 @@ export function render(panel, ctx) {
       origen:
         `caudal requerido para el ${etiquetaObjetivo} de ` +
         `${formatear(aSistema('volumenAplicacion', objetivo, sistema), 0)} ${unidadVolumen} ` +
-        '(el equipo activo no tiene boquilla asignada)',
+        '(la barra activa no tiene boquilla asignada)',
     };
   }
 
@@ -346,7 +338,7 @@ export function render(panel, ctx) {
             el(
               'p',
               { clase: 'texto-suave' },
-              'No hay caudal para el ejemplo: asigna una boquilla al equipo o captura un volumen de agua objetivo en Sistema, Configuración.'
+              'No hay caudal para el ejemplo: asigna una boquilla a la barra o captura un volumen de agua objetivo en Sistema, Configuración.'
             )
           );
         } else {
@@ -390,10 +382,10 @@ export function render(panel, ctx) {
           if (caudalConfiable) {
             const ambos = ambosMetodos({
               caudalBoquillaLmin: ce.caudalLmin,
-              numBoquillas: p.geometria.numBoquillas,
+              numBoquillas: equipo?.numBoquillas,
               velocidadKmh: ve.velocidadKmh,
               espaciamientoM,
-              anchoBarraM: p.geometria.anchoBarra,
+              anchoBarraM: equipo?.anchoBarra,
               umbralDiscrepanciaPct: p.umbrales.umbralDiscrepanciaMetodos,
             });
             cuerpo.push(...pintarAvisos(ambos.avisos));

@@ -17,8 +17,13 @@
 // null), min, max, entero?, opcional?, origen, verificado? }
 // ---------------------------------------------------------------------
 export const PARAMETROS = {
+  // Geometria de la TABLA (el terreno), no de la barra: el ancho, el
+  // numero de boquillas y el espaciamiento viven en cada barra
+  // (COTAS_BARRA), porque dos barras distintas tienen anchos distintos y
+  // con estos tres campos globales la segunda barra calculaba con los
+  // numeros de la primera.
   geometria: {
-    etiqueta: 'Geometría de tabla y barra',
+    etiqueta: 'Geometría de la tabla',
     campos: {
       largoTabla: {
         valor: 646,
@@ -29,27 +34,6 @@ export const PARAMETROS = {
         max: 5000,
         origen: 'Valor de siembra del rancho; metros lineales de una tabla.',
       },
-      anchoBarra: {
-        valor: 15.47,
-        etiqueta: 'Ancho de barra de aplicación',
-        unidad: 'm',
-        magnitud: 'distancia',
-        min: 0.5,
-        max: 100,
-        origen: 'Ancho efectivo de la barra de aspersión.',
-      },
-      numBoquillas: {
-        valor: 24,
-        etiqueta: 'Número de boquillas instaladas',
-        unidad: '',
-        magnitud: null,
-        min: 1,
-        max: 200,
-        entero: true,
-        verificado: 'estimacion',
-        origen:
-          'Estimacion de siembra; confirmar contando las boquillas de la barra antes de darlo por bueno.',
-      },
       distanciaReferencia: {
         valor: 100,
         etiqueta: 'Distancia de referencia del reporte',
@@ -58,17 +42,6 @@ export const PARAMETROS = {
         min: 1,
         max: 1000,
         origen: 'Tramo sobre el que el personal reporta segundos en campo.',
-      },
-      espaciamientoCapturado: {
-        valor: null,
-        etiqueta: 'Espaciamiento entre boquillas (capturado)',
-        unidad: 'm',
-        magnitud: 'distanciaCorta',
-        min: 0.01,
-        max: 10,
-        opcional: true,
-        origen:
-          'Captura directa para barras con boquillas no uniformes. Si difiere del derivado (ancho entre número de boquillas), la aplicación lo advierte en vez de elegir uno en silencio.',
       },
     },
   },
@@ -271,7 +244,39 @@ export const COTAS_VELOCIDAD_MARCHA = {
   kmhNominal: { min: 0.1, max: 60, unidad: 'km/h', etiqueta: 'Velocidad nominal de la marcha' },
 };
 
+// Geometria PROPIA de cada barra de aplicacion. Va aparte de
+// COTAS_EQUIPO —aunque COTAS_EQUIPO la incluya— para que la pantalla de
+// Configuración pinte estos tres campos juntos, arriba y con sus valores
+// derivados, en vez de perderlos entre los datos de la bomba.
+export const COTAS_BARRA = {
+  anchoBarra: {
+    min: 0.5,
+    max: 100,
+    unidad: 'm',
+    etiqueta: 'Ancho de barra de aplicación',
+    ayuda: 'Ancho efectivo de esta barra de aspersión. Cada barra tiene el suyo: es lo que divide al volumen por hectárea.',
+  },
+  numBoquillas: {
+    min: 1,
+    max: 200,
+    unidad: '',
+    entero: true,
+    etiqueta: 'Número de boquillas instaladas',
+    ayuda: 'Cuéntalas en la barra antes de darlo por bueno; el valor de siembra es una estimación.',
+  },
+  espaciamientoCapturado: {
+    min: 0.01,
+    max: 10,
+    unidad: 'm',
+    opcional: true,
+    etiqueta: 'Espaciamiento entre boquillas (capturado)',
+    ayuda:
+      'Opcional: vacío significa derivado del ancho entre el número de boquillas. Captúralo solo si las boquillas de esta barra no están repartidas por igual. Si difiere del derivado, la aplicación lo advierte en vez de elegir uno en silencio.',
+  },
+};
+
 export const COTAS_EQUIPO = {
+  ...COTAS_BARRA,
   tdfNominal: { min: 300, max: 1200, unidad: 'rpm', etiqueta: 'Régimen de TDF nominal' },
   rpmMotorTdfNominal: {
     min: 500,
@@ -446,7 +451,12 @@ export const TRACTORES_SIEMBRA = [
 ];
 
 // ---------------------------------------------------------------------
-// Equipos de aplicacion de siembra
+// Barras de aplicacion de siembra
+//
+// En el codigo la coleccion se sigue llamando `equipos` (es la clave del
+// estado guardado y de los archivos exportados; renombrarla romperia los
+// respaldos de los telefonos). En pantalla se llama BARRA, que es la
+// palabra que usa quien calibra.
 // ---------------------------------------------------------------------
 export const TIPOS_BOMBA = ['positiva', 'centrifuga', 'independiente'];
 export const ACCIONAMIENTOS = ['tdf', 'hidraulico', 'motor-propio'];
@@ -455,6 +465,10 @@ export const EQUIPOS_SIEMBRA = [
   {
     id: 'barra-principal',
     nombre: 'Barra de aspersión principal',
+    anchoBarra: 15.47,
+    numBoquillas: 24,
+    numBoquillasVerificado: 'estimacion', // contarlas en la barra antes de confiar
+    espaciamientoCapturado: null, // vacio: se deriva del ancho entre boquillas
     tipoBomba: 'positiva',
     accionamiento: 'tdf',
     tdfNominal: 540,

@@ -112,6 +112,26 @@ export const ctx = {
     const estado = almacen.obtener();
     return estado.equipos.find((e) => e.id === estado.equipoActivoId) ?? estado.equipos[0];
   },
+  // Argumentos de domain/speed.js::geometria, armados de DOS fuentes: la
+  // tabla (largo y distancia de referencia, parametros del rancho) y la
+  // BARRA activa (ancho, boquillas y espaciamiento, propios de cada
+  // barra). Vive aqui y no repetido en cada pestana porque siete
+  // pantallas lo pedian identico y bastaba olvidar una para que esa
+  // calculara con la barra equivocada.
+  parametrosGeometria() {
+    const estado = almacen.obtener();
+    const p = estado.parametros;
+    const barra = estado.equipos.find((e) => e.id === estado.equipoActivoId) ?? estado.equipos[0];
+    return {
+      largoTabla: p.geometria.largoTabla,
+      distanciaReferencia: p.geometria.distanciaReferencia,
+      anchoBarra: barra?.anchoBarra ?? null,
+      numBoquillas: barra?.numBoquillas ?? null,
+      espaciamientoCapturado: barra?.espaciamientoCapturado ?? null,
+      espaciamientoMinimoPlausible: p.umbrales.espaciamientoMinimoPlausible,
+      umbralDiscrepanciaPct: p.umbrales.umbralDiscrepanciaMetodos,
+    };
+  },
   gasActivo() {
     const estado = almacen.obtener();
     return estado.gases.find((g) => g.id === estado.gasActivoId) ?? estado.gases[0];
@@ -147,10 +167,14 @@ aplicarTema();
 
 // ---------------------------------------------------------------------
 // Encabezado: selectores siempre visibles; cambiar recalcula en vivo
+//
+// Solo van aqui los dos que cambian VARIAS veces en una jornada: el
+// tractor y la barra. El sistema de unidades se elige una vez y vive en
+// Configuración; en el encabezado solo robaba ancho a los dos selectores
+// que si se usan.
 // ---------------------------------------------------------------------
 const selectTractor = document.getElementById('selector-tractor');
 const selectEquipo = document.getElementById('selector-equipo');
-const selectUnidades = document.getElementById('selector-unidades');
 
 function llenarSelectoresEncabezado() {
   const estado = almacen.obtener();
@@ -165,8 +189,6 @@ function llenarSelectoresEncabezado() {
     selectEquipo.append(el('option', { value: equipo.id }, equipo.nombre));
   }
   selectEquipo.value = estado.equipoActivoId;
-
-  selectUnidades.value = estado.preferencias.unidades;
 }
 
 selectTractor.addEventListener('change', () => {
@@ -177,11 +199,6 @@ selectTractor.addEventListener('change', () => {
 selectEquipo.addEventListener('change', () => {
   almacen.actualizar((estado) => {
     estado.equipoActivoId = selectEquipo.value;
-  }, 'contexto');
-});
-selectUnidades.addEventListener('change', () => {
-  almacen.actualizar((estado) => {
-    estado.preferencias.unidades = selectUnidades.value;
   }, 'contexto');
 });
 
@@ -321,7 +338,7 @@ async function aplicarEstadoCompartido(consulta) {
   const ok = await confirmar({
     titulo: 'Cargar calibración compartida',
     descripcion:
-      'Este enlace trae los valores capturados de una pantalla y su contexto (tractor, equipo y unidades). Se cargan en la pantalla correspondiente; tu configuración guardada no se toca.',
+      'Este enlace trae los valores capturados de una pantalla y su contexto (tractor, barra y unidades). Se cargan en la pantalla correspondiente; tu configuración guardada no se toca.',
     confirmarTexto: 'Cargar',
   });
   if (ok) {

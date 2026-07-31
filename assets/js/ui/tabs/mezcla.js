@@ -76,8 +76,8 @@ export function render(panel, ctx) {
     unidad: unidadVolumen,
     valorInicial: precarga('volumen', borrador.volumenTanqueL ?? equipo?.volumenTanque ?? null),
     ayuda: equipo
-      ? `Precargado del tanque del equipo activo (${equipo.nombre}); ajústalo si hoy cargas distinto.`
-      : 'Sin equipo de aplicación configurado: captura el volumen del tanque a mano.',
+      ? `Precargado del tanque de la barra activa (${equipo.nombre}); ajústalo si hoy cargas distinto.`
+      : 'Sin barra de aplicación configurada: captura el volumen del tanque a mano.',
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { volumenTanqueL: deSistema('volumen', valor, sistema) });
       recalcular();

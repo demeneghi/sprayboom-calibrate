@@ -1,6 +1,7 @@
 // Pestana Configuracion: formularios por grupo de parametros con
 // validacion contra cotas, unidad rotulada y origen del default como
-// ayuda contextual; alta y edicion de tractores, equipos, gases y
+// ayuda contextual; alta y edicion de tractores, barras de aplicacion
+// (con su geometria propia), gases y
 // rotametros; tabla editable de velocidades por marcha con bandera de
 // origen; factores de desviacion medidos; editor del catalogo de
 // boquillas; restaurar defaults por grupo con dialogo que enumera los
@@ -24,6 +25,7 @@ import {
   COTAS_BOQUILLA,
   BOQUILLA_NUEVA,
   COTAS_VELOCIDAD_MARCHA,
+  COTAS_BARRA,
   COTAS_EQUIPO,
   COTAS_GAS,
   COTAS_ROTAMETRO,
@@ -111,7 +113,7 @@ export function render(panel, ctx) {
       { valor: 'imperial', texto: 'Imperial (GPA, mph, psi)' },
     ],
     valorInicial: estado0.preferencias.unidades,
-    ayuda: 'El cálculo interno siempre es métrico; la conversión ocurre solo al mostrar y capturar.',
+    ayuda: 'Se elige aquí y aplica a toda la aplicación. El cálculo interno siempre es métrico; la conversión ocurre solo al mostrar y capturar.',
     alCambiar: (valor) =>
       almacen.actualizar((estado) => {
         estado.preferencias.unidades = valor;
@@ -125,17 +127,8 @@ export function render(panel, ctx) {
   const zonaAvisosGeometria = el('div', {});
 
   function pintarDerivados() {
-    const p = ctx.estado().parametros;
     try {
-      const g = geometria({
-        largoTabla: p.geometria.largoTabla,
-        anchoBarra: p.geometria.anchoBarra,
-        numBoquillas: p.geometria.numBoquillas,
-        distanciaReferencia: p.geometria.distanciaReferencia,
-        espaciamientoCapturado: p.geometria.espaciamientoCapturado,
-        espaciamientoMinimoPlausible: p.umbrales.espaciamientoMinimoPlausible,
-        umbralDiscrepanciaPct: p.umbrales.umbralDiscrepanciaMetodos,
-      });
+      const g = geometria(ctx.parametrosGeometria());
       const sistema = ctx.sistema();
       const fila = (etiqueta, valor, unidadTexto, decimales) =>
         el(
@@ -219,11 +212,7 @@ export function render(panel, ctx) {
       mostrarToast(`${defGrupo.etiqueta}: defaults restaurados.`);
     });
 
-    const extras = [];
-    if (nombreGrupo === 'geometria') {
-      extras.push(el('h3', { clase: 'etiqueta' }, 'Valores derivados (solo lectura)'), zonaDerivados, zonaAvisosGeometria);
-    }
-    return seccion({ titulo: defGrupo.etiqueta }, ...campos, ...extras, botonRestaurar);
+    return seccion({ titulo: defGrupo.etiqueta }, ...campos, botonRestaurar);
   }
 
   // ----------------------------------------------------------------
@@ -441,7 +430,12 @@ export function render(panel, ctx) {
   }
 
   // ----------------------------------------------------------------
-  // Equipos de aplicacion
+  // Barras de aplicacion
+  //
+  // En el codigo la coleccion se llama `equipos` (clave del estado
+  // guardado y de los respaldos exportados); en pantalla es BARRA, que es
+  // la palabra que usa quien calibra y la que dice el selector del
+  // encabezado.
   // ----------------------------------------------------------------
   const zonaEquipo = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } });
 
@@ -451,9 +445,10 @@ export function render(panel, ctx) {
     const nodos = [];
 
     const selector = crearCampoSelect({
-      etiqueta: 'Equipo a editar',
+      etiqueta: 'Barra a editar',
       opciones: estado.equipos.map((e) => ({ valor: e.id, texto: e.nombre })),
       valorInicial: equipo.id,
+      ayuda: 'Es la misma barra que elige el selector del encabezado: lo que edites aquí es lo que calculan todas las pantallas.',
       alCambiar: (valor) =>
         almacen.actualizar((e) => {
           e.equipoActivoId = valor;
@@ -470,6 +465,48 @@ export function render(panel, ctx) {
       }, 'contexto');
     });
     nodos.push(el('div', { clase: 'campo' }, el('label', { clase: 'etiqueta', for: 'equipo-nombre' }, 'Nombre'), campoNombre));
+
+    // Un campo numerico de la barra. Los de geometria van primero y
+    // aparte: son los que cambian el volumen por hectarea.
+    function campoDeBarra(campo, cota) {
+      const entrada = crearCampoNumerico({
+        etiqueta: cota.etiqueta,
+        unidad: cota.unidad,
+        ayuda:
+          cota.ayuda ??
+          `Cotas: ${cota.min} a ${cota.max} ${cota.unidad}.${cota.opcional ? ' Opcional: vacio significa por capturar.' : ''}`,
+        valorInicial: equipo[campo],
+        alCambiar: (valor, texto) => {
+          if (texto.trim() === '' && cota.opcional) {
+            entrada.fijarError(null);
+            almacen.actualizar((e) => {
+              e.equipos.find((x) => x.id === equipo.id)[campo] = null;
+            }, 'borrador');
+            pintarDerivados();
+            return;
+          }
+          const veredicto = validarValor(cota, valor);
+          if (!veredicto.ok) {
+            entrada.fijarError(veredicto.mensaje);
+            return;
+          }
+          entrada.fijarError(null);
+          almacen.actualizar((e) => {
+            e.equipos.find((x) => x.id === equipo.id)[campo] = valor;
+          }, 'borrador');
+          pintarDerivados();
+        },
+      });
+      return entrada.elemento;
+    }
+
+    nodos.push(
+      el('h3', { clase: 'etiqueta' }, 'Geometría de esta barra'),
+      ...Object.entries(COTAS_BARRA).map(([campo, cota]) => campoDeBarra(campo, cota)),
+      el('h3', { clase: 'etiqueta' }, 'Valores derivados (solo lectura)'),
+      zonaDerivados,
+      zonaAvisosGeometria
+    );
 
     nodos.push(
       crearCampoSelect({
@@ -502,31 +539,8 @@ export function render(panel, ctx) {
     );
 
     for (const [campo, cota] of Object.entries(COTAS_EQUIPO)) {
-      const entrada = crearCampoNumerico({
-        etiqueta: cota.etiqueta,
-        unidad: cota.unidad,
-        valorInicial: equipo[campo],
-        ayuda: `Cotas: ${cota.min} a ${cota.max} ${cota.unidad}.${cota.opcional ? ' Opcional: vacio significa por capturar.' : ''}`,
-        alCambiar: (valor, texto) => {
-          if (texto.trim() === '' && cota.opcional) {
-            entrada.fijarError(null);
-            almacen.actualizar((e) => {
-              e.equipos.find((x) => x.id === equipo.id)[campo] = null;
-            }, 'borrador');
-            return;
-          }
-          const veredicto = validarValor(cota, valor);
-          if (!veredicto.ok) {
-            entrada.fijarError(veredicto.mensaje);
-            return;
-          }
-          entrada.fijarError(null);
-          almacen.actualizar((e) => {
-            e.equipos.find((x) => x.id === equipo.id)[campo] = valor;
-          }, 'borrador');
-        },
-      });
-      nodos.push(entrada.elemento);
+      if (campo in COTAS_BARRA) continue; // ya pintados arriba, con los derivados
+      nodos.push(campoDeBarra(campo, cota));
     }
 
     // Boquilla instalada
@@ -538,7 +552,7 @@ export function render(panel, ctx) {
         etiqueta: 'Boquilla instalada',
         opciones: opcionesBoquilla,
         valorInicial: equipo.boquillaId ?? '',
-        ayuda: 'La pestaña de gasto de agua la precarga como boquilla del equipo.',
+        ayuda: 'La pestaña de gasto de agua la precarga como boquilla de esta barra.',
         alCambiar: (valor) =>
           almacen.actualizar((e) => {
             e.equipos.find((x) => x.id === equipo.id).boquillaId = valor || null;
@@ -546,21 +560,22 @@ export function render(panel, ctx) {
       }).elemento
     );
 
-    const botonAlta = el('button', { clase: 'boton boton--contorno boton--sm' }, 'Agregar equipo');
+    const botonAlta = el('button', { clase: 'boton boton--contorno boton--sm' }, 'Agregar barra');
     botonAlta.addEventListener('click', () => {
       const nuevoId = generarId('equipo');
       almacen.actualizar((e) => {
         const plantilla = JSON.parse(JSON.stringify(EQUIPOS_SIEMBRA[0]));
         plantilla.id = nuevoId;
-        plantilla.nombre = 'Equipo nuevo';
+        plantilla.nombre = 'Barra nueva';
         e.equipos.push(plantilla);
         e.equipoActivoId = nuevoId;
       }, 'contexto');
+      mostrarToast('Barra agregada: ajusta su ancho y su número de boquillas.');
     });
-    const botonBaja = el('button', { clase: 'boton boton--destructivo boton--sm' }, 'Eliminar este equipo');
+    const botonBaja = el('button', { clase: 'boton boton--destructivo boton--sm' }, 'Eliminar esta barra');
     botonBaja.addEventListener('click', async () => {
       if (ctx.estado().equipos.length <= 1) {
-        mostrarToast('Debe quedar al menos un equipo.', { tipo: 'destructivo' });
+        mostrarToast('Debe quedar al menos una barra.', { tipo: 'destructivo' });
         return;
       }
       const ok = await confirmar({
@@ -1090,7 +1105,7 @@ export function render(panel, ctx) {
   botonRestaurarTodo.addEventListener('click', async () => {
     const ok = await confirmar({
       titulo: 'Restaurar toda la aplicación',
-      descripcion: 'Parámetros, tractores, equipos, gases, rotámetros y catálogo vuelven a la siembra. La bitácora y las pruebas de captura NO se tocan. Exporta antes si tienes dudas.',
+      descripcion: 'Parámetros, tractores, barras, gases, rotámetros y catálogo vuelven a la siembra. La bitácora y las pruebas de captura NO se tocan. Exporta antes si tienes dudas.',
       confirmarTexto: 'Restaurar todo',
       destructivo: true,
     });
@@ -1220,7 +1235,14 @@ export function render(panel, ctx) {
       { titulo: 'Tractores', descripcion: 'La cuadricula de marchas y la tabla de velocidades se generan desde el número de rangos y marchas: otra transmision funciona sin cambios de código.' },
       zonaTractor
     ),
-    seccion({ titulo: 'Equipos de aplicación' }, zonaEquipo),
+    seccion(
+      {
+        titulo: 'Barras de aplicación',
+        descripcion:
+          'Cada barra guarda su ancho, su número de boquillas y su espaciamiento: dos barras distintas ya no comparten geometría. La que elijas aquí es la que calcula toda la aplicación, y es la misma del selector del encabezado.',
+      },
+      zonaEquipo
+    ),
     seccion({ titulo: 'Gases' }, zonaGas),
     seccion({ titulo: 'Rotametros' }, zonaRotametro),
     seccion({ titulo: 'Factores de desviación medidos' }, zonaFactores),
@@ -1228,10 +1250,12 @@ export function render(panel, ctx) {
     seccion({ titulo: 'Zona de riesgo' }, botonRestaurarTodo)
   );
 
-  pintarDerivados();
   pintarReporteImportacion();
   pintarEditorTractor();
+  // El editor de la barra ADOPTA zonaDerivados; pintar los derivados
+  // antes lo dejaria escribiendo en un nodo que aun no esta montado.
   pintarEditorEquipo();
+  pintarDerivados();
   pintarEditorGas();
   pintarEditorRotametro();
   pintarFactores();
