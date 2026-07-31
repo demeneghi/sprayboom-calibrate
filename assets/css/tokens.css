@@ -1,0 +1,128 @@
+/* Tokens de diseno: reproduccion del lenguaje visual de shadcn/ui en
+   CSS nativo, sin instalar nada.
+
+   Formato: tres numeros HSL sin la funcion hsl(), como exige el
+   documento de diseno, para poder componer opacidades:
+     background-color: hsl(var(--card));
+     border-color: hsl(var(--border) / 0.5);
+
+   Nota de verificacion (2026-07-30): la documentacion vigente de
+   ui.shadcn.com ya usa OKLCH y elimino --destructive-foreground. Aqui
+   se conserva a proposito el formato HSL de tres numeros y el juego de
+   tokens del documento de diseno (tema zinc), porque la composicion de
+   opacidades con hsl(var(--x) / a) es requisito explicito del proyecto.
+
+   Temas: claro en :root, oscuro en [data-theme="oscuro"], y automatico
+   siguiendo prefers-color-scheme cuando [data-theme="auto"]. El default
+   de la aplicacion es OSCURO (main.js lo estampa en <html> antes del
+   primer pintado); estos bloques solo definen los valores. */
+
+:root {
+  /* Tema claro (zinc) */
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;
+  /* Ajuste AA: el zinc de fabrica trae 46.1%, que da 4.40:1 sobre
+     --muted (texto de tab inactivo); 42% da 5.1:1. */
+  --muted-foreground: 240 3.8% 42%;
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+  /* Ajuste AA: el zinc de fabrica trae 0 84.2% 60.2%, que con texto
+     blanco da 3.76:1; 45% de luminosidad da 5.8:1. */
+  --destructive: 0 72% 45%;
+  --destructive-foreground: 0 0% 98%;
+  /* Texto destructivo SOBRE el fondo del tema (mensajes de error):
+     en claro el mismo rojo; en oscuro uno mas claro y legible. */
+  --destructive-texto: 0 72% 45%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --ring: 240 10% 3.9%;
+
+  --radius: 0.5rem;
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  /* Advertencias (propio de la aplicacion: distinguir advertencia de
+     error destructivo importa en una herramienta de calibracion) */
+  --warning: 38 92% 30%;
+  --warning-foreground: 0 0% 100%;
+
+  /* Sombra de tarjeta */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+/* Tema oscuro (zinc): valores del documento de diseno */
+:root[data-theme='oscuro'] {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 240 5.9% 10%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --destructive-texto: 0 84% 70%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 240 4.9% 83.9%;
+
+  --warning: 38 92% 50%;
+  --warning-foreground: 24 100% 5%;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+}
+
+/* Automatico: sigue al sistema. Duplicado necesario del bloque oscuro
+   porque CSS no permite reutilizar un bloque en dos selectores con
+   media query solo en uno. */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='auto'] {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --destructive-texto: 0 84% 70%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 24 100% 5%;
+
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  }
+}
+
+/* Colores ISO 10625: son DATOS, no decoracion. La fuente unica de
+   verdad es assets/js/data/iso-colors.js (con su RAL); la interfaz los
+   aplica como estilo en linea desde ahi, identicos en ambos temas, y el
+   color del texto se calcula por luminancia para cumplir contraste AA.
+   Por eso NO se duplican aqui como variables. */

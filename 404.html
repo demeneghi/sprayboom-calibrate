@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Redirigiendo</title>
+  <script>
+    // GitHub Pages sirve este archivo para cualquier ruta inexistente.
+    // La aplicacion navega solo por hash, asi que un 404 real es un
+    // error de dedo en la ruta: se redirige a la raiz del sitio
+    // (primer segmento del path en un sitio de proyecto) conservando
+    // el hash.
+    (function () {
+      var segmento = location.pathname.split('/')[1] || '';
+      var base = segmento ? '/' + segmento + '/' : '/';
+      // Guarda contra bucle: si ya intentamos esta base y volvimos a
+      // caer en 404 (por ejemplo, sitio publicado en dominio raiz), ir
+      // a la raiz del dominio.
+      var marca = null;
+      try { marca = sessionStorage.getItem('redir-404'); } catch (e) { marca = null; }
+      if (marca === base) {
+        base = '/';
+      }
+      try { sessionStorage.setItem('redir-404', base); } catch (e) { /* sin sesion */ }
+      location.replace(base + location.hash);
+    })();
+  </script>
+</head>
+<body>
+  <p>Redirigiendo a la aplicación...</p>
+</body>
+</html>

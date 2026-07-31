@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Calibracion de aplicaciones agricolas en cultivo de pina MD2: velocidad y avance, gasto de agua y gas etileno por rotametro. Sitio estatico para GitHub Pages, uso en campo desde telefono.",
   "scripts": {
-    "test": "node --test tests/",
+    "test": "node --test \"tests/**/*.test.js\"",
     "serve": "python3 -m http.server 8080"
   },
   "license": "UNLICENSED"

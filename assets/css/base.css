@@ -1,0 +1,162 @@
+/* Reset, tipografia y layout base. La aplicacion se disena SOLO para
+   telefono: una columna siempre, centrada con max-width en pantallas
+   grandes; sin variantes de escritorio. */
+
+/* Fuente principal: Inter variable autohospedada (subconjunto latino,
+   pesos 100-900). Licencia SIL OFL 1.1 en assets/fonts/OFL.txt.
+   Respaldo: pila de sistema, que se ve bien sin la fuente. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../fonts/inter-latin-variable.woff2') format('woff2');
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html {
+  /* Tamano base 14px, el de shadcn */
+  font-size: 14px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+}
+
+/* Numeros de resultado, lecturas de instrumento y desgloses: fuente
+   monoespaciada del sistema con cifras tabulares para que los digitos
+   no bailen al recalcular en vivo. */
+.mono,
+.resultado__valor,
+.desglose__sustitucion,
+.tabla--numerica td {
+  font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* En pantallas tactiles los campos de captura van a 16px: iOS Safari
+   hace zoom automatico al enfocar campos menores de 16px. */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Toques sin retardo de doble tap, sin bloquear el pinch-zoom */
+button,
+input,
+select,
+label,
+summary,
+[role='tab'],
+[role='option'] {
+  touch-action: manipulation;
+}
+
+/* Foco visible: anillo de 2px en --ring con desplazamiento de 2px */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+a {
+  color: inherit;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------ */
+/* Layout de telefono: una sola columna siempre                        */
+/* ------------------------------------------------------------------ */
+
+.aplicacion {
+  max-width: 480px;
+  margin-inline: auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.contenido {
+  flex: 1;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  /* Espacio para la navegacion inferior fija + zona segura */
+  padding-bottom: calc(7.5rem + env(safe-area-inset-bottom));
+}
+
+/* Nada produce scroll horizontal de pagina; lo ancho scrollea dentro
+   de su propio contenedor. */
+html,
+body {
+  overflow-x: hidden;
+}
+
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Utilidades minimas */
+.oculto {
+  display: none !important;
+}
+
+.visualmente-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.texto-suave {
+  color: hsl(var(--muted-foreground));
+}
+
+.texto-chico {
+  font-size: 0.86rem;
+}

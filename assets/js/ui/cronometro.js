@@ -1,0 +1,137 @@
+// Cronometro integrado (opcional aprobado): mide segundos por tramo en
+// campo y sirve de cuenta regresiva para la prueba de captura. Botones
+// grandes para uso con guantes; sin dependencias.
+import { el } from './dom.js';
+
+// modo 'cronometro': arranca en cero y cuenta hacia arriba.
+// modo 'regresivo': cuenta desde duracionS hacia cero y avisa al llegar.
+export function crearCronometro({
+  modo = 'cronometro',
+  duracionS = null,
+  etiquetaUsar = 'Usar en el cálculo',
+  alUsar = null,
+  alTerminar = null,
+} = {}) {
+  let inicio = null;
+  let acumuladoMs = 0;
+  let intervalo = null;
+  let termino = false;
+
+  const pantalla = el('div', {
+    clase: 'resultado__valor mono',
+    estilo: { fontSize: '2.4rem', textAlign: 'center' },
+    role: 'timer',
+    'aria-live': 'off',
+  });
+
+  const botonArrancar = el('button', { clase: 'boton', estilo: { minHeight: '3.15rem', flex: '1' } }, 'Arrancar');
+  const botonReiniciar = el(
+    'button',
+    { clase: 'boton boton--contorno', estilo: { minHeight: '3.15rem' } },
+    'Reiniciar'
+  );
+  const botonUsar = alUsar
+    ? el('button', { clase: 'boton boton--secundario', estilo: { minHeight: '3.15rem' } }, etiquetaUsar)
+    : null;
+
+  function transcurridoS() {
+    const enCurso = inicio === null ? 0 : performance.now() - inicio;
+    return (acumuladoMs + enCurso) / 1000;
+  }
+
+  function valorMostrado() {
+    if (modo === 'regresivo' && duracionS !== null) {
+      return Math.max(0, duracionS - transcurridoS());
+    }
+    return transcurridoS();
+  }
+
+  function pintar() {
+    const v = valorMostrado();
+    const minutos = Math.floor(v / 60);
+    const segundos = v - minutos * 60;
+    pantalla.textContent =
+      minutos > 0
+        ? `${minutos}:${segundos.toFixed(1).padStart(4, '0')}`
+        : segundos.toFixed(1);
+    if (modo === 'regresivo' && duracionS !== null && v <= 0 && !termino) {
+      termino = true;
+      detener();
+      pantalla.style.color = 'hsl(var(--warning))';
+      if (navigator.vibrate) navigator.vibrate([250, 120, 250]);
+      if (alTerminar) alTerminar();
+    }
+  }
+
+  function arrancar() {
+    if (intervalo) return;
+    inicio = performance.now();
+    intervalo = setInterval(() => {
+      // Autolimpieza: si la pestaña se desmontó, el nodo ya no está en
+      // el documento y el intervalo se detiene solo (sin fugas).
+      if (!elemento.isConnected) {
+        detener();
+        return;
+      }
+      pintar();
+    }, 100);
+    botonArrancar.textContent = 'Parar';
+  }
+
+  function detener() {
+    if (inicio !== null) {
+      acumuladoMs += performance.now() - inicio;
+      inicio = null;
+    }
+    if (intervalo) {
+      clearInterval(intervalo);
+      intervalo = null;
+    }
+    botonArrancar.textContent = 'Arrancar';
+    pintar();
+  }
+
+  function reiniciar() {
+    detener();
+    acumuladoMs = 0;
+    termino = false;
+    pantalla.style.color = '';
+    pintar();
+  }
+
+  botonArrancar.addEventListener('click', () => {
+    if (intervalo) detener();
+    else arrancar();
+  });
+  botonReiniciar.addEventListener('click', reiniciar);
+  if (botonUsar) {
+    botonUsar.addEventListener('click', () => {
+      detener();
+      alUsar(transcurridoS());
+    });
+  }
+
+  pintar();
+
+  const elemento = el(
+    'div',
+    { clase: 'card', estilo: { padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' } },
+    pantalla,
+    el('div', { estilo: { display: 'flex', gap: '0.5rem' } }, botonArrancar, botonReiniciar, botonUsar)
+  );
+
+  return {
+    elemento,
+    reiniciar,
+    fijarDuracion(nuevaDuracionS) {
+      duracionS = nuevaDuracionS;
+      reiniciar();
+    },
+    get segundos() {
+      return transcurridoS();
+    },
+    destruir() {
+      detener();
+    },
+  };
+}
