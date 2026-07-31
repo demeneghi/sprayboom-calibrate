@@ -42,6 +42,14 @@ gente nunca recibe el cambio. CI lo bloquea en cada pull request.
 Ningún dato pasa por `innerHTML`: los nodos se construyen con `el()` de `assets/js/ui/dom.js`,
 el texto entra por `textContent` y los atributos por `setAttribute`. CI lo bloquea.
 
+## Entrega — REGLA DURA
+
+**Siempre se abre un pull request. NUNCA se hace merge.** Todo cambio va en una rama y se
+entrega abriendo el PR, sin esperar a que lo pidan; jamás se hace push a `main`. Integrar el
+pull request —merge, squash, rebase o auto-merge— es decisión de una persona, nunca del agente.
+El detalle está en `.claude/rules/entrega.md`.
+
 ## Reglas siempre activas
 
 @.claude/rules/design-system.md
+@.claude/rules/entrega.md
