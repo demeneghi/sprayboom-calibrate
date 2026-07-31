@@ -94,11 +94,19 @@ for (const [ancho, alto, nombre] of [[390, 844, 'iphone'], [360, 740, 'gama-baja
 
   for (const [seccion, tab] of RUTAS) {
     await pagina.goto(`${base}#/${seccion}/${tab}`, { waitUntil: 'networkidle' });
-    await pagina.waitForTimeout(120);
-    const tarjetas = await pagina.locator('#panel .card').count();
-    if (tarjetas === 0) {
-      problemas.push(`[${nombre}] ${seccion}/${tab}: el panel no pinto ninguna tarjeta`);
+    // Espera por condicion con tope, no por tiempo fijo: en un runner
+    // lento la pestana mas pesada puede tardar mas que cualquier pausa
+    // arbitraria y la prueba se volveria fragil.
+    let pinto = true;
+    try {
+      await pagina.locator('#panel .card').first().waitFor({ state: 'attached', timeout: 15000 });
+    } catch {
+      pinto = false;
     }
+    if (!pinto) {
+      problemas.push(`[${nombre}] ${seccion}/${tab}: el panel no pinto ninguna tarjeta en 15 s`);
+    }
+    await pagina.waitForTimeout(120);
     const scrollHorizontal = await pagina.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth
     );
