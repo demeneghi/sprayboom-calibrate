@@ -65,6 +65,9 @@ const PARES = [
   ['destructive-texto', 'background'],
   ['destructive-texto', 'card'],
   ['warning', 'background'],
+  // Ambar como TEXTO sobre la tarjeta: la cifra del flotador cuando la
+  // lectura queda fuera de la escala del rotametro.
+  ['warning', 'card'],
   // Chips de estado semantico: el texto del chip sobre SU fondo.
   ['exito', 'exito-fondo'],
   ['exito-foreground', 'exito'],
