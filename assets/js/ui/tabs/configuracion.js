@@ -716,7 +716,7 @@ export function render(panel, ctx) {
       const campoTeorica = crearCampoNumerico({ etiqueta: COTAS_FACTOR_DESVIACION.velocidadTeorica.etiqueta, unidad: 'km/h' });
       const campoMedida = crearCampoNumerico({ etiqueta: COTAS_FACTOR_DESVIACION.velocidadMedida.etiqueta, unidad: 'km/h' });
       const campoCondiciones = el('input', { clase: 'entrada', id: 'factor-condiciones', placeholder: 'Implemento, humedad del suelo...' });
-      const cuerpo = el('div', {},
+      const cuerpo = el('div', { clase: 'pila-campos' },
         selectorTractor.elemento, campoRpm.elemento, campoTeorica.elemento, campoMedida.elemento,
         el('div', { clase: 'campo' }, el('label', { clase: 'etiqueta', for: 'factor-condiciones' }, 'Condiciones'), campoCondiciones));
       const ok = await confirmar({
@@ -869,7 +869,7 @@ export function render(panel, ctx) {
     });
     pintarClases();
 
-    const cuerpo = el('div', {},
+    const cuerpo = el('div', { clase: 'pila-campos' },
       campoFabricante.elemento,
       el('div', { clase: 'campo' }, el('label', { clase: 'etiqueta', for: 'boquilla-modelo' }, 'Serie o modelo'), campoModelo),
       campoPatron.elemento, campoTamano.elemento, campoAngulo.elemento, campoCaudal.elemento,

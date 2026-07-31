@@ -108,10 +108,13 @@ summary,
   touch-action: manipulation;
 }
 
-/* Foco visible: anillo de 2px en --ring con desplazamiento de 2px */
+/* Foco visible: anillo en --ring, con el trazo y el desplazamiento
+   declarados en tokens. Lo que sobresale (`--foco-holgura`) es lo que
+   los apilados de campos reservan para que el anillo no caiga sobre la
+   etiqueta vecina. */
 :focus-visible {
-  outline: 2px solid hsl(var(--ring));
-  outline-offset: 2px;
+  outline: var(--foco-trazo) solid hsl(var(--ring));
+  outline-offset: var(--foco-desplazamiento);
 }
 
 a {

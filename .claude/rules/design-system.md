@@ -130,6 +130,20 @@ Son cinco, y ninguna es cosmética.
 - El piso táctil sigue mandando el alto: `height: auto` deja crecer a dos renglones sin bajar de
   44px.
 
+## Anillo de foco y apilado de campos
+
+- El anillo de foco se pinta **fuera** del control y **no ocupa lugar en el flujo**: nada lo
+  empuja. Lo que sobresale está en `--foco-holgura` (`--foco-trazo` + `--foco-desplazamiento`), y
+  es el **mínimo** que puede separar a un campo de lo que tiene arriba o abajo. Con menos, el
+  anillo se pinta encima de la etiqueta vecina y la vuelve ilegible.
+- **Una columna de campos siempre lleva su clase de apilado.** Dentro de una tarjeta lo resuelve
+  `.card__contenido`; en el panel, `.panel`; en cualquier otra superficie —el cuerpo de un
+  diálogo, sobre todo— va **`.pila-campos`**. **Prohibido** apilar campos en un `<div>` pelado:
+  la separación queda en cero, la etiqueta de un campo nace pegada al control del campo de
+  arriba y el anillo de foco cae sobre ella.
+- El ritmo vive en `components.css`, igual que el del grupo de opciones: el consumidor **solo
+  declara la clase**, no escribe `display: flex` ni `gap` en línea.
+
 ## Chip (badge)
 
 - La geometría sale entera de **seis tokens** —`--badge-h`, `--badge-px`, `--badge-gap`,
@@ -174,6 +188,8 @@ suelto. Lo mismo con cada color ISO sembrado.
 - Señalar la opción elegida intercambiando variantes de botón, o maquetar el grupo con un
   `display: flex` en línea: la etiqueta larga se sale de la tarjeta.
 - Sumar relleno a una tarjeta desde su contenido.
+- Apilar campos en un `<div>` sin clase: quedan sin separación y el anillo de foco pisa la
+  etiqueta del campo de abajo.
 - Medidas físicas en `rem` (la raíz mide 14px, no 16px).
 - Añadir un token de color que pinte texto **sin** su par en la compuerta de contraste.
 - Tamaños de texto por debajo de 12px escritos como número suelto.

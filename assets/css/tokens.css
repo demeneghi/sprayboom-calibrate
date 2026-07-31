@@ -149,6 +149,18 @@
      es solo de telefono y el valor vigente del proyecto son 36px. */
   --control-h: 36px;
 
+  /* Anillo de foco. Se pinta FUERA del control y no ocupa lugar en el
+     flujo: nada lo empuja, asi que es el apilado quien tiene que
+     dejarle sitio. `--foco-holgura` es lo que sobresale (trazo mas
+     desplazamiento) y es el MINIMO que puede separar a un control
+     enfocable de lo que venga debajo o encima; con menos, el anillo se
+     pinta encima de la etiqueta vecina y la vuelve ilegible.
+     Consumidores: `:focus-visible` en base.css y los apilados de
+     campos en components.css. */
+  --foco-trazo: 2px;
+  --foco-desplazamiento: 2px;
+  --foco-holgura: calc(var(--foco-trazo) + var(--foco-desplazamiento));
+
   /* Piso tactil: lo consume el boton en `components.css` en DOS reglas
      (alto y, solo en botones de icono, ancho), nunca repitiendo
      `min-height` por consumidor. Vale 0 fuera de superficies tactiles;
