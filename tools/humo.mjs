@@ -62,6 +62,7 @@ const navegador = await chromium.launch({
 const problemas = [];
 
 const RUTAS = [
+  ['calibrar', 'guia'],
   ['calibrar', 'avance'],
   ['calibrar', 'gasto'],
   ['calibrar', 'boquillas'],
@@ -160,4 +161,6 @@ if (problemas.length > 0) {
   for (const p of problemas) console.error(' -', p);
   process.exit(1);
 }
-console.log('Humo en verde: 10 rutas x 2 viewports sin errores ni scroll horizontal.');
+console.log(
+  `Humo en verde: ${RUTAS.length} rutas x 2 viewports sin errores ni scroll horizontal.`
+);

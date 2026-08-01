@@ -1746,3 +1746,214 @@ dialog.dialogo::backdrop {
 .cronometro__usar {
   flex-basis: 100%;
 }
+
+/* ------------------------------------------------------------------ */
+/* Guia por objetivo: tira de avance, opciones, pasos y perillas       */
+/* ------------------------------------------------------------------ */
+/* Tira de avance de la receta. Va ARRIBA del panel, la pinta `main.js`
+   y solo aparece cuando la pantalla actual es un paso de la receta
+   activa. Es lo que convierte una lista de pestañas en una secuencia
+   sin encerrar a nadie: dice dónde estás y qué sigue, y se puede
+   ignorar. */
+.tira-receta {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid hsl(var(--acento) / 0.45);
+  border-radius: var(--radius);
+  background-color: hsl(var(--acento) / 0.1);
+}
+
+/* El centro es un botón: lleva de vuelta a la guía completa. Ocupa todo
+   el ancho que dejan las dos flechas para que se pueda pulsar sin
+   apuntar, y su texto parte línea en vez de recortarse. */
+.tira-receta__centro {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.1rem;
+  min-height: var(--touch-floor, 2.5rem);
+  padding: 0.25rem 0.35rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tira-receta__paso {
+  color: hsl(var(--muted-foreground));
+}
+
+.tira-receta__titulo {
+  font-weight: 600;
+  color: hsl(var(--acento-texto));
+  line-height: 1.2;
+}
+
+/* Los objetivos de la guía en una sola columna: son frases, no
+   etiquetas cortas, y en dos columnas de 9rem cada una parte en cuatro
+   renglones. Hereda del grupo de opciones el `aria-pressed` que pinta
+   la elegida y el piso táctil. */
+.grupo-modo--columna {
+  grid-template-columns: 1fr;
+}
+
+.grupo-modo--columna .boton {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+}
+
+.receta-opcion__titulo {
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.receta-opcion__objetivo {
+  color: hsl(var(--muted-foreground));
+  line-height: 1.35;
+}
+
+/* Un botón elegido pinta su texto con el acento; el objetivo y el chip
+   conservan su propio color para que la frase larga no compita con el
+   título. */
+.grupo-modo--columna .boton[aria-pressed='true'] .receta-opcion__objetivo {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Los pasos de la receta. Cada fila es un botón que abre la pantalla
+   del paso: se pulsa una vez, así que toma el piso táctil. */
+.pila-pasos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.paso-receta {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  width: 100%;
+  min-height: var(--touch-floor, 2.5rem);
+  padding: 0.55rem 0.65rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  background-color: hsl(var(--card));
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.paso-receta:active {
+  background-color: hsl(var(--muted));
+}
+
+/* El número del paso es lo que se lee sin leer: dice el orden. Va
+   monoespaciado como toda cifra de esta aplicación. */
+.paso-receta__numero {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  font-size: var(--text-meta);
+  font-weight: 600;
+}
+
+.paso-receta[data-listo='true'] .paso-receta__numero {
+  border-color: hsl(var(--acento));
+  background-color: hsl(var(--acento) / 0.16);
+  color: hsl(var(--acento-texto));
+}
+
+.paso-receta__cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.paso-receta__titulo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.paso-receta__detalle {
+  color: hsl(var(--muted-foreground));
+  line-height: 1.35;
+}
+
+/* Hoja de resultado: cifras arriba, perillas abajo. */
+.pila-hoja {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.rejilla-cifras {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.pila-perillas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+/* Una perilla NO es un campo de captura: es el ajuste de dos en dos
+   décimas que se hace de pie, con guantes, mirando el manómetro. Por
+   eso son dos botones grandes y una cifra, y no un deslizador: un
+   deslizador da precisión falsa —2.73 bar cuando el manómetro marca
+   2.8— y con guantes sobre un tractor que vibra es incontrolable. */
+.perilla {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid hsl(var(--border-sutil));
+  border-radius: var(--radius);
+}
+
+.perilla__etiqueta {
+  color: hsl(var(--muted-foreground));
+}
+
+.perilla__control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* La cifra se lleva el espacio que sobra entre los dos botones y va
+   centrada: es lo que se mira mientras se pulsa, no una etiqueta al
+   margen. */
+.perilla__valor {
+  flex: 1 1 auto;
+  text-align: center;
+  font-size: var(--text-cifra);
+  font-variant-numeric: tabular-nums;
+}
+
+.perilla__nota:empty {
+  display: none;
+}
