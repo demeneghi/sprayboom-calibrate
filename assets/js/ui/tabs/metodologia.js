@@ -1064,7 +1064,7 @@ export function render(panel, ctx) {
       'El caudal de catálogo corresponde a boquilla NUEVA.',
       'La clase de gota depende de la presión de trabajo y el fabricante la reporta medida con agua.',
       'La caída de presión entre el manómetro y el punto de medición se considera despreciable.',
-      'Se ignora el efecto de la temperatura sobre la lectura del rotámetro (del orden de 1 a 2 %).',
+      'La corrección del rotámetro solo toma la presión: la temperatura del gas se supone en la estándar de calibración. Con el gas más frío que ella, la masa real queda hasta 2 % arriba de la calculada; con el cilindro al sol, hasta 3 % abajo.',
       'El rotámetro mide el gas inyectado, no el disuelto.',
       'El pesaje del cilindro manda sobre cualquier cálculo teórico de consumo de gas.',
       'Los datos viven solo en este navegador y en este dispositivo: la exportación es el único respaldo.',

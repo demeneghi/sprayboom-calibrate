@@ -5,6 +5,13 @@
 // La escala del rotametro esta calibrada a una presion de referencia; si
 // el gas entra comprimido es mas denso y el flotador subestima el flujo
 // real. El factor sale del balance de fuerzas del flotador.
+//
+// La correccion completa del instrumento tambien lleva la temperatura
+// —raiz((P_real * T_estandar) / (P_estandar * T_real))— y aqui solo se
+// hace la parte de presion: se supone el gas a la temperatura estandar de
+// calibracion. Lo omitido vale hasta 2 % con el gas mas frio que ella y
+// hasta 3 % con el cilindro al sol (40 C). Queda declarado en la pestana
+// Metodologia, entre los supuestos.
 
 import { SEG_POR_MIN } from './constants.js';
 import { aviso, requierePositivo, requiereFinito } from './validate.js';
