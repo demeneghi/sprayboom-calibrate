@@ -354,6 +354,24 @@ export function render(panel, ctx) {
     reemplazar(zonaLista, filtrados.map(filaRegistro));
   }
 
+  // El chip de la izquierda ya dice de qué pestaña salió el registro, así
+  // que el título no lo vuelve a decir: «Gasto de agua» + «Gasto de agua:
+  // Teejet XR11003» son dos veces lo mismo en el mismo renglón, y lo que
+  // distingue a un registro de otro es justo lo que va DESPUÉS de los dos
+  // puntos. Se recorta al pintar y no al guardar, para que los registros
+  // viejos —que traen el prefijo escrito— se lean igual de limpios.
+  //
+  // Solo se recorta el prefijo EXACTO con dos puntos: «Mezcla en tanque:
+  // 2.5 L/ha» no empieza por «Mezcla: », así que se deja entero en vez de
+  // quedar en «en tanque: 2.5 L/ha».
+  function tituloSinCategoria(entrada) {
+    const categoria = ETIQUETAS_TIPO[entrada.tipo];
+    const prefijo = `${categoria}: `;
+    return categoria && entrada.titulo.startsWith(prefijo)
+      ? entrada.titulo.slice(prefijo.length)
+      : entrada.titulo;
+  }
+
   function filaRegistro(entrada) {
     const botonDetalle = el('button', { clase: 'boton boton--contorno boton--sm' }, 'Ver detalle');
     botonDetalle.addEventListener('click', () => abrirDetalle(entrada));
@@ -390,7 +408,7 @@ export function render(panel, ctx) {
         el('span', { clase: 'badge badge--secundario' }, ETIQUETAS_TIPO[entrada.tipo] ?? entrada.tipo),
         el('span', { clase: 'texto-suave', estilo: { fontSize: 'var(--text-meta)' } }, formatearFecha(entrada.fecha))
       ),
-      el('p', { estilo: { fontWeight: '600', fontSize: 'var(--text-base)' } }, entrada.titulo),
+      el('p', { estilo: { fontWeight: '600', fontSize: 'var(--text-base)' } }, tituloSinCategoria(entrada)),
       entrada.resumen
         ? el('p', { clase: 'texto-suave', estilo: { fontSize: 'var(--text-sm)' } }, entrada.resumen)
         : null,

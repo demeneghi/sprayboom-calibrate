@@ -250,6 +250,9 @@ export function render(panel, ctx) {
       );
       return;
     }
+    // «Superficie por carga» no se repite aquí: es el mismo valor que ya
+    // encabeza «Resultado por carga», la tarjeta de arriba. Este plan
+    // habla de los totales de la superficie objetivo, no de una carga.
     const nodos = [
       el(
         'div',
@@ -271,12 +274,6 @@ export function render(panel, ctx) {
           valor: plan.tanquesNecesarios,
           unidad: '',
           decimales: 0,
-        }),
-        pintarResultado({
-          etiqueta: 'Superficie por carga',
-          valor: aSistema('superficie', resultado.valores.hectareasPorCarga, sistema),
-          unidad: unidadSuperficie,
-          decimales: 2,
         })
       ),
     ];
@@ -391,22 +388,10 @@ export function render(panel, ctx) {
             unidad: unidadVolumen,
             decimales: 1,
           }),
-          el(
-            'div',
-            { estilo: CUADRICULA_2 },
-            pintarResultado({
-              etiqueta: 'Dosis por hectárea',
-              valor: resultado.valores.dosisPorHa,
-              unidad: `${unidadProducto}/ha`,
-              decimales: 3,
-            }),
-            pintarResultado({
-              etiqueta: 'Dosis por cada 100 L',
-              valor: resultado.valores.dosisPor100L,
-              unidad: `${unidadProducto}/100 L`,
-              decimales: 3,
-            })
-          ),
+          // La dosis en las dos formas NO se repite aquí: es el mismo par
+          // de números que ya pinta la tarjeta «Dosis en las dos formas»,
+          // con la misma fórmula, y allá además se marca cuál de las dos
+          // fue la capturada. Esta tarjeta es lo que va en UNA carga.
           pintarVerificacion(resultado.verificacion)
         );
       } else {
