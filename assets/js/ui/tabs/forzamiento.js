@@ -165,7 +165,7 @@ export function render(panel, ctx) {
     unidad: 'g/ha',
     valorInicial: borrador.dosisObjetivoGha ?? p0.agronomicos.dosisEtilenoObjetivo,
     ayuda:
-      'Se precarga la dosis objetivo propia del rancho, calibrada por pesaje del cilindro; el pesaje manda sobre cualquier cálculo.',
+      'Viene la dosis del rancho, ajustada pesando el cilindro. El pesaje manda sobre el cálculo.',
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { dosisObjetivoGha: valor });
       recalcularObjetivo();
@@ -189,10 +189,8 @@ export function render(panel, ctx) {
     etiqueta: 'Volumen de agua',
     unidad: unidadVolAplicacion,
     ayuda:
-      'El agua que realmente entrega la barra: de ella depende la concentración del tanque. Se ' +
-      'precarga la medida en la prueba de captura y, si no la hay, la calculada en Gasto de ' +
-      'agua o el objetivo propio de Configuración. La referencia de la literatura NO se usa ' +
-      'para rellenarla.',
+      'El agua que de verdad sale por la barra; de ella depende la concentración del tanque. ' +
+      'Viene del aforo y, si no lo hay, de Gasto de agua o de Configuración.',
     fuente: fuenteVolumen.fuente,
     nombreDato: 'el volumen de agua',
     heredado: { valor: fuenteVolumen.valor, etiqueta: fuenteVolumen.etiqueta },
@@ -231,8 +229,8 @@ export function render(panel, ctx) {
     etiqueta: 'Tiempo por tabla',
     unidad: 's',
     ayuda:
-      'Lo que tarda la barra en recorrer una tabla completa. Se precarga de lo capturado en ' +
-      'Avance; si mediste otro tiempo, escríbelo aquí y manda el tuyo.',
+      'Lo que tarda la barra en recorrer una tabla. Viene de Avance; si mediste otro tiempo, ' +
+      'escríbelo aquí y manda el tuyo.',
     fuente: 'Avance',
     nombreDato: 'el tiempo por tabla',
     heredado: {
@@ -259,7 +257,7 @@ export function render(panel, ctx) {
       { valor: 'tiempo', texto: 'Tiempo de inyección (s)' },
     ],
     valorInicial: modoDespeje,
-    ayuda: 'La variable elegida se calcula a partir de las otras dos, que se capturan como dadas.',
+    ayuda: 'La que elijas la calcula la aplicación; las otras dos las capturas tú.',
     alCambiar: (valor) => {
       modoDespeje = valor;
       ctx.guardarBorrador(id, { modoDespeje });
@@ -272,7 +270,7 @@ export function render(panel, ctx) {
     etiqueta: 'Lectura del flotador (dada)',
     unidad: 'SCFM',
     valorInicial: borrador.scfmDado ?? null,
-    ayuda: `Escala del ${rotametro.modelo}: ${formatear(rotametro.escalaMin, 1)} a ${formatear(rotametro.escalaMax, 1)} SCFM, resolución ${formatear(rotametro.resolucion, 2)} SCFM.`,
+    ayuda: `Escala del ${rotametro.modelo}: de ${formatear(rotametro.escalaMin, 1)} a ${formatear(rotametro.escalaMax, 1)} SCFM, con rayas cada ${formatear(rotametro.resolucion, 2)} SCFM.`,
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { scfmDado: valor });
       recalcularObjetivo();
@@ -282,8 +280,7 @@ export function render(panel, ctx) {
     etiqueta: 'Presión del rotámetro (dada)',
     unidad: 'psi',
     valorInicial: borrador.psiDado ?? null,
-    ayuda:
-      'Presión manométrica a la que trabaja el rotámetro; cero si descarga a la presión atmosférica.',
+    ayuda: 'La presión a la que trabaja el rotámetro. Cero si descarga al aire libre.',
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { psiDado: valor });
       recalcularObjetivo();
@@ -523,7 +520,7 @@ export function render(panel, ctx) {
     etiqueta: 'Lectura del flotador',
     unidad: 'SCFM',
     valorInicial: borrador.scfmReal ?? null,
-    ayuda: 'La lectura a la que quedó el flotador en la operación real.',
+    ayuda: 'Dónde quedó la bola durante la corrida real.',
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { scfmReal: valor });
       recalcularAjuste();
@@ -533,7 +530,7 @@ export function render(panel, ctx) {
     etiqueta: 'Presión del rotámetro',
     unidad: 'psi',
     valorInicial: borrador.psiReal ?? null,
-    ayuda: 'Presión manométrica real en el rotámetro; cero si descarga a la atmósfera.',
+    ayuda: 'La presión que marcó el rotámetro. Cero si descarga al aire libre.',
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { psiReal: valor });
       recalcularAjuste();
@@ -543,7 +540,7 @@ export function render(panel, ctx) {
     etiqueta: 'Tiempo de inyección por tabla',
     unidad: 's',
     valorInicial: borrador.tiempoRealS ?? null,
-    ayuda: 'El tiempo que realmente se inyecta gas en cada tabla.',
+    ayuda: 'El tiempo que de verdad se inyecta gas en cada tabla.',
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { tiempoRealS: valor });
       recalcularAjuste();

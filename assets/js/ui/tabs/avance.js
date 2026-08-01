@@ -181,8 +181,8 @@ export function render(panel, ctx) {
         el(
           'p',
           { clase: 'ayuda' },
-          `${fila.etiqueta} usa un valor de tabla (${valor} nominales), sin medición de ` +
-            'campo que lo respalde. Calíbrala para que quede respaldada.'
+          `${fila.etiqueta} usa el valor de tabla (${valor} nominales). Calíbrala en campo ` +
+            'para respaldarla.'
         )
       );
       return;
@@ -196,7 +196,7 @@ export function render(panel, ctx) {
     etiqueta: 'Régimen del motor',
     unidad: 'rpm',
     valorInicial: borrador.rpm ?? tractor.regimenHabitual,
-    ayuda: `Se precarga el régimen habitual de trabajo del tractor (${tractor.regimenHabitual} rpm), no el nominal (${tractor.regimenNominal} rpm): la calculadora arranca donde el rancho realmente opera.`,
+    ayuda: `Viene el régimen habitual del tractor (${tractor.regimenHabitual} rpm), no el nominal (${tractor.regimenNominal} rpm): así arranca donde de verdad se trabaja.`,
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { rpm: valor });
       recalcular();
@@ -230,7 +230,7 @@ export function render(panel, ctx) {
     etiqueta: `Segundos por tramo de ${tramoTexto}`,
     unidad: 's',
     valorInicial: borrador.segundosPorTramo ?? null,
-    ayuda: `Tiempo medido para recorrer el tramo de ${tramoTexto}. Esa distancia de referencia se edita en Sistema, Configuración. El reporte de campo es siempre más confiable que la marcha teórica.`,
+    ayuda: `Lo que tardas en recorrer el tramo de ${tramoTexto}. Medirlo en campo es más confiable que la marcha de tabla. El tramo se cambia en Configuración.`,
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { segundosPorTramo: valor });
       recalcular();
@@ -380,7 +380,7 @@ export function render(panel, ctx) {
               { clase: 'ayuda' },
               corregida.valores.desviacionPct === null
                 ? 'Sin factor aplicable: se usa la teórica. El patinaje no se predice con fórmula; se mide en campo.'
-                : `Desviación aplicada: ${formatearPorcentaje(Math.abs(corregida.valores.desviacionPct))} (factor ${formatear(factor.factor, 4)}). Teorica y corregida se muestran siempre juntas.`
+                : `Desviación aplicada: ${formatearPorcentaje(Math.abs(corregida.valores.desviacionPct))} (factor ${formatear(factor.factor, 4)}).`
             )
           );
           if (corregida.valores.velocidadCorregidaKmh !== null) {
