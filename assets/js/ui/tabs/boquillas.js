@@ -27,12 +27,12 @@ import {
   resultadoConfiable,
   pintarResultadoNoVerificado,
 } from '../render.js';
-import { crearCampoNumerico, crearCampoSelect } from '../campos.js';
+import { crearCampoSelect } from '../campos.js';
 import { crearCampoDato } from '../dato.js';
 import { formatear, formatearPorcentaje } from '../formato.js';
 import { mostrarToast } from '../toast.js';
 import { estiloBadgeIso } from '../color.js';
-import { aSistema, deSistema, unidad } from '../../domain/units.js';
+import { aSistema, unidad } from '../../domain/units.js';
 import { seleccionDeBoquilla } from '../../domain/index.js';
 import { volumenEquivalenteEnAgua } from '../../domain/nozzles.js';
 import { geometria, paso, redondeoLegible } from '../../domain/speed.js';

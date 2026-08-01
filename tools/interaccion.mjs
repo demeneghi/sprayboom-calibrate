@@ -702,6 +702,68 @@ verificar(
   'Asistente: «Cambiar» devuelve a la lista de objetivos'
 );
 
+// ---------- Compartir por URL lleva los datos de la calibración ----------
+// Desde que los datos compartidos viven UNA vez en la jornada, un enlace
+// que solo llevara el borrador de la pantalla se abriría sin presión,
+// sin velocidad y sin boquilla: casi todo lo que se quería compartir.
+await pagina.goto(`${base}#/calibrar/gasto`, { waitUntil: 'networkidle' });
+await pagina.waitForTimeout(350);
+const presionCompartida = await entradaPresion.inputValue();
+const enlace = await pagina.evaluate(async () => {
+  // Se lee el enlace del portapapeles que arma el botón de compartir.
+  let capturado = null;
+  navigator.clipboard.writeText = async (texto) => {
+    capturado = texto;
+  };
+  document.getElementById('boton-compartir').click();
+  await new Promise((r) => setTimeout(r, 300));
+  return capturado;
+});
+verificar(enlace !== null && /\?e=/.test(enlace ?? ''), 'Compartir: el botón arma un enlace');
+const cargaCompartida = enlace
+  ? JSON.parse(
+      new TextDecoder().decode(
+        Uint8Array.from(
+          atob(
+            enlace
+              .split('?e=')[1]
+              .replace(/-/g, '+')
+              .replace(/_/g, '/')
+              .padEnd(Math.ceil(enlace.split('?e=')[1].length / 4) * 4, '=')
+          ),
+          (c) => c.charCodeAt(0)
+        )
+      )
+    )
+  : null;
+verificar(
+  Number.isFinite(cargaCompartida?.jornada?.presionBar),
+  'Compartir: el enlace lleva los datos de la jornada, no solo el borrador de la pantalla'
+);
+
+// Y al abrirlo en un navegador limpio, esos datos se aplican.
+const contextoLimpio = await navegador.newContext({
+  viewport: { width: 390, height: 844 },
+  hasTouch: true,
+  isMobile: true,
+  locale: 'es-MX',
+});
+const paginaLimpia = await contextoLimpio.newPage();
+paginaLimpia.on('dialog', (d) => d.accept());
+await paginaLimpia.goto(enlace.replace(/^[^#]*/, base), { waitUntil: 'networkidle' });
+await paginaLimpia.waitForTimeout(500);
+const botonCargar = paginaLimpia.getByRole('button', { name: 'Cargar' });
+if ((await botonCargar.count()) > 0) await botonCargar.click();
+await paginaLimpia.waitForTimeout(600);
+const presionRecibida = await paginaLimpia
+  .getByRole('textbox', { name: 'Presión en la boquilla' })
+  .inputValue();
+verificar(
+  presionRecibida === presionCompartida,
+  `Compartir: el enlace abre con la misma presión (${presionRecibida} contra ${presionCompartida})`
+);
+await contextoLimpio.close();
+
 // ---------- Metodologia ----------
 await pagina.goto(`${base}#/sistema/metodologia`, { waitUntil: 'networkidle' });
 await pagina.waitForTimeout(250);

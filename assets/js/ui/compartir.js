@@ -3,8 +3,14 @@
 // llega al servidor (funciona en GitHub Pages y sin conexion).
 //
 // Al abrir un enlace compartido, la aplicacion PREGUNTA antes de
-// aplicar: se cargan el borrador de esa pantalla y el contexto
-// (tractor, equipo, unidades), nada mas.
+// aplicar: se cargan el borrador de esa pantalla, los datos compartidos
+// de la calibracion (la JORNADA: presion, velocidad, boquilla,
+// espaciamiento, objetivo) y el contexto (tractor, equipo, unidades),
+// nada mas.
+//
+// La jornada viaja aparte del borrador porque desde que cada dato vive
+// una sola vez (domain/datos.js) el borrador de la pantalla ya casi no
+// lleva nada: un enlace sin ella se abriria sin presion y sin boquilla.
 
 const VERSION_COMPARTIR = 1;
 
@@ -23,8 +29,8 @@ function decodificarBase64Url(cadena) {
   return new TextDecoder().decode(bytes);
 }
 
-export function codificarEstadoCompartido({ seccion, tab, borrador, contexto }) {
-  const carga = { v: VERSION_COMPARTIR, seccion, tab, borrador, contexto };
+export function codificarEstadoCompartido({ seccion, tab, borrador, jornada = null, contexto }) {
+  const carga = { v: VERSION_COMPARTIR, seccion, tab, borrador, jornada, contexto };
   return codificarBase64Url(JSON.stringify(carga));
 }
 
@@ -38,8 +44,8 @@ export function decodificarEstadoCompartido(cadena) {
   }
 }
 
-export function armarUrlCompartir({ seccion, tab, borrador, contexto }) {
-  const codigo = codificarEstadoCompartido({ seccion, tab, borrador, contexto });
+export function armarUrlCompartir({ seccion, tab, borrador, jornada = null, contexto }) {
+  const codigo = codificarEstadoCompartido({ seccion, tab, borrador, jornada, contexto });
   const base = `${location.origin}${location.pathname}`;
   return `${base}#/${seccion}/${tab}?e=${codigo}`;
 }

@@ -25,7 +25,7 @@ import { crearCampoDato } from '../dato.js';
 import { nodosAvanceParaTiempo } from '../marchas.js';
 import { formatear, formatearPorcentaje, formatearTiempo } from '../formato.js';
 import { mostrarToast } from '../toast.js';
-import { aSistema, deSistema, unidad } from '../../domain/units.js';
+import { aSistema, unidad } from '../../domain/units.js';
 import { geometria } from '../../domain/speed.js';
 import { gPorScfEfectivo } from '../../domain/gas.js';
 import {

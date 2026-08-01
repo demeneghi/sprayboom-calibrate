@@ -156,16 +156,32 @@ test('con todo resuelto se entra directo a la hoja de resultado', () => {
     modoDosis: 'por-ha',
     dosisCantidad: 1.5,
     unidadProducto: 'L',
-    superficieObjetivoHa: 12,
   });
   assert.equal(indiceDelSiguiente(receta, todo), pasosDeReceta(receta).length);
 });
 
-test('la superficie objetivo es opcional pero su paso no se bloquea por ella', () => {
-  // El paso del tanque pide cinco datos y uno es opcional: si contara,
-  // nadie podria cerrar la mezcla sin capturar una superficie que la
-  // pantalla marca como opcional.
+test('un dato opcional no bloquea su paso', () => {
+  // La superficie objetivo se rotula «(opcional)» en su propia etiqueta.
+  // Si contara para resolver el paso, el objetivo de la mezcla se
+  // quedaria en «1 de 2» para siempre con todo lo demas capturado.
   assert.equal(dato('superficieObjetivoHa').opcional, true);
+  const sinSuperficie = {
+    datos: {
+      volumenAplicacionLha: 575,
+      volumenTanqueL: 2000,
+      modoDosis: 'por-ha',
+      dosisCantidad: 1.5,
+      unidadProducto: 'L',
+      superficieObjetivoHa: null,
+    },
+    vistos: [],
+    lhaMedido: null,
+  };
+  const paso = estadoDePaso(pasoPorId('tanque'), sinSuperficie);
+  assert.equal(paso.resuelto, true);
+  assert.deepEqual(paso.faltantes, []);
+  const avance = progresoDeReceta(recetaPorId('mezcla-tanque'), sinSuperficie);
+  assert.equal(avance.completa, true, 'la mezcla se cierra sin la superficie');
 });
 
 test('solo las recetas cuyo resultado ES el volumen ofrecen perillas', () => {

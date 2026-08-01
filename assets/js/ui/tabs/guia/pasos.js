@@ -23,8 +23,8 @@ import { crearCampoDato, valorDeDato, fijarDato, lecturaDeDatos } from '../../da
 import { formatear, formatearTiempo } from '../../formato.js';
 import { estiloBadgeIso } from '../../color.js';
 import { filaIso } from '../../../data/iso-colors.js';
-import { aSistema, deSistema, unidad } from '../../../domain/units.js';
-import { marchasDeTractor, redondeoLegible } from '../../../domain/speed.js';
+import { aSistema, unidad } from '../../../domain/units.js';
+import { marchasDeTractor } from '../../../domain/speed.js';
 import { volumenConBoquilla, caudalRequerido } from '../../../domain/water.js';
 import { seleccionarBoquillas, clasificarGota } from '../../../domain/nozzles.js';
 import { estadisticaCaptura } from '../../../domain/capture.js';
@@ -605,5 +605,3 @@ export function volumenVigente(ctx) {
     return { boquilla, calculo: null, error };
   }
 }
-
-export { redondeoLegible, deSistema };

@@ -10,6 +10,12 @@ Fecha del análisis: agosto de 2026. Rama: `claude/calculated-fields-tabs-sync-0
 > cuerpo del documento describe **cómo estaba** —para que el motivo de cada cambio quede
 > escrito— y la §8, al final, dice qué se hizo, qué quedó fuera y por qué. Los tiempos
 > verbales en pasado del inventario se refieren al estado anterior al arreglo.
+>
+> **Superado en parte.** Los archivos que este documento nombra —`ui/velocidad.js` y las
+> funciones `fuente*` de `ui/heredado.js`— ya no existen: el patrón que describen vive ahora
+> en el registro de datos (`domain/datos.js` y `ui/dato.js`), donde cada dato compartido se
+> declara una vez y se guarda en un solo sitio. El porqué está en `docs/guia-por-objetivo.md`.
+> El inventario de qué pantalla necesita qué dato sigue siendo válido.
 
 ---
 

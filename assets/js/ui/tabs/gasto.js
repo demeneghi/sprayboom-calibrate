@@ -18,14 +18,14 @@ import {
   resultadoConfiable,
   pintarResultadoNoVerificado,
 } from '../render.js';
-import { crearCampoNumerico, crearCampoSelect } from '../campos.js';
+import { crearCampoSelect } from '../campos.js';
 import { crearCampoDato, valorDeDato, fijarDato } from '../dato.js';
 import { crearCampoHeredado } from '../heredado.js';
 import { formatear } from '../formato.js';
 import { mostrarToast } from '../toast.js';
 import { crearCombobox } from '../combobox.js';
 import { estiloBadgeIso } from '../color.js';
-import { aSistema, deSistema, unidad } from '../../domain/units.js';
+import { aSistema, unidad } from '../../domain/units.js';
 import { redondeoLegible, geometria, calibrarMarcha } from '../../domain/speed.js';
 import {
   caudalAPresionDetallado,

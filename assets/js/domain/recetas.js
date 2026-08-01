@@ -18,6 +18,8 @@
 // El asistente y las pestañas escriben en el MISMO sitio, asi que se
 // puede saltar de uno a otro a media calibracion.
 
+import { DATOS } from './datos.js';
+
 // ---------------------------------------------------------------------
 // Los pasos, declarados una vez y compartidos entre recetas
 //
@@ -179,8 +181,14 @@ export function pasosDeReceta(receta) {
 // de la barra configurada y estarian resueltos desde el primer segundo,
 // asi que el asistente los saltaria sin que nadie los mirara.
 export function estadoDePaso(paso, instantanea) {
-  const faltantes = paso.datos.filter((id) => !tieneValor(instantanea.datos?.[id]));
-  const conDatos = paso.datos.length === 0 || faltantes.length === 0;
+  // Un dato declarado OPCIONAL en el registro no cuenta para resolver el
+  // paso. La superficie objetivo de la mezcla se rotula «(opcional)» en
+  // su propia etiqueta: si contara, el objetivo de la mezcla se quedaria
+  // en «1 de 2» para siempre y el asistente no daria por cerrada una
+  // calibracion que ya tiene todo lo que el calculo necesita.
+  const exigidos = paso.datos.filter((id) => !DATOS[id]?.opcional);
+  const faltantes = exigidos.filter((id) => !tieneValor(instantanea.datos?.[id]));
+  const conDatos = exigidos.length === 0 || faltantes.length === 0;
   const propio = paso.resuelto ? paso.resuelto(instantanea) : true;
   const visto = instantanea.vistos?.includes(paso.id) ?? false;
   const resuelto = conDatos && propio && (!paso.confirmacion || visto);

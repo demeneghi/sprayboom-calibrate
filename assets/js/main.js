@@ -16,6 +16,7 @@ import {
   compartirUrl,
   decodificarEstadoCompartido,
 } from './ui/compartir.js';
+import { clavesDeJornada } from './domain/datos.js';
 
 import * as tabGuia from './ui/tabs/guia.js';
 import * as tabAvance from './ui/tabs/avance.js';
@@ -434,6 +435,17 @@ almacen.suscribir(({ tipo }) => {
 // ---------------------------------------------------------------------
 // Compartir por URL: el estado de la pantalla activa viaja en el hash
 // ---------------------------------------------------------------------
+
+// Filtro de los datos de la jornada contra el registro: es lo que se
+// envia y lo que se acepta al abrir un enlace.
+function soloClavesDeJornada(jornada) {
+  const permitidas = new Set(clavesDeJornada());
+  const salida = {};
+  for (const [clave, valor] of Object.entries(jornada ?? {})) {
+    if (permitidas.has(clave)) salida[clave] = valor;
+  }
+  return salida;
+}
 const botonCompartir = document.getElementById('boton-compartir');
 if (botonCompartir) {
   botonCompartir.addEventListener('click', async () => {
@@ -442,6 +454,12 @@ if (botonCompartir) {
       seccion: rutaActual.seccion,
       tab: rutaActual.tab,
       borrador: estado.borradores?.[rutaActual.tab] ?? {},
+      // Los datos compartidos de la calibracion viajan aparte del
+      // borrador de la pantalla: desde que viven UNA vez en la jornada
+      // (domain/datos.js), un enlace que solo llevara el borrador se
+      // abriria sin presion, sin velocidad y sin boquilla, que es casi
+      // todo lo que se queria compartir.
+      jornada: soloClavesDeJornada(estado.jornada ?? {}),
       contexto: {
         tractorActivoId: estado.tractorActivoId,
         equipoActivoId: estado.equipoActivoId,
@@ -476,6 +494,11 @@ async function aplicarEstadoCompartido(consulta) {
   if (ok) {
     almacen.actualizar((estado) => {
       estado.borradores[carga.tab] = carga.borrador ?? {};
+      // Solo se aceptan las claves que el registro declara: un enlace
+      // manipulado no puede sembrar campos que la aplicacion no conoce.
+      if (carga.jornada) {
+        estado.jornada = { ...(estado.jornada ?? {}), ...soloClavesDeJornada(carga.jornada) };
+      }
       const contexto = carga.contexto ?? {};
       if (contexto.tractorActivoId && estado.tractores.some((t) => t.id === contexto.tractorActivoId)) {
         estado.tractorActivoId = contexto.tractorActivoId;

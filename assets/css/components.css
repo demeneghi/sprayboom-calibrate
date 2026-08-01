@@ -1858,37 +1858,6 @@ dialog.dialogo::backdrop {
   background-color: hsl(var(--muted));
 }
 
-/* Marca de la fila: va monoespaciada como toda cifra. */
-.paso-receta__numero {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  border: 1px solid hsl(var(--border));
-  background-color: hsl(var(--muted));
-  color: hsl(var(--muted-foreground));
-  font-size: var(--text-meta);
-  font-weight: 600;
-}
-
-.paso-receta[aria-pressed='true'] {
-  border-color: hsl(var(--acento));
-  background-color: hsl(var(--acento) / 0.14);
-}
-
-.paso-receta[aria-pressed='true'] .paso-receta__titulo {
-  color: hsl(var(--acento-texto));
-}
-
-.paso-receta[data-listo='true'] .paso-receta__numero {
-  border-color: hsl(var(--acento));
-  background-color: hsl(var(--acento) / 0.16);
-  color: hsl(var(--acento-texto));
-}
-
 .paso-receta__cuerpo {
   display: flex;
   flex-direction: column;
