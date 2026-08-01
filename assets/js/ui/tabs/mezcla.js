@@ -20,6 +20,7 @@ import {
   pintarResultadoNoVerificado,
 } from '../render.js';
 import { crearCampoNumerico, crearCampoSelect } from '../campos.js';
+import { crearCampoHeredado, fuenteVolumenAplicacion } from '../heredado.js';
 import { formatear } from '../formato.js';
 import { mostrarToast } from '../toast.js';
 import { aSistema, deSistema, unidad } from '../../domain/units.js';
@@ -84,16 +85,38 @@ export function render(panel, ctx) {
     },
   });
 
-  const campoAplicacion = crearCampoNumerico({
+  // Toda la mezcla depende de este numero, y hasta ahora habia que
+  // copiarlo a mano: la ayuda decia «usa el L/ha real de Gasto de agua o
+  // de la prueba de captura» sin que hubiera forma de traerlo. Ahora se
+  // hereda, con el aforo mandando sobre el calculo y su procedencia a la
+  // vista.
+  const fuenteVolumen = fuenteVolumenAplicacion(ctx);
+  const campoAplicacion = crearCampoHeredado({
+    ctx,
+    tabId: id,
+    clave: 'lhaAplicacionLha',
+    claveManual: 'lhaAplicacionManual',
     etiqueta: 'Volumen de aplicación',
     unidad: unidadAplicacion,
-    valorInicial: precarga('volumenAplicacion', borrador.lhaAplicacionLha ?? null),
     ayuda:
-      'Usa el L/ha real de Gasto de agua o de la prueba de captura, no un valor supuesto: toda la mezcla depende de este número.',
-    alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { lhaAplicacionLha: deSistema('volumenAplicacion', valor, sistema) });
-      recalcular();
-    },
+      'El L/ha REAL con el que va a salir la barra, no un valor supuesto: toda la mezcla depende ' +
+      'de este número. Se precarga el medido en la prueba de captura y, si no lo hay, el ' +
+      'calculado en Gasto de agua. Si hoy aplicas con otro, escríbelo aquí.',
+    fuente: fuenteVolumen.fuente,
+    nombreDato: 'el volumen de aplicación',
+    heredado: { valor: fuenteVolumen.valor, etiqueta: fuenteVolumen.etiqueta },
+    aCampo: (lha) =>
+      Number.isFinite(lha)
+        ? Number(aSistema('volumenAplicacion', lha, sistema).toPrecision(6))
+        : null,
+    deCampo: (valor) => deSistema('volumenAplicacion', valor, sistema),
+    formatearValor: (valor) => `${formatear(valor, 1)} ${unidadAplicacion}`,
+    destino: fuenteVolumen.destino,
+    textoSinDato:
+      'Calcula el gasto de agua o afora la barra en la prueba de captura, o escribe aquí el ' +
+      'volumen de aplicación.',
+    guardadoSinMarcaEsManual: true,
+    alCambiar: () => recalcular(),
   });
 
   const campoDosis = crearCampoNumerico({

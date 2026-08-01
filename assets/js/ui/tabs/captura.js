@@ -21,6 +21,7 @@ import {
 } from '../render.js';
 import { crearCampoNumerico, crearEtiquetaConAyuda } from '../campos.js';
 import { crearCampoVelocidad } from '../velocidad.js';
+import { crearCampoHeredado, fuenteEspaciamiento } from '../heredado.js';
 import { crearCombobox } from '../combobox.js';
 import { crearCronometro } from '../cronometro.js';
 import { formatear, formatearPorcentaje } from '../formato.js';
@@ -61,18 +62,6 @@ export function render(panel, ctx) {
       return null;
     }
     return Number(aSistema(magnitud, valorMetrico, sistema).toPrecision(6));
-  }
-
-  // Precarga del espaciamiento: el efectivo de la geometria configurada
-  // (capturado si existe; si no, derivado por el dominio). Editable solo
-  // en el borrador de esta pestana.
-  function espaciamientoPrecargaM() {
-    if (Number.isFinite(borrador.espaciamientoM)) return borrador.espaciamientoM;
-    try {
-      return geometria(ctx.parametrosGeometria()).valores.espaciamientoEfectivo;
-    } catch {
-      return null;
-    }
   }
 
   function grid2(...hijos) {
@@ -125,6 +114,38 @@ export function render(panel, ctx) {
       ctx.guardarBorrador(id, { presionBar: deSistema('presion', valor, sistema) });
       recalcular();
     },
+  });
+
+  // ---------------- Regimen del motor durante el aforo ----------------
+  // Con bomba de TDF el caudal depende del regimen, asi que un aforo sin
+  // el regimen anotado no se puede comparar despues con otro: la deriva
+  // del desgaste que muestra Bitacora mezclaria pruebas hechas a
+  // regimenes distintos sin que nada lo dijera. Se hereda de Avance y se
+  // guarda con la prueba.
+  const rpmDeAvance = ctx.borrador('avance').rpm ?? ctx.tractorActivo()?.regimenHabitual ?? null;
+  const campoRpm = crearCampoHeredado({
+    ctx,
+    tabId: id,
+    clave: 'rpmPrueba',
+    claveManual: 'rpmPruebaManual',
+    etiqueta: 'Régimen del motor durante la prueba',
+    unidad: 'rpm',
+    ayuda:
+      'Con bomba de toma de fuerza el caudal cambia con el régimen: anotarlo es lo que permite ' +
+      'comparar este aforo con los anteriores. Se precarga el capturado en Avance.',
+    fuente: 'Avance',
+    nombreDato: 'el régimen',
+    heredado: {
+      valor: rpmDeAvance,
+      etiqueta: Number.isFinite(ctx.borrador('avance').rpm)
+        ? 'capturado en Avance'
+        : `régimen habitual del ${ctx.tractorActivo()?.nombre ?? 'tractor'}`,
+    },
+    formatearValor: (valor) => `${formatear(valor, 0)} rpm`,
+    destino: { seccion: 'calibrar', tab: 'avance' },
+    textoSinDato: 'Captura el régimen del motor en Avance, o escríbelo aquí.',
+    guardadoSinMarcaEsManual: true,
+    alCambiar: () => recalcular(),
   });
 
   // ---------------- Boquilla de referencia (combobox) ----------------
@@ -231,26 +252,44 @@ export function render(panel, ctx) {
     etiqueta: 'Velocidad de trabajo',
     alCambiar: () => recalcular(),
   });
-  const campoEspaciamiento = crearCampoNumerico({
+  const fuenteEsp = fuenteEspaciamiento(ctx);
+  const campoEspaciamiento = crearCampoHeredado({
+    ctx,
+    tabId: id,
+    clave: 'espaciamientoM',
+    claveManual: 'espaciamientoManual',
     etiqueta: 'Espaciamiento entre boquillas',
     unidad: unidadEspaciamiento,
-    valorInicial: aCampo('distanciaCorta', espaciamientoPrecargaM()),
-    ayuda: 'Precargado del espaciamiento efectivo de la geometría configurada; editarlo aquí no cambia la configuración.',
-    alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { espaciamientoM: deSistema('distanciaCorta', valor, sistema) });
-      recalcular();
-    },
+    ayuda:
+      'Sale de la geometría de la barra activa: el capturado si lo hay, y si no el ancho entre ' +
+      'el número de boquillas. Editarlo aquí no cambia la configuración.',
+    fuente: fuenteEsp.fuente,
+    nombreDato: 'el espaciamiento',
+    heredado: { valor: fuenteEsp.valor, etiqueta: fuenteEsp.etiqueta },
+    aCampo: (m) =>
+      Number.isFinite(m) ? Number(aSistema('distanciaCorta', m, sistema).toPrecision(6)) : null,
+    deCampo: (valor) => deSistema('distanciaCorta', valor, sistema),
+    formatearValor: (valor) => `${formatear(valor, 3)} ${unidadEspaciamiento}`,
+    destino: fuenteEsp.destino,
+    textoSinDato:
+      'Captura el ancho y el número de boquillas de la barra en Sistema, Configuración, o ' +
+      'escribe aquí el espaciamiento.',
+    guardadoSinMarcaEsManual: true,
+    alCambiar: () => recalcular(),
   });
   const campoObjetivo = crearCampoNumerico({
     etiqueta: 'Volumen objetivo',
     unidad: unidadVolumen,
-    valorInicial: aCampo(
-      'volumenAplicacion',
-      borrador.lhaObjetivo ?? p.agronomicos.volumenAguaObjetivo ?? null
-    ),
-    ayuda: 'Opcional: si se captura, el volumen real medido se compara contra este objetivo.',
+    // Mismo objetivo de jornada que Boquillas y Gasto de agua; si nadie
+    // lo ha capturado, el objetivo propio del rancho de Configuracion.
+    valorInicial: aCampo('volumenAplicacion', borrador.lhaObjetivo ?? ctx.objetivoVolumenLha()),
+    ayuda:
+      'Opcional: si se captura, el volumen real medido se compara contra este objetivo. Se ' +
+      'precarga el último objetivo capturado en la aplicación.',
     alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { lhaObjetivo: deSistema('volumenAplicacion', valor, sistema) });
+      const lha = deSistema('volumenAplicacion', valor, sistema);
+      ctx.guardarBorrador(id, { lhaObjetivo: lha });
+      ctx.guardarResultado('lhaObjetivo', { valor: lha, origen: id, detalle: 'objetivo de la jornada' });
       recalcular();
     },
   });
@@ -476,6 +515,17 @@ export function render(panel, ctx) {
 
         if (resultado.valores.lhaRealMedido !== null) {
           if (resultadoConfiable(resultado)) {
+            // El volumen MEDIDO queda a disposicion de Mezcla y
+            // Forzamiento, y manda ahi sobre el calculado: sale del aforo
+            // de esta barra, con sus boquillas como estan hoy, no de la
+            // ficha de una boquilla nueva. Solo se publica el verificado.
+            ctx.guardarResultado('lhaMedido', {
+              valor: resultado.valores.lhaRealMedido,
+              origen: 'captura',
+              detalle: `medida en la prueba de captura de ${resultado.valores.n} ${
+                resultado.valores.n === 1 ? 'boquilla' : 'boquillas'
+              }`,
+            });
             nodos.push(
               grid2(
                 pintarResultado({
@@ -518,6 +568,7 @@ export function render(panel, ctx) {
           entradas: {
             tiempoS,
             presionBar,
+            rpmPrueba: campoRpm.obtener(),
             boquillaId: boquilla?.id ?? null,
             volumenesMl: capturas.map((c) => c.volumenMl),
           },
@@ -558,6 +609,7 @@ export function render(panel, ctx) {
       equipoId: ctx.equipoActivo()?.id ?? null,
       boquillaId: entradas.boquillaId,
       presionBar: entradas.presionBar,
+      rpmPrueba: entradas.rpmPrueba,
       tiempoS: entradas.tiempoS,
       volumenesMl: entradas.volumenesMl.slice(),
       resultados: JSON.parse(JSON.stringify(resultado.valores)),
@@ -593,6 +645,7 @@ export function render(panel, ctx) {
       campoTiempo.elemento,
       zonaCronometro,
       campoPresion.elemento,
+      campoRpm.elemento,
       campoBoquilla
     ),
     tarjeta(

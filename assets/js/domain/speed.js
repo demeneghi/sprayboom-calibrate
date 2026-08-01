@@ -428,21 +428,63 @@ export function velocidadCorregida({ velocidadTeoricaKmh, factor, umbralDesviaci
 //   captura: borrador de la pestana Avance ({ modo, marcha, rpm,
 //            segundosPorTramo })
 //   mediciones: factores de desviacion MEDIDOS de ese mismo tractor
+//   rpmRespaldo: regimen que Avance PRECARGA en su campo (el habitual del
+//            tractor). Avance calcula con ese numero en cuanto se abre la
+//            pantalla, asi que quien hereda tiene que poder hacer lo
+//            mismo: sin esto, elegir una marcha y aceptar el regimen que
+//            ya venia puesto dejaba a las demas pantallas sin velocidad
+//            —o heredando un reporte de campo viejo— mientras Avance
+//            mostraba la de la marcha.
 export function velocidadDeAvance({
   captura,
   tractor,
   mediciones = [],
   distanciaReferencia,
   umbralDesviacionPct,
+  rpmRespaldo = null,
 }) {
   const sinDatos = { velocidadKmh: null, origen: null, etiqueta: null, marcha: null, avisos: [] };
   const c = captura ?? {};
   if (!tractor) return sinDatos;
 
+  const rpm = Number.isFinite(c.rpm) && c.rpm > 0
+    ? c.rpm
+    : Number.isFinite(rpmRespaldo) && rpmRespaldo > 0
+      ? rpmRespaldo
+      : null;
   const hayReporte = Number.isFinite(c.segundosPorTramo) && c.segundosPorTramo > 0;
-  const hayMarcha = Boolean(c.marcha) && Number.isFinite(c.rpm) && c.rpm > 0;
+  // Las marchas se identifican por POSICION, asi que una marcha guardada
+  // para otro tractor apunta a una velocidad nominal distinta: no se
+  // hereda. Un borrador anterior a este sello no trae tractorId y se
+  // acepta, porque el caso normal es que sea el del tractor activo.
+  const marchaDeEsteTractor =
+    Boolean(c.marcha) &&
+    (c.marcha.tractorId === undefined || c.marcha.tractorId === tractor.id);
+  const hayMarcha = marchaDeEsteTractor && rpm !== null;
   // El modo elegido en Avance manda; el otro queda como respaldo.
-  const orden = c.modo === 'reporte' ? ['reporte', 'marcha'] : ['marcha', 'reporte'];
+  const modoElegido = c.modo === 'reporte' ? 'reporte' : 'marcha';
+  const orden = modoElegido === 'reporte' ? ['reporte', 'marcha'] : ['marcha', 'reporte'];
+
+  // Cuando la velocidad NO sale del modo elegido en Avance, el respaldo
+  // se declara. Callarlo es lo que dejaba a una pantalla calibrando con
+  // el reporte de campo de la semana pasada mientras Avance mostraba la
+  // marcha de hoy, sin nada que lo delatara.
+  function avisosDeFuente(fuente) {
+    if (fuente === modoElegido) return [];
+    return [
+      aviso(
+        'advertencia',
+        'fuente-distinta-al-modo',
+        fuente === 'reporte'
+          ? 'En Avance está elegido el modo de marcha y régimen, pero esa captura está ' +
+            'incompleta: esta velocidad sale del reporte de campo guardado. Elige la marcha ' +
+            'en Avance, o borra el reporte si ya no es el de hoy.'
+          : 'En Avance está elegido el modo de reporte de campo, pero no hay segundos por ' +
+            'tramo capturados: esta velocidad sale de la marcha y el régimen guardados.',
+        { modoElegido, fuenteUsada: fuente }
+      ),
+    ];
+  }
 
   for (const fuente of orden) {
     if (fuente === 'reporte' && hayReporte) {
@@ -454,7 +496,7 @@ export function velocidadDeAvance({
         origen: 'reporte',
         etiqueta: 'del reporte de campo',
         marcha: null,
-        avisos: [],
+        avisos: avisosDeFuente('reporte'),
       };
     }
     if (fuente === 'marcha' && hayMarcha) {
@@ -466,10 +508,10 @@ export function velocidadDeAvance({
       if (!fila || fila.kmhNominal === null) continue;
       const teorica = velocidadEfectiva({
         kmhNominal: fila.kmhNominal,
-        rpm: c.rpm,
+        rpm,
         regimenNominal: tractor.regimenNominal,
       });
-      const factor = factorDesviacion({ mediciones, rpm: c.rpm });
+      const factor = factorDesviacion({ mediciones, rpm });
       const corregida = velocidadCorregida({
         velocidadTeoricaKmh: teorica,
         factor: factor.factor,
@@ -489,7 +531,7 @@ export function velocidadDeAvance({
           ? `de la marcha ${fila.etiqueta} con factor medido`
           : `de la marcha ${fila.etiqueta} (teórica sin verificar)`,
         marcha: fila.etiqueta,
-        avisos: [...factor.avisos, ...corregida.avisos],
+        avisos: [...avisosDeFuente('marcha'), ...factor.avisos, ...corregida.avisos],
       };
     }
   }

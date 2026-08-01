@@ -20,19 +20,11 @@ import {
   pintarResultadoNoVerificado,
 } from '../render.js';
 import { crearCampoNumerico, crearCampoSelect } from '../campos.js';
+import { crearCampoHeredado, fuenteVolumenAplicacion } from '../heredado.js';
 import { formatear, formatearPorcentaje, formatearTiempo } from '../formato.js';
 import { mostrarToast } from '../toast.js';
 import { aSistema, deSistema, unidad } from '../../domain/units.js';
-import {
-  redondeoLegible,
-  geometria,
-  marchasDeTractor,
-  avance,
-  avanceDesdeReporte,
-  velocidadEfectiva,
-  factorDesviacion,
-  velocidadCorregida,
-} from '../../domain/speed.js';
+import { geometria } from '../../domain/speed.js';
 import { gPorScfEfectivo } from '../../domain/gas.js';
 import {
   AVISO_SOLUBILIDAD,
@@ -52,7 +44,6 @@ const ETIQUETA_AJUSTE = {
 export function render(panel, ctx) {
   const borrador = ctx.borrador(id);
   const sistema = ctx.sistema();
-  const tractor = ctx.tractorActivo();
   const gas = ctx.gasActivo();
   const rotametro = ctx.rotametroActivo();
   const p0 = ctx.estado().parametros;
@@ -96,13 +87,6 @@ export function render(panel, ctx) {
 
   const columna = { display: 'flex', flexDirection: 'column', gap: '0.75rem' };
   const rejilla = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' };
-
-  // Valor inicial de un campo: el borrador vive en base metrica y se
-  // muestra convertido al sistema vigente, con redondeo legible.
-  function precarga(magnitud, valorMetrico) {
-    if (valorMetrico === null || valorMetrico === undefined) return null;
-    return redondeoLegible(aSistema(magnitud, valorMetrico, sistema));
-  }
 
   function alertaDestructiva(error) {
     return el(
@@ -189,17 +173,41 @@ export function render(panel, ctx) {
     },
   });
 
-  const campoVolumenAgua = crearCampoNumerico({
+  // El agua del tanque es donde se disuelve el etileno, asi que la
+  // concentracion depende del volumen REAL que sale por la barra, no del
+  // objetivo. Se hereda con el mismo criterio que Mezcla: manda el aforo
+  // sobre el calculo, y el objetivo propio del rancho queda como ultimo
+  // respaldo, dicho con esas palabras. Lo que NO se rellena nunca es la
+  // referencia de la literatura: esa es cota de sanidad, no un dato de
+  // esta barra.
+  const fuenteVolumen = fuenteVolumenAplicacion(ctx);
+  const campoVolumenAgua = crearCampoHeredado({
+    ctx,
+    tabId: id,
+    clave: 'volumenAguaLha',
+    claveManual: 'volumenAguaManual',
     etiqueta: 'Volumen de agua',
     unidad: unidadVolAplicacion,
-    valorInicial: precarga(
-      'volumenAplicacion',
-      borrador.volumenAguaLha ?? p0.agronomicos.volumenAguaObjetivo
-    ),
     ayuda:
-      'Volumen de agua objetivo propio. Si está pendiente de capturar, la aplicación NO lo rellena con la referencia de la literatura: captúralo aquí o en Configuración.',
-    alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { volumenAguaLha: deSistema('volumenAplicacion', valor, sistema) });
+      'El agua que realmente entrega la barra: de ella depende la concentración del tanque. Se ' +
+      'precarga la medida en la prueba de captura y, si no la hay, la calculada en Gasto de ' +
+      'agua o el objetivo propio de Configuración. La referencia de la literatura NO se usa ' +
+      'para rellenarla.',
+    fuente: fuenteVolumen.fuente,
+    nombreDato: 'el volumen de agua',
+    heredado: { valor: fuenteVolumen.valor, etiqueta: fuenteVolumen.etiqueta },
+    aCampo: (lha) =>
+      Number.isFinite(lha)
+        ? Number(aSistema('volumenAplicacion', lha, sistema).toPrecision(6))
+        : null,
+    deCampo: (valor) => deSistema('volumenAplicacion', valor, sistema),
+    formatearValor: (valor) => `${formatear(valor, 1)} ${unidadVolAplicacion}`,
+    destino: fuenteVolumen.destino,
+    textoSinDato:
+      'Calcula el gasto de agua, afora la barra en la prueba de captura o captura el volumen ' +
+      'objetivo propio en Configuración; también puedes escribirlo aquí.',
+    guardadoSinMarcaEsManual: true,
+    alCambiar: () => {
       recalcularObjetivo();
       recalcularAjuste();
     },
@@ -207,91 +215,41 @@ export function render(panel, ctx) {
 
   const zonaHectareas = el('div', {});
 
-  const campoTiempo = crearCampoNumerico({
+  // Lo que tarda la barra en recorrer una tabla completa sale de Avance:
+  // se hereda con su procedencia a la vista, en vez de traerse con un
+  // boton que copiaba una vez y no dejaba rastro. El calculo es el UNICO
+  // de la aplicacion (ctx.avanceDeAvance); antes esta pantalla tenia su
+  // propia copia —identica a la de Gas etileno— que ignoraba el modo
+  // elegido en Avance y traia el reporte de campo aunque ahi estuviera
+  // elegida la marcha.
+  const heredadoDeAvance = ctx.avanceDeAvance();
+  const campoTiempo = crearCampoHeredado({
+    ctx,
+    tabId: id,
+    clave: 'tiempoPorTablaS',
+    claveManual: 'tiempoPorTablaManual',
     etiqueta: 'Tiempo por tabla',
     unidad: 's',
-    valorInicial: borrador.tiempoPorTablaS ?? null,
-    ayuda: 'Lo que tarda la barra en recorrer una tabla completa. Tráelo de Avance o captúralo.',
-    alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { tiempoPorTablaS: valor });
-      recalcularObjetivo();
+    ayuda:
+      'Lo que tarda la barra en recorrer una tabla completa. Se precarga de lo capturado en ' +
+      'Avance; si mediste otro tiempo, escríbelo aquí y manda el tuyo.',
+    fuente: 'Avance',
+    nombreDato: 'el tiempo por tabla',
+    heredado: {
+      valor: heredadoDeAvance.avance
+        ? Math.round(heredadoDeAvance.avance.valores.tiempoTotalS * 10) / 10
+        : null,
+      etiqueta: `con la velocidad ${heredadoDeAvance.velocidad.etiqueta ?? ''}`,
+      avisos: heredadoDeAvance.velocidad.avisos,
     },
+    formatearValor: (valor) => formatearTiempo(valor),
+    destino: { seccion: 'calibrar', tab: 'avance' },
+    textoSinDato:
+      'Captura en Avance los segundos por tramo o una marcha con régimen, o escribe aquí el ' +
+      'tiempo por tabla.',
+    guardadoSinMarcaEsManual: true,
+    alCambiar: () => recalcularObjetivo(),
   });
-  const botonTraerTiempo = el(
-    'button',
-    { clase: 'boton boton--contorno' },
-    'Traer tiempo de Avance'
-  );
-  botonTraerTiempo.addEventListener('click', traerTiempoDeAvance);
-
-  function traerTiempoDeAvance() {
-    const capturaAvance = ctx.borrador('avance');
-    const p = ctx.estado().parametros;
-    try {
-      let resultado = null;
-      let origen = '';
-      if (
-        capturaAvance.segundosPorTramo !== null &&
-        capturaAvance.segundosPorTramo !== undefined
-      ) {
-        resultado = avanceDesdeReporte({
-          segundosPorTramo: capturaAvance.segundosPorTramo,
-          distanciaReferencia: p.geometria.distanciaReferencia,
-          largoTabla: p.geometria.largoTabla,
-        });
-        origen = 'del reporte de campo';
-      } else if (
-        capturaAvance.marcha &&
-        capturaAvance.rpm !== null &&
-        capturaAvance.rpm !== undefined
-      ) {
-        const fila = marchasDeTractor(tractor).find(
-          (f) => f.rango === capturaAvance.marcha.rango && f.marcha === capturaAvance.marcha.marcha
-        );
-        if (fila && fila.kmhNominal !== null) {
-          const teorica = velocidadEfectiva({
-            kmhNominal: fila.kmhNominal,
-            rpm: capturaAvance.rpm,
-            regimenNominal: tractor.regimenNominal,
-          });
-          const mediciones = ctx
-            .estado()
-            .factoresDesviacion.filter((m) => m.tractorId === tractor.id)
-            .map((m) => ({ rpm: m.rpm, factor: m.factor }));
-          const factor = factorDesviacion({ mediciones, rpm: capturaAvance.rpm });
-          const corregida = velocidadCorregida({
-            velocidadTeoricaKmh: teorica,
-            factor: factor.factor,
-            umbralDesviacionPct: p.umbrales.umbralDesviacionVelocidad,
-          });
-          const velocidadKmh = corregida.valores.velocidadCorregidaKmh ?? teorica;
-          resultado = avance({
-            velocidadKmh,
-            distanciaReferencia: p.geometria.distanciaReferencia,
-            largoTabla: p.geometria.largoTabla,
-          });
-          origen =
-            corregida.valores.velocidadCorregidaKmh !== null
-              ? `de la marcha ${fila.etiqueta} con factor medido`
-              : `de la marcha ${fila.etiqueta} (teórica sin verificar)`;
-        }
-      }
-      if (!resultado) {
-        mostrarToast(
-          'No hay datos utilizables en Avance: captura ahí los segundos por tramo o una marcha con régimen.',
-          { tipo: 'destructivo' }
-        );
-        return;
-      }
-      const redondeado = Math.round(resultado.valores.tiempoTotalS * 10) / 10;
-      campoTiempo.fijar(redondeado);
-      ctx.guardarBorrador(id, { tiempoPorTablaS: redondeado });
-      recalcularObjetivo();
-      mostrarToast(`Tiempo por tabla traído de Avance: ${formatearTiempo(redondeado)} (${origen}).`);
-    } catch (error) {
-      mostrarToast(String(error.message ?? error), { tipo: 'destructivo' });
-    }
-  }
 
   const selectModo = crearCampoSelect({
     etiqueta: 'Variable a despejar del rotámetro',
@@ -333,7 +291,7 @@ export function render(panel, ctx) {
   });
   const zonaScfmDado = el('div', {}, campoScfmDado.elemento);
   const zonaPsiDado = el('div', {}, campoPsiDado.elemento);
-  const zonaTiempo = el('div', { estilo: columna }, campoTiempo.elemento, botonTraerTiempo);
+  const zonaTiempo = el('div', { estilo: columna }, campoTiempo.elemento);
 
   function pintarModoDespeje() {
     zonaScfmDado.classList.toggle('oculto', modoDespeje === 'scfm');
@@ -519,6 +477,15 @@ export function render(panel, ctx) {
               psiRequerida: v.modoDespeje === 'psi' ? v.ajuste.psiManometrica : null,
               tiempoRequeridoS: v.modoDespeje === 'tiempo' ? v.ajuste.tiempoS : null,
             };
+            // La masa que hay que inyectar en una tabla queda a
+            // disposicion de Gas etileno, que la pide como «masa
+            // objetivo»: es el MISMO numero, y hasta ahora habia que
+            // apuntarlo y volverlo a teclear en la otra pantalla.
+            ctx.guardarResultado('masaPorTablaG', {
+              valor: v.masaPorTablaG,
+              origen: 'forzamiento',
+              detalle: `para ${formatear(dosisObjetivoGha, 0)} g/ha de dosis objetivo`,
+            });
           }
         }
       }

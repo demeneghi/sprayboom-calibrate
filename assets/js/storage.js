@@ -64,6 +64,11 @@ export function sembrarEstado() {
     bitacora: [],
     pruebasCaptura: [],
     borradores: {},
+    // Lo que una pantalla CALCULO y otra necesita de entrada (volumen de
+    // aplicacion, masa por tabla, objetivo de la jornada). Va aparte de
+    // los borradores porque no es la captura de una pantalla, sino su
+    // resultado, con procedencia y fecha. Ver ctx.guardarResultado.
+    resultados: {},
   };
 }
 

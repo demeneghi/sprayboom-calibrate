@@ -30,21 +30,13 @@ import {
   pintarResultadoNoVerificado,
 } from '../render.js';
 import { crearCampoNumerico } from '../campos.js';
+import { crearCampoHeredado } from '../heredado.js';
 import { formatear, formatearTiempo } from '../formato.js';
 import { nodosTubo } from './gas/tubo.js';
 import { nodosManometro } from './gas/manometro.js';
 import { decimalesDe, ajustar } from './gas/escala.js';
 import { mostrarToast } from '../toast.js';
 import { aSistema, deSistema, unidad } from '../../domain/units.js';
-import {
-  redondeoLegible,
-  marchasDeTractor,
-  velocidadEfectiva,
-  factorDesviacion,
-  velocidadCorregida,
-  avance,
-  avanceDesdeReporte,
-} from '../../domain/speed.js';
 import { masaGas, despejePresion, despejeTiempo, despejeScfm } from '../../domain/flowmeter.js';
 import { valorDefault } from '../../domain/defaults.js';
 import { gPorScfEfectivo } from '../../domain/gas.js';
@@ -64,7 +56,6 @@ const MODOS = [
 export function render(panel, ctx) {
   const borrador = ctx.borrador(id);
   const sistema = ctx.sistema();
-  const tractor = ctx.tractorActivo();
   const unidadMasa = unidad('masa', sistema);
   const decMasa = sistema === 'imperial' ? 2 : 1;
 
@@ -81,13 +72,6 @@ export function render(panel, ctx) {
       { clase: 'alerta alerta--destructiva', role: 'alert' },
       el('p', { clase: 'alerta__descripcion' }, String(error?.message ?? error))
     );
-  }
-
-  // Valor inicial de un campo de masa: el borrador vive en gramos y se
-  // muestra convertido al sistema vigente con redondeo legible.
-  function precargaMasa(valorG) {
-    if (valorG === null || valorG === undefined) return null;
-    return redondeoLegible(aSistema('masa', valorG, sistema));
   }
 
   // ---------------- Modo ----------------
@@ -117,19 +101,39 @@ export function render(panel, ctx) {
     campoScfm.elemento.classList.toggle('oculto', modo === 'lectura');
     campoPsi.elemento.classList.toggle('oculto', modo === 'presion');
     campoTiempo.elemento.classList.toggle('oculto', modo === 'tiempo');
-    botonTiempoAvance.classList.toggle('oculto', modo === 'tiempo');
   }
 
   // ---------------- Campos (todos con borrador) ----------------
-  const campoMasa = crearCampoNumerico({
+  // La masa objetivo es la que Forzamiento calcula por tabla a partir de
+  // la dosis agronomica: es el mismo numero y hasta ahora habia que
+  // apuntarlo de una pantalla y teclearlo en la otra.
+  const masaDeForzamiento = ctx.resultado('masaPorTablaG');
+  const campoMasa = crearCampoHeredado({
+    ctx,
+    tabId: id,
+    clave: 'masaObjetivoG',
+    claveManual: 'masaObjetivoManual',
     etiqueta: 'Masa de gas objetivo',
     unidad: unidadMasa,
-    valorInicial: precargaMasa(borrador.masaObjetivoG ?? null),
-    ayuda: 'La masa de etileno que se quiere inyectar en la corrida.',
-    alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { masaObjetivoG: deSistema('masa', valor, sistema) });
-      recalcular();
+    ayuda:
+      'La masa de etileno que se quiere inyectar en la corrida. Se precarga la masa por tabla ' +
+      'que calculó Forzamiento desde la dosis objetivo; si inyectas otra cantidad, escríbela aquí.',
+    fuente: 'Forzamiento',
+    nombreDato: 'la masa por tabla',
+    heredado: {
+      valor: masaDeForzamiento?.valor ?? null,
+      etiqueta: `por tabla, ${masaDeForzamiento?.detalle ?? ''}`,
     },
+    aCampo: (gramos) =>
+      Number.isFinite(gramos) ? Number(aSistema('masa', gramos, sistema).toPrecision(6)) : null,
+    deCampo: (valor) => deSistema('masa', valor, sistema),
+    formatearValor: (valor) => `${formatear(valor, decMasa)} ${unidadMasa}`,
+    destino: { seccion: 'calibrar', tab: 'forzamiento' },
+    textoSinDato:
+      'Calcula el ajuste en Forzamiento para traer la masa por tabla, o escribe aquí la masa ' +
+      'objetivo.',
+    guardadoSinMarcaEsManual: true,
+    alCambiar: () => recalcular(),
   });
 
   const campoScfm = crearCampoNumerico({
@@ -155,89 +159,41 @@ export function render(panel, ctx) {
     },
   });
 
-  const campoTiempo = crearCampoNumerico({
+  // El tiempo de inyeccion de una tabla completa es el tiempo por tabla
+  // que sale de Avance: se hereda, con su procedencia a la vista, en vez
+  // de traerse con un boton que copiaba una vez y no dejaba rastro. El
+  // calculo es el UNICO de la aplicacion (ctx.avanceDeAvance); antes esta
+  // pantalla tenia su propia copia, que ignoraba el modo elegido en
+  // Avance y traia el reporte de campo aunque ahi estuviera elegida la
+  // marcha.
+  const heredadoDeAvance = ctx.avanceDeAvance();
+  const campoTiempo = crearCampoHeredado({
+    ctx,
+    tabId: id,
+    clave: 'tiempoS',
+    claveManual: 'tiempoManual',
     etiqueta: 'Tiempo de inyección',
     unidad: 's',
-    valorInicial: borrador.tiempoS ?? null,
-    ayuda: 'Tiempo con la válvula abierta. Para una tabla completa, tráelo de Avance con el botón de abajo.',
-    alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { tiempoS: valor });
-      recalcular();
+    ayuda:
+      'Tiempo con la válvula abierta. Se precarga el tiempo por tabla que sale de lo capturado ' +
+      'en Avance; si inyectas durante otro tiempo, escríbelo aquí y manda el tuyo.',
+    fuente: 'Avance',
+    nombreDato: 'el tiempo por tabla',
+    heredado: {
+      valor: heredadoDeAvance.avance
+        ? Math.round(heredadoDeAvance.avance.valores.tiempoTotalS * 10) / 10
+        : null,
+      etiqueta: `por tabla, con la velocidad ${heredadoDeAvance.velocidad.etiqueta ?? ''}`,
+      avisos: heredadoDeAvance.velocidad.avisos,
     },
+    formatearValor: (valor) => formatearTiempo(valor),
+    destino: { seccion: 'calibrar', tab: 'avance' },
+    textoSinDato:
+      'Captura en Avance los segundos por tramo o una marcha con régimen, o escribe aquí el ' +
+      'tiempo de inyección.',
+    guardadoSinMarcaEsManual: true,
+    alCambiar: () => recalcular(),
   });
-
-  const botonTiempoAvance = el(
-    'button',
-    { clase: 'boton boton--contorno' },
-    'Usar el tiempo por tabla de Avance'
-  );
-  botonTiempoAvance.addEventListener('click', traerTiempoDeAvance);
-
-  function traerTiempoDeAvance() {
-    const capturaAvance = ctx.borrador('avance');
-    const p = ctx.estado().parametros;
-    try {
-      let resultadoAvance = null;
-      let origen = '';
-      if (capturaAvance.segundosPorTramo !== null && capturaAvance.segundosPorTramo !== undefined) {
-        resultadoAvance = avanceDesdeReporte({
-          segundosPorTramo: capturaAvance.segundosPorTramo,
-          distanciaReferencia: p.geometria.distanciaReferencia,
-          largoTabla: p.geometria.largoTabla,
-        });
-        origen = 'del reporte de campo';
-      } else if (
-        capturaAvance.marcha &&
-        capturaAvance.rpm !== null &&
-        capturaAvance.rpm !== undefined
-      ) {
-        const fila = marchasDeTractor(tractor).find(
-          (f) => f.rango === capturaAvance.marcha.rango && f.marcha === capturaAvance.marcha.marcha
-        );
-        if (fila && fila.kmhNominal !== null) {
-          const teorica = velocidadEfectiva({
-            kmhNominal: fila.kmhNominal,
-            rpm: capturaAvance.rpm,
-            regimenNominal: tractor.regimenNominal,
-          });
-          const mediciones = ctx
-            .estado()
-            .factoresDesviacion.filter((m) => m.tractorId === tractor.id)
-            .map((m) => ({ rpm: m.rpm, factor: m.factor }));
-          const factor = factorDesviacion({ mediciones, rpm: capturaAvance.rpm });
-          const corregida = velocidadCorregida({
-            velocidadTeoricaKmh: teorica,
-            factor: factor.factor,
-            umbralDesviacionPct: p.umbrales.umbralDesviacionVelocidad,
-          });
-          const velocidadKmh = corregida.valores.velocidadCorregidaKmh ?? teorica;
-          resultadoAvance = avance({
-            velocidadKmh,
-            distanciaReferencia: p.geometria.distanciaReferencia,
-            largoTabla: p.geometria.largoTabla,
-          });
-          origen =
-            corregida.valores.velocidadCorregidaKmh !== null
-              ? `de la marcha ${fila.etiqueta} con factor medido`
-              : `de la marcha ${fila.etiqueta} (teórica sin verificar)`;
-        }
-      }
-      if (!resultadoAvance) {
-        mostrarToast(
-          'No hay datos utilizables en Avance: captura ahí los segundos por tramo o una marcha con régimen.',
-          { tipo: 'destructivo' }
-        );
-        return;
-      }
-      const tiempo = Math.round(resultadoAvance.valores.tiempoTotalS * 10) / 10;
-      campoTiempo.fijar(tiempo);
-      ctx.guardarBorrador(id, { tiempoS: tiempo });
-      recalcular();
-      mostrarToast(`Tiempo por tabla traído ${origen}: ${formatearTiempo(tiempo)}.`);
-    } catch (error) {
-      mostrarToast(String(error?.message ?? error), { tipo: 'destructivo' });
-    }
-  }
 
   function lecturas() {
     return {
@@ -819,8 +775,7 @@ export function render(panel, ctx) {
         campoMasa.elemento,
         campoScfm.elemento,
         campoPsi.elemento,
-        campoTiempo.elemento,
-        botonTiempoAvance
+        campoTiempo.elemento
       )
     ),
     // Los dos instrumentos van ANTES del resultado: son la superficie de

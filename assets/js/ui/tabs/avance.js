@@ -47,9 +47,18 @@ const MARCA_ORIGEN = {
 
 export function render(panel, ctx) {
   const borrador = ctx.borrador(id);
-  let modo = borrador.modo ?? 'marcha';
-  let marchaSeleccionada = borrador.marcha ?? null; // {rango, marcha}
   const tractor = ctx.tractorActivo();
+  let modo = borrador.modo ?? 'marcha';
+  // La marcha guardada es de UN tractor: las marchas se identifican por
+  // posicion, asi que sin este filtro cambiar de tractor en el encabezado
+  // dejaba seleccionada la casilla del mismo lugar en el tractor nuevo
+  // —otra velocidad nominal— sin decir nada. Un borrador anterior a este
+  // sello no trae tractorId: se acepta y se vuelve a sellar abajo.
+  let marchaSeleccionada =
+    borrador.marcha &&
+    (borrador.marcha.tractorId === undefined || borrador.marcha.tractorId === tractor.id)
+      ? borrador.marcha
+      : null; // {rango, marcha, tractorId}
   const sistema = ctx.sistema();
   const unidadVelocidad = unidad('velocidad', sistema);
   // Longitud del tramo, en las unidades elegidas. Se arma una vez y se
@@ -105,7 +114,7 @@ export function render(panel, ctx) {
       )
     );
     boton.addEventListener('click', () => {
-      marchaSeleccionada = { rango: fila.rango, marcha: fila.marcha };
+      marchaSeleccionada = { rango: fila.rango, marcha: fila.marcha, tractorId: tractor.id };
       ctx.guardarBorrador(id, { marcha: marchaSeleccionada });
       pintarSeleccion();
       recalcular();
@@ -707,6 +716,24 @@ export function render(panel, ctx) {
       mostrarToast(String(error.message ?? error), { tipo: 'destructivo' });
     }
   }
+
+  // Lo que la pantalla YA esta usando se guarda al montar, no solo al
+  // teclearlo. El regimen aparece precargado con el habitual del tractor
+  // y Avance calcula con el desde el primer instante; el modo arranca en
+  // 'marcha' sin que nadie pulse el boton. Mientras eso vivio solo en el
+  // input, las pantallas que heredan la velocidad no lo veian: elegir una
+  // marcha y aceptar el regimen que ya venia puesto las dejaba sin
+  // velocidad —o heredando el reporte de campo de otro dia— mientras
+  // Avance mostraba la de la marcha. La marcha se vuelve a sellar con el
+  // tractor activo por lo mismo.
+  if (marchaSeleccionada) {
+    marchaSeleccionada = {
+      rango: marchaSeleccionada.rango,
+      marcha: marchaSeleccionada.marcha,
+      tractorId: tractor.id,
+    };
+  }
+  ctx.guardarBorrador(id, { modo, rpm: campoRpm.obtener(), marcha: marchaSeleccionada });
 
   // ---------------- Montaje ----------------
   panel.append(

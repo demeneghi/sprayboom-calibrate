@@ -55,6 +55,7 @@ self.SPRAYBOOM_PRECACHE = [
   './assets/js/ui/dialog.js',
   './assets/js/ui/dom.js',
   './assets/js/ui/formato.js',
+  './assets/js/ui/heredado.js',
   './assets/js/ui/render.js',
   './assets/js/ui/svg.js',
   './assets/js/ui/tabs.js',
