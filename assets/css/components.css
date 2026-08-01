@@ -1489,6 +1489,28 @@ dialog.dialogo::backdrop {
   opacity: 0.9;
 }
 
+/* Zona por donde se agarra la parte movil del instrumento: la franja
+   del tubo para arrastrar el flotador, la caratula para girar la aguja.
+   Va transparente y encima de todo el dibujo, asi que el gesto no
+   depende de acertarle a la bola ni a la aguja.
+
+   `touch-action: none` es lo que impide que el desplazamiento vertical
+   de la pagina se robe el gesto dentro de esta zona y SOLO dentro de
+   ella: sobre el chasis, el bisel y los margenes del dibujo el dedo
+   sigue desplazando la pantalla. Safari en iPhone ignora esta
+   declaracion cuando cuelga de un hijo del SVG, asi que `tubo.js` y
+   `manometro.js` la respaldan con `preventDefault` en `touchmove`
+   mientras dura el gesto. */
+.instrumento__agarre {
+  fill: transparent;
+  touch-action: none;
+  cursor: grab;
+}
+
+.instrumento__agarre:active {
+  cursor: grabbing;
+}
+
 /* Caratula del manometro: bisel, fondo y aguja. */
 .instrumento__bisel {
   fill: hsl(var(--secondary));

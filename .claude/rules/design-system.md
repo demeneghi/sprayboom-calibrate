@@ -296,6 +296,38 @@ Son cinco, y ninguna es cosmética.
 - El piso táctil sigue mandando el alto: `height: auto` deja crecer a dos renglones sin bajar de
   los 48px del piso.
 
+## Instrumento que se captura: la parte móvil se arrastra
+
+Los dos instrumentos dibujados —el tubo del rotámetro y la carátula del manómetro— no solo se
+pican: **el flotador se arrastra y la aguja se gira**. Acertarle de un toque a una raya de la
+escala es justo lo que no se puede hacer de pie en el lote, con guantes y el teléfono a la
+distancia del brazo. El tap sigue vivo: es el mismo gesto con recorrido cero.
+
+- **La zona de agarre es una figura transparente, último hijo del SVG** (`.instrumento__agarre`):
+  la franja del tubo con su escala, la carátula completa del manómetro. Va encima de todo para ser
+  siempre el destino del toque, así que el gesto **no depende de acertarle a la bola ni a la
+  aguja**. Fuera de ella —chasis, bisel, márgenes— el toque sigue capturando de un tap y el dedo
+  puede desplazar la pantalla.
+- **`touch-action: none` va en el agarre, nunca en el SVG entero.** El arrastre del flotador y el
+  desplazamiento de la página comparten eje: dentro de la zona gana el instrumento, fuera gana la
+  página. Poner el bloqueo en todo el dibujo dejaría al dedo sin forma de bajar la pantalla.
+- **Safari en iPhone ignora `touch-action` cuando cuelga de un hijo del SVG**, que es exactamente
+  el teléfono con el que se calibra. Por eso el gesto lo respalda un `preventDefault` en
+  `touchmove` **mientras dura**, con el listener declarado no pasivo. Sin ese respaldo el gesto se
+  lo lleva el scroll y el flotador no se mueve: es el fallo que trajo este patrón.
+- **La parte móvil vive en un grupo aparte** (`.instrumento__movil`) que se vuelve a pintar solo,
+  decenas de veces por segundo. **Prohibido** recalcular la pestaña en cada paso del dedo:
+  remontar destruiría el mismo SVG que está recibiendo el gesto.
+- **El valor se entrega una sola vez, al soltar.** Durante el gesto la pastilla ya va mostrando a
+  dónde va la lectura, así que el feedback no depende del recálculo.
+- El puntero se **captura** (`setPointerCapture`): el gesto sobrevive aunque el dedo se salga del
+  tubo o de la carátula. Nadie sigue una franja de 4 mm en línea recta parado sobre un tractor.
+- **Donde el toque no dice nada, no se captura**: el eje del manómetro y el hueco de 90° sin
+  escala. Ahí la aguja se queda donde iba en vez de saltar al tope.
+- El teclado sigue siendo cosa de los **botones más y menos** de la fila de captura: el SVG es
+  `role="img"`, y un control arrastrable dentro de él quedaría fuera del alcance de un lector de
+  pantalla de todos modos.
+
 ## Anillo de foco y apilado de campos
 
 - El anillo de foco se pinta **fuera** del control y **no ocupa lugar en el flujo**: nada lo
@@ -365,6 +397,12 @@ suelto. Lo mismo con cada color ISO sembrado.
   campo que se lee como bar es una calibración mal hecha.
 - Devolver el globo de ayuda al flujo (o anclarlo con `position: absolute` dentro del campo): abrir
   una ayuda volvería a empujar los campos de abajo, y dentro de una tarjeta el globo se recorta.
+- Declarar `touch-action: none` sobre el SVG entero de un instrumento: deja al dedo sin forma de
+  desplazar la pantalla desde ese pedazo grande de la pestaña.
+- Confiar el gesto solo a `touch-action`: en el iPhone con el que se calibra hay que respaldarlo
+  con `preventDefault` en `touchmove`.
+- Recalcular la pestaña en cada paso de un arrastre: remonta el SVG que está recibiendo el gesto y
+  lo deja muerto a media captura.
 - Sumar relleno a una tarjeta desde su contenido.
 - Apilar campos en un `<div>` sin clase: quedan sin separación y el anillo de foco pisa la
   etiqueta del campo de abajo.
