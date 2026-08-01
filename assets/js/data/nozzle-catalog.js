@@ -2,7 +2,8 @@
 // usuario; estas entradas son la semilla inicial y todas provienen de
 // tablas publicadas por el fabricante. NO hay numeros inventados.
 //
-// Fuentes (consultadas 2026-07-30):
+// Fuentes (TeeJet y Albuz consultadas 2026-07-30; Lechler e Hypro
+// consultadas 2026-08-01):
 //
 // [TJ] TeeJet Technologies, Catalog 51A-M (metrico),
 //      https://www.teejet.com/-/media/dam/agricultural/usa/sales-material/catalog/cat51a_metric.pdf
@@ -11,6 +12,28 @@
 //      PDF). Las clases de gota del catalogo TeeJet estan clasificadas
 //      conforme a ASABE S572.1. Para las series de dos angulos se
 //      tomo la columna del angulo indicado en cada ficha.
+//
+// [LE] Lechler, Agricultural Spray Nozzles and Accessories, catalogo
+//      2025 (edicion en ingles),
+//      https://www.lechler.com/fileadmin/media/kataloge/pdfs/agrar/EN/lechler_agriculture_catalogue_2025_en.pdf
+//      Serie ID (pagina 51) y serie IDK (pagina 53). La tabla de la
+//      serie IDK comparte renglon entre IDK e IDKN en los tamanos 03 y
+//      04, con dos columnas de clase rotuladas "IDKN IDK": aqui se toma
+//      la SEGUNDA columna (IDK), que es la que continua la progresion
+//      de la serie IDK y la mas fina de las dos, coherente con que
+//      Lechler declare el 90 % de reduccion de deriva para IDKN 03-04 y
+//      solo para IDK 05-06. La misma tabla, con el mismo rotulo, esta
+//      en la ficha suelta de la serie:
+//      https://www.lechler.com/fileadmin/media/datenblaetter/agrar/EN/lechler_agrar_datenblatt_idk-idkn_en.pdf
+//
+// [HY] Pentair Hypro, Hypro Nozzles Crop Spraying Guide (guia del
+//      fabricante, consultada en el sitio de un distribuidor),
+//      https://cropservices.co.uk/wp-content/uploads/2025/03/Pentair-Hypro-Crop-Spraying-Guide.pdf
+//      Tablas GuardianAIR 110 grados (pagina 8) y ULD 120 grados
+//      (pagina 10). La guia NO publica clase de gota por presion: solo
+//      la categoria AHDB a 3 bar y la calificacion LERAP de deriva, que
+//      no son clases de un estandar de tamano de gota. Por eso esas
+//      fichas van con clasesGota vacia.
 //
 // [AL] Albuz (CoorsTek), ficha ATR 80 cono hueco, catalogo 2024,
 //      https://albuz-spray.com/en/pdf/arbo-viticulture-NON-ISO-ATR-80.pdf
@@ -26,14 +49,23 @@
 // primera con la siguiente. Es una interpolacion documentada del dato
 // discreto del fabricante, no un dato nuevo.
 //
-// El exponente presion-caudal es 0.5 en las series TeeJet (sus tablas
-// siguen la raiz cuadrada) y en ATR 80 se ajusto a la propia tabla del
-// fabricante entre 5 y 20 bar (ln(q2/q1)/ln(p2/p1)), de ahi los valores
+// EDICION DEL ESTANDAR EN LAS FICHAS LECHLER: el catalogo 2025 publica
+// la clase "según ISO 25358". Aqui se registran como S572.3 porque esa
+// edicion de ASABE esta alineada con ISO 25358:2018 (ver el encabezado
+// de droplet-classes.js): son la misma escala, no dos escalas que haya
+// que comparar. El simbolo EC de Lechler ("Extremely coarse") es el XC
+// de la aplicacion; UC es UC.
+//
+// El exponente presion-caudal es 0.5 en las series TeeJet, Lechler e
+// Hypro (sus tablas siguen la raiz cuadrada: ln(q2/q1)/ln(p2/p1) da
+// 0.49-0.51 en los extremos de cada tabla, y la diferencia es el
+// redondeo a dos decimales del propio catalogo). En ATR 80 se ajusto a
+// la propia tabla del fabricante entre 5 y 20 bar, de ahi los valores
 // 0.47-0.49.
 //
-// Pendientes declarados (no sembrados por falta de fuente verificable
-// durante la construccion): Lechler, Hypro y ARAG. El usuario puede
-// capturarlos en el editor del catalogo citando su ficha tecnica.
+// Pendiente declarado (no sembrado por falta de fuente verificable
+// durante la construccion): ARAG. El usuario puede capturarlo en el
+// editor del catalogo citando su ficha tecnica.
 
 function tj(id, serie, modelo, tamanoIso, angulo, tipoPatron, material, caudal3bar, presionMin, presionMax, clasesGota, notas = '') {
   return {
@@ -82,8 +114,22 @@ export const CATALOGO_SIEMBRA = [
     rangos([1, 1.25, 'C'], [1.25, 3.5, 'M'], [3.5, 4, 'F'])),
   tj('xr11008', 'XR', 'XR11008', '08', 110, 'abanico-plano', 'inox/polimero', 3.16, 1, 4,
     rangos([1, 2.25, 'C'], [2.25, 4, 'M'])),
-  tj('xr11010', 'XR', 'XR11010', '10', 110, 'abanico-plano', 'inox/polimero', 3.95, 1, 4,
-    rangos([1, 1.25, 'VC'], [1.25, 2.75, 'C'], [2.75, 4, 'M'])),
+  // Los tamanos 10 y 15 llevan cruz en el catalogo: solo existen en
+  // acero inoxidable, no en la version de polimero del resto de la serie.
+  tj('xr11010', 'XR', 'XR11010', '10', 110, 'abanico-plano', 'inox', 3.95, 1, 4,
+    rangos([1, 1.25, 'VC'], [1.25, 2.75, 'C'], [2.75, 4, 'M']),
+    'Solo en acero inoxidable.'),
+  tj('xr11015', 'XR', 'XR11015', '15', 110, 'abanico-plano', 'inox', 5.92, 1, 4,
+    rangos([1, 2.25, 'VC'], [2.25, 4, 'C']),
+    'Solo en acero inoxidable. Es el tamaño más grande de la serie XR.'),
+
+  // ----- XRC TeeJet 110 (rango extendido en ceramica) -----
+  // Solo se siembra el tamano 20: es el unico abanico plano del catalogo
+  // por encima del 15, y en los demas tamanos XRC repite los caudales de
+  // la serie XR ya sembrada.
+  tj('xrc11020', 'XRC', 'XRC11020', '20', 110, 'abanico-plano', 'ceramica', 7.89, 1, 4,
+    rangos([1, 2.5, 'XC'], [2.5, 4, 'VC']),
+    'Versión cerámica de la serie de rango extendido. Es el abanico plano de mayor caudal del catálogo.'),
 
   // ----- Turbo TeeJet 110 (abanico plano con preorificio, 1-6 bar) -----
   tj('tt11001', 'TT', 'TT11001', '01', 110, 'abanico-preorificio', 'polimero', 0.39, 1, 6,
@@ -141,7 +187,7 @@ export const CATALOGO_SIEMBRA = [
   tj('ai11002', 'AI', 'AI11002', '02', 110, 'abanico-induccion', 'inox', 0.79, 2, 8,
     rangos([2, 2.5, 'UC'], [2.5, 4.5, 'XC'], [4.5, 6.5, 'VC'], [6.5, 8, 'C'])),
   tj('ai110025', 'AI', 'AI110025', '025', 110, 'abanico-induccion', 'inox', 0.99, 2, 8,
-    rangos([2, 2.5, 'UC'], [2.5, 4.5, 'XC'], [4.5, 7.5, 'VC'], [7.5, 8, 'C'])),
+    rangos([2, 2.5, 'UC'], [2.5, 4.5, 'XC'], [4.5, 6.5, 'VC'], [6.5, 8, 'C'])),
   tj('ai11003', 'AI', 'AI11003', '03', 110, 'abanico-induccion', 'inox', 1.18, 2, 8,
     rangos([2, 2.5, 'UC'], [2.5, 4.5, 'XC'], [4.5, 6.5, 'VC'], [6.5, 8, 'C'])),
   tj('ai11004', 'AI', 'AI11004', '04', 110, 'abanico-induccion', 'inox', 1.58, 2, 8,
@@ -149,7 +195,21 @@ export const CATALOGO_SIEMBRA = [
   tj('ai11005', 'AI', 'AI11005', '05', 110, 'abanico-induccion', 'inox', 1.97, 2, 8,
     rangos([2, 2.5, 'UC'], [2.5, 4.5, 'XC'], [4.5, 6.5, 'VC'], [6.5, 8, 'C'])),
   tj('ai11006', 'AI', 'AI11006', '06', 110, 'abanico-induccion', 'inox', 2.37, 2, 8,
+    rangos([2, 2.5, 'UC'], [2.5, 5.5, 'XC'], [5.5, 7.5, 'VC'], [7.5, 8, 'C'])),
+  tj('ai11008', 'AI', 'AI11008', '08', 110, 'abanico-induccion', 'inox', 3.16, 2, 8,
     rangos([2, 3.5, 'UC'], [3.5, 5.5, 'XC'], [5.5, 7.5, 'VC'], [7.5, 8, 'C'])),
+
+  // ----- AIC TeeJet 110 (induccion de aire, tamanos grandes) -----
+  // Solo se siembran 08, 10 y 15: son los caudales de inducción de aire
+  // que ninguna otra serie del catalogo alcanza. En los tamanos chicos
+  // AIC repite los caudales de la serie AI ya sembrada.
+  tj('aic11008', 'AIC', 'AIC11008', '08', 110, 'abanico-induccion', 'inox/polimero', 3.16, 2, 8,
+    rangos([2, 3.5, 'UC'], [3.5, 5.5, 'XC'], [5.5, 7.5, 'VC'], [7.5, 8, 'C'])),
+  tj('aic11010', 'AIC', 'AIC11010', '10', 110, 'abanico-induccion', 'inox/polimero', 3.95, 2, 8,
+    rangos([2, 3.5, 'UC'], [3.5, 5.5, 'XC'], [5.5, 7.5, 'VC'], [7.5, 8, 'C'])),
+  tj('aic11015', 'AIC', 'AIC11015', '15', 110, 'abanico-induccion', 'inox', 5.92, 2, 8,
+    rangos([2, 3.5, 'UC'], [3.5, 5.5, 'XC'], [5.5, 7.5, 'VC'], [7.5, 8, 'C']),
+    'Solo en acero inoxidable. Es la boquilla de inducción de aire de mayor caudal del catálogo.'),
 
   // ----- TX ConeJet VisiFlo (cono hueco ceramico, 80 grados a 7 bar) -----
   // Tamanos propios de TeeJet, NO ISO. Uso tipico a 3 bar o mas.
@@ -222,6 +282,134 @@ CATALOGO_SIEMBRA.push(
   atr('atr80-naranja', 'naranja', 1.39, 0.485),
   atr('atr80-rojo', 'rojo', 1.92, 0.476),
   atr('atr80-gris', 'gris', 2.08, 0.471)
+);
+
+// ----- Lechler: abanico de induccion de aire, 120 grados -----
+// El catalogo publica la clase segun ISO 25358; se registra como S572.3,
+// que es la edicion de ASABE alineada con esa norma (ver el encabezado).
+function le(id, serie, modelo, tamanoIso, caudal3bar, presionMin, presionMax, clasesGota, notas) {
+  return {
+    id,
+    fabricante: 'Lechler',
+    serie,
+    modelo,
+    tipoPatron: 'abanico-induccion',
+    anguloGrados: 120,
+    tamanoIso,
+    caudalRefLmin: caudal3bar,
+    presionRefBar: 3,
+    presionMinBar: presionMin,
+    presionMaxBar: presionMax,
+    exponente: 0.5,
+    material: 'polimero',
+    edicionEstandar: 'S572.3',
+    clasesGota,
+    notas,
+    fuente:
+      'Lechler, catálogo agrícola 2025 (inglés), tabla de la serie; clase de gota según ' +
+      'ISO 25358 (equivale a ASABE S572.3).',
+  };
+}
+
+const NOTA_LECHLER_MATERIAL = 'También se fabrica en cerámica (sufijo C), con el mismo caudal.';
+
+CATALOGO_SIEMBRA.push(
+  // Serie ID: inyector largo, tamanos 01-10, 2-8 bar (3-8 bar en 01 y 015).
+  le('id120-01', 'ID', 'ID-120-01', '01', 0.39, 3, 8,
+    rangos([3, 3.5, 'XC'], [3.5, 6.5, 'VC'], [6.5, 8, 'C']), NOTA_LECHLER_MATERIAL),
+  le('id120-015', 'ID', 'ID-120-015', '015', 0.59, 3, 8,
+    rangos([3, 5.5, 'VC'], [5.5, 8, 'C']), NOTA_LECHLER_MATERIAL),
+  le('id120-02', 'ID', 'ID-120-02', '02', 0.8, 2, 8,
+    rangos([2, 2.5, 'XC'], [2.5, 5.5, 'VC'], [5.5, 7.5, 'C'], [7.5, 8, 'M']), NOTA_LECHLER_MATERIAL),
+  le('id120-025', 'ID', 'ID-120-025', '025', 0.99, 2, 8,
+    rangos([2, 2.5, 'UC'], [2.5, 3.5, 'XC'], [3.5, 8, 'VC']), NOTA_LECHLER_MATERIAL),
+  le('id120-03', 'ID', 'ID-120-03', '03', 1.19, 2, 8,
+    rangos([2, 2.5, 'UC'], [2.5, 3.5, 'XC'], [3.5, 8, 'VC']), NOTA_LECHLER_MATERIAL),
+  le('id120-04', 'ID', 'ID-120-04', '04', 1.58, 2, 8,
+    rangos([2, 3.5, 'XC'], [3.5, 8, 'VC']), NOTA_LECHLER_MATERIAL),
+  le('id120-05', 'ID', 'ID-120-05', '05', 1.97, 2, 8,
+    rangos([2, 2.5, 'UC'], [2.5, 3.5, 'XC'], [3.5, 8, 'VC']), NOTA_LECHLER_MATERIAL),
+  le('id120-06', 'ID', 'ID-120-06', '06', 2.36, 2, 8,
+    rangos([2, 3.5, 'XC'], [3.5, 8, 'VC']), NOTA_LECHLER_MATERIAL),
+  le('id120-08', 'ID', 'ID-120-08', '08', 3.16, 2, 8,
+    rangos([2, 3.5, 'XC'], [3.5, 8, 'VC']), NOTA_LECHLER_MATERIAL),
+  le('id120-10', 'ID', 'ID-120-10', '10', 3.94, 2, 8,
+    rangos([2, 2.5, 'UC'], [2.5, 4.5, 'XC'], [4.5, 8, 'VC']), NOTA_LECHLER_MATERIAL),
+
+  // Serie IDK: la misma idea en cuerpo compacto, tamanos 01-10, 1-6 bar.
+  le('idk120-01', 'IDK', 'IDK 120-01', '01', 0.39, 1, 6,
+    rangos([1, 1.25, 'XC'], [1.25, 3.5, 'VC'], [3.5, 5, 'C'], [5, 6, 'M']), NOTA_LECHLER_MATERIAL),
+  le('idk120-015', 'IDK', 'IDK 120-015', '015', 0.59, 1, 6,
+    rangos([1, 1.25, 'XC'], [1.25, 2.5, 'VC'], [2.5, 5, 'C'], [5, 6, 'M']), NOTA_LECHLER_MATERIAL),
+  le('idk120-02', 'IDK', 'IDK 120-02', '02', 0.8, 1, 6,
+    rangos([1, 1.25, 'XC'], [1.25, 3.5, 'VC'], [3.5, 5, 'C'], [5, 6, 'M']), NOTA_LECHLER_MATERIAL),
+  le('idk120-025', 'IDK', 'IDK 120-025', '025', 0.99, 1, 6,
+    rangos([1, 1.25, 'XC'], [1.25, 2.5, 'VC'], [2.5, 5, 'C'], [5, 6, 'M']), NOTA_LECHLER_MATERIAL),
+  le('idk120-03', 'IDK', 'IDK 120-03', '03', 1.19, 1, 6,
+    rangos([1, 1.25, 'XC'], [1.25, 3.5, 'VC'], [3.5, 5, 'C'], [5, 6, 'M']),
+    `${NOTA_LECHLER_MATERIAL} La variante IDKN de este tamaño da gota más gruesa; aquí va la columna IDK.`),
+  le('idk120-04', 'IDK', 'IDK 120-04', '04', 1.58, 1, 6,
+    rangos([1, 1.25, 'UC'], [1.25, 2.5, 'XC'], [2.5, 3.5, 'VC'], [3.5, 6, 'C']),
+    `${NOTA_LECHLER_MATERIAL} La variante IDKN de este tamaño da gota más gruesa; aquí va la columna IDK.`),
+  le('idk120-05', 'IDK', 'IDK 120-05', '05', 1.97, 1, 6,
+    rangos([1, 1.75, 'XC'], [1.75, 4.5, 'VC'], [4.5, 6, 'C']), NOTA_LECHLER_MATERIAL),
+  le('idk120-06', 'IDK', 'IDK 120-06', '06', 2.36, 1, 6,
+    rangos([1, 1.25, 'XC'], [1.25, 3.5, 'VC'], [3.5, 6, 'C']), NOTA_LECHLER_MATERIAL),
+  le('idk120-08', 'IDK', 'IDK 120-08', '08', 3.16, 1, 6,
+    rangos([1, 1.75, 'XC'], [1.75, 5, 'VC'], [5, 6, 'C']), NOTA_LECHLER_MATERIAL),
+  le('idk120-10', 'IDK', 'IDK 120-10', '10', 3.94, 1, 6,
+    rangos([1, 1.25, 'UC'], [1.25, 2.5, 'XC'], [2.5, 5, 'VC'], [5, 6, 'C']), NOTA_LECHLER_MATERIAL)
+);
+
+// ----- Hypro (Pentair): abanico de induccion de aire -----
+// La guia del fabricante no publica clase de gota por presion, solo la
+// categoria AHDB a 3 bar y la calificacion de deriva LERAP. Sin clase no
+// hay edicion de estandar que registrar, y estas fichas no participan en
+// el filtrado por clase de gota.
+function hy(id, serie, modelo, tamanoIso, angulo, caudal3bar, presionMin, presionMax, notas) {
+  return {
+    id,
+    fabricante: 'Hypro',
+    serie,
+    modelo,
+    tipoPatron: 'abanico-induccion',
+    anguloGrados: angulo,
+    tamanoIso,
+    caudalRefLmin: caudal3bar,
+    presionRefBar: 3,
+    presionMinBar: presionMin,
+    presionMaxBar: presionMax,
+    exponente: 0.5,
+    material: 'polimero',
+    edicionEstandar: null,
+    clasesGota: [],
+    notas: `${notas} La guía del fabricante no publica clase de gota por presión.`,
+    fuente: 'Pentair Hypro, Hypro Nozzles Crop Spraying Guide, tabla de la serie.',
+  };
+}
+
+const NOTA_ULD = 'Gota gruesa llena de aire, para cuando lo que manda es no derivar.';
+const NOTA_GA = 'Inclinada hacia atrás; equilibra cobertura y deriva.';
+
+CATALOGO_SIEMBRA.push(
+  // ULD 120: Ultra Lo-Drift, tamanos 015-08, 2-5 bar.
+  hy('uld120-015', 'ULD', 'ULD120-015', '015', 120, 0.6, 2, 5, NOTA_ULD),
+  hy('uld120-02', 'ULD', 'ULD120-02', '02', 120, 0.8, 2, 5, NOTA_ULD),
+  hy('uld120-025', 'ULD', 'ULD120-025', '025', 120, 1.0, 2, 5, NOTA_ULD),
+  hy('uld120-03', 'ULD', 'ULD120-03', '03', 120, 1.2, 2, 5, NOTA_ULD),
+  hy('uld120-04', 'ULD', 'ULD120-04', '04', 120, 1.6, 2, 5, NOTA_ULD),
+  hy('uld120-05', 'ULD', 'ULD120-05', '05', 120, 2.0, 2, 5, NOTA_ULD),
+  hy('uld120-06', 'ULD', 'ULD120-06', '06', 120, 2.4, 2, 5, NOTA_ULD),
+  hy('uld120-08', 'ULD', 'ULD120-08', '08', 120, 3.2, 2, 5, NOTA_ULD),
+
+  // GuardianAIR 110: tamanos 015-05, 1-5 bar.
+  hy('ga110-015', 'GuardianAIR', 'GA110-015', '015', 110, 0.6, 1, 5, NOTA_GA),
+  hy('ga110-02', 'GuardianAIR', 'GA110-02', '02', 110, 0.8, 1, 5, NOTA_GA),
+  hy('ga110-025', 'GuardianAIR', 'GA110-025', '025', 110, 1.0, 1, 5, NOTA_GA),
+  hy('ga110-03', 'GuardianAIR', 'GA110-03', '03', 110, 1.2, 1, 5, NOTA_GA),
+  hy('ga110-035', 'GuardianAIR', 'GA110-035', '035', 110, 1.4, 1, 5, NOTA_GA),
+  hy('ga110-04', 'GuardianAIR', 'GA110-04', '04', 110, 1.6, 1, 5, NOTA_GA),
+  hy('ga110-05', 'GuardianAIR', 'GA110-05', '05', 110, 2.0, 1, 5, NOTA_GA)
 );
 
 export const TIPOS_PATRON = [

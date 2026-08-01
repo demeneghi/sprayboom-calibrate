@@ -7,6 +7,9 @@ import {
   sembrarEstado,
   crearAlmacen,
   adoptarVelocidadesDeFabrica,
+  adoptarBoquillasDeFabrica,
+  corregirBoquillasDeFabrica,
+  CORRECCIONES_CATALOGO,
   exportarJSON,
   exportarCatalogoJSON,
   importarJSON,
@@ -103,6 +106,51 @@ test('adoptar velocidades: tolera tractores propios y datos incompletos', () => 
   assert.equal(resultado[0].velocidades[0].kmhNominal, 4, 'un tractor sin semilla no se toca');
   assert.deepEqual(resultado[1], roto, 'un tractor sin tabla no truena');
   assert.equal(adoptarVelocidadesDeFabrica(null, semilla), null);
+});
+
+test('adoptar boquillas: las nuevas de fabrica llegan a un telefono que ya guardo su catalogo', () => {
+  const backend = backendFalso();
+  const semilla = sembrarEstado();
+  const propia = { ...semilla.catalogo[0], id: 'boquilla-del-rancho', modelo: 'La de siempre' };
+  // Guardado viejo: dos fichas de fabrica, una editada por el usuario, y una suya.
+  const editada = { ...semilla.catalogo[1], caudalRefLmin: 0.61 };
+  backend.setItem(
+    CLAVE_ALMACEN,
+    JSON.stringify({ ...semilla, catalogo: [semilla.catalogo[0], editada, propia] })
+  );
+
+  const catalogo = crearAlmacen({ backend }).obtener().catalogo;
+  assert.equal(catalogo.length, semilla.catalogo.length + 1, 'entran las que faltaban y queda la propia');
+  assert.ok(
+    catalogo.some((b) => b.id === 'boquilla-del-rancho'),
+    'la boquilla del usuario no se pierde'
+  );
+  assert.equal(
+    catalogo.find((b) => b.id === editada.id).caudalRefLmin,
+    0.61,
+    'una ficha ya guardada no se pisa: pudo haberla editado'
+  );
+  for (const id of ['xr11015', 'id120-10', 'uld120-08']) {
+    assert.ok(catalogo.some((b) => b.id === id), `no llegó la boquilla nueva ${id}`);
+  }
+});
+
+test('adoptar boquillas: tolera datos incompletos y no duplica', () => {
+  const semilla = sembrarEstado().catalogo;
+  assert.equal(adoptarBoquillasDeFabrica(null, semilla), null);
+  assert.equal(adoptarBoquillasDeFabrica(semilla, semilla).length, semilla.length);
+  assert.equal(adoptarBoquillasDeFabrica([null], semilla).length, semilla.length + 1);
+});
+
+test('corregir boquillas: la clase de gota corregida llega solo a la ficha no editada', () => {
+  const correccion = CORRECCIONES_CATALOGO[0];
+  const sinTocar = { id: correccion.id, clasesGota: correccion.antes };
+  const editada = { id: correccion.id, clasesGota: [{ presionMinBar: 2, presionMaxBar: 8, clase: 'M' }] };
+  const otra = { id: 'xr11004', clasesGota: correccion.antes };
+  const [a, b, c] = corregirBoquillasDeFabrica([sinTocar, editada, otra]);
+  assert.deepEqual(a.clasesGota, correccion.despues, 'la ficha intacta adopta la corrección');
+  assert.deepEqual(b.clasesGota, editada.clasesGota, 'lo que el usuario cambió no se pisa');
+  assert.deepEqual(c.clasesGota, correccion.antes, 'otra boquilla no se toca');
 });
 
 test('version de esquema desconocida: se siembra y se reporta, sin tronar', () => {
