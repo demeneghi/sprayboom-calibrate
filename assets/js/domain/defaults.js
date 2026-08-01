@@ -291,9 +291,9 @@ export const COTAS_BARRA = {
     unidad: 'm',
     magnitud: 'distanciaCorta',
     opcional: true,
-    etiqueta: 'Espaciamiento entre boquillas (capturado)',
+    etiqueta: 'Espaciamiento entre boquillas',
     ayuda:
-      'Déjalo vacío si las boquillas están parejas: sale del ancho entre el número de boquillas. Captúralo solo si no lo están; si no cuadra, te avisamos.',
+      'La distancia de centro a centro entre dos boquillas vecinas, medida con el flexómetro. Si eliges que se calcule, sale del ancho entre el número de boquillas.',
   },
 };
 
@@ -515,6 +515,11 @@ export const EQUIPOS_SIEMBRA = [
     numBoquillas: 24,
     numBoquillasVerificado: 'estimacion', // contarlas en la barra antes de confiar
     espaciamientoCapturado: null, // vacio: se deriva del ancho entre boquillas
+    // Cual de los tres datos de la geometria se calcula de los otros dos.
+    // 'espaciamiento' es la relacion de siempre; con 'anchoBarra' o
+    // 'numBoquillas' se captura el espaciamiento medido y sale el otro, y
+    // con 'ninguno' se capturan los tres y se avisa si no cuadran.
+    geometriaCalculada: 'espaciamiento',
     tipoBomba: 'positiva',
     accionamiento: 'tdf',
     tdfNominal: 540,

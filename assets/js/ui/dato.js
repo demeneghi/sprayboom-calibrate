@@ -125,8 +125,12 @@ export function valorDeDato(ctx, id) {
   const respaldo = respaldoDeDato(ctx, id);
 
   if (declaracion.tipo === 'opcion') {
+    // Una opción también puede venir de una fuente: la barra propone cuál
+    // de los tres datos de su geometría se calcula. Manda lo elegido para
+    // la jornada; si no hay, lo que dice la barra; y si tampoco, el
+    // predeterminado del registro.
     return {
-      valor: guardado ?? declaracion.predeterminado ?? null,
+      valor: guardado ?? respaldo.valor ?? declaracion.predeterminado ?? null,
       manual: guardado !== undefined && guardado !== null,
       respaldo,
     };

@@ -39,7 +39,10 @@ export const PASOS = {
   },
   barra: {
     id: 'barra',
-    tipo: 'datos',
+    // Los tres datos de la barra están amarrados
+    // (`ancho = número * espaciamiento`): se confirman dos y el tercero
+    // se calcula, con el mismo componente que monta Gasto de agua.
+    tipo: 'barra',
     titulo: 'La barra',
     pregunta: 'Confirma la barra con la que sales',
     porque: 'El ancho, el número de boquillas y el espaciamiento reparten el caudal.',

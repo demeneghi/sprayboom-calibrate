@@ -19,14 +19,15 @@ import {
   pintarResultadoNoVerificado,
 } from '../render.js';
 import { crearCampoSelect } from '../campos.js';
-import { crearCampoDato, valorDeDato, fijarDato } from '../dato.js';
+import { crearCampoDato, valorDeDato, fijarDato, respaldoDeDato, DATOS } from '../dato.js';
 import { crearCampoHeredado } from '../heredado.js';
+import { crearTrioBarra } from '../trio-barra.js';
 import { formatear } from '../formato.js';
 import { mostrarToast } from '../toast.js';
 import { crearCombobox } from '../combobox.js';
 import { estiloBadgeIso } from '../color.js';
 import { aSistema, unidad } from '../../domain/units.js';
-import { redondeoLegible, geometria, calibrarMarcha } from '../../domain/speed.js';
+import { redondeoLegible, calibrarMarcha, modoGeometriaDe } from '../../domain/speed.js';
 import {
   caudalAPresionDetallado,
   caudalConDensidadDetallado,
@@ -191,29 +192,135 @@ export function render(panel, ctx) {
     alCambiar: () => recalcular(),
   });
 
-  const campoAncho = crearCampoDato(ctx, 'anchoBarraM', {
+  // ---------------- Geometria de la barra (los tres amarrados) --------
+  //
+  // Ancho, numero de boquillas y espaciamiento no son tres datos
+  // sueltos: `ancho = número * espaciamiento`. Se capturan los DOS que
+  // se pueden medir parado junto a la barra y el tercero sale solo, en
+  // la direccion que elija quien captura. Antes solo bajaba el
+  // espaciamiento del ancho entre las boquillas, y las otras dos
+  // direcciones tocaba hacerlas con la calculadora del mismo telefono.
+  //
+  // Los tres siguen siendo datos de la jornada: el trio los lee y los
+  // escribe por `ui/dato.js`, asi que lo que se captura aqui es lo mismo
+  // que ven el asistente, Boquillas y la Prueba de captura.
+  const geometriaBarra = {
+    anchoBarraM: respaldoDeDato(ctx, 'anchoBarraM').valor,
+    numBoquillas: respaldoDeDato(ctx, 'numBoquillas').valor,
+    espaciamientoM: respaldoDeDato(ctx, 'espaciamientoM').valor,
+  };
+  // La barra propone cuál de los tres se calcula; lo elegido para la
+  // jornada manda. `modoGeometriaDe` cubre a las barras guardadas sin la
+  // marca: ahí el espaciamiento vacío significa —como siempre significó—
+  // que se deriva del ancho entre el número de boquillas.
+  const modoBarra = modoGeometriaDe(equipo);
+  const modoJornada = valorDeDato(ctx, 'geometriaCalculada');
+  const modoInicial = modoJornada.manual ? modoJornada.valor : modoBarra;
+
+  const estadoGeometria = el('div', { clase: 'fila-control' });
+  const botonGeometriaBarra = el(
+    'button',
+    { type: 'button', clase: 'boton boton--contorno' },
+    'Volver a la geometría de la barra'
+  );
+
+  const trio = crearTrioBarra({
     sistema,
-    ayuda: `Viene de la barra «${equipo?.nombre ?? 'sin barra'}». Cambiarlo aquí no toca la configuración.`,
-    alCambiar: () => recalcular(),
+    valores: {
+      anchoBarraM: valorDeDato(ctx, 'anchoBarraM').valor,
+      numBoquillas: valorDeDato(ctx, 'numBoquillas').valor,
+      espaciamientoM: valorDeDato(ctx, 'espaciamientoM').valor,
+    },
+    calcular: modoInicial,
+    umbralDiscrepanciaPct: ctx.estado().parametros.umbrales.umbralDiscrepanciaMetodos,
+    espaciamientoMinimoPlausible: ctx.estado().parametros.umbrales.espaciamientoMinimoPlausible,
+    etiquetas: {
+      anchoBarra: DATOS.anchoBarraM.etiqueta,
+      numBoquillas: DATOS.numBoquillas.etiqueta,
+      espaciamiento: DATOS.espaciamientoM.etiqueta,
+    },
+    ayudas: {
+      anchoBarra: `Viene de la barra «${equipo?.nombre ?? 'sin barra'}». Cambiarlo aquí no toca la configuración.`,
+      numBoquillas: DATOS.numBoquillas.ayuda,
+      espaciamiento: DATOS.espaciamientoM.ayuda,
+    },
+    alCambiar: ({ valores, calcular }) => {
+      fijarDato(ctx, 'anchoBarraM', valores.anchoBarraM);
+      fijarDato(ctx, 'numBoquillas', valores.numBoquillas);
+      fijarDato(ctx, 'espaciamientoM', valores.espaciamientoM);
+      fijarDato(ctx, 'geometriaCalculada', calcular);
+      pintarEstadoGeometria();
+      recalcular();
+    },
   });
-  const campoNumBoquillas = crearCampoDato(ctx, 'numBoquillas', {
-    sistema,
-    alCambiar: () => recalcular(),
-  });
-  const campoEspaciamiento = crearCampoDato(ctx, 'espaciamientoM', {
-    sistema,
-    alCambiar: () => recalcular(),
+
+  // Dos geometrias son la misma si los tres numeros coinciden hasta el
+  // redondeo de captura: comparar con `===` marcaria como capturado a
+  // mano un espaciamiento que solo perdio decimales al pintarse.
+  function mismoNumero(a, b) {
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return a === b;
+    return Math.abs(a - b) <= Math.abs(b) * 1e-6 + 1e-9;
+  }
+  function esGeometriaDeLaBarra() {
+    const v = trio.obtener();
+    return (
+      mismoNumero(v.anchoBarraM, geometriaBarra.anchoBarraM) &&
+      mismoNumero(v.numBoquillas, geometriaBarra.numBoquillas) &&
+      mismoNumero(v.espaciamientoM, geometriaBarra.espaciamientoM)
+    );
+  }
+
+  function pintarEstadoGeometria() {
+    const deLaBarra = esGeometriaDeLaBarra();
+    reemplazar(
+      estadoGeometria,
+      el(
+        'span',
+        { clase: deLaBarra ? 'badge badge--secundario' : 'badge badge--contorno' },
+        deLaBarra ? 'de la barra' : 'capturado a mano'
+      ),
+      el(
+        'span',
+        { clase: 'texto-meta' },
+        deLaBarra
+          ? `Tal como está configurada la barra «${equipo?.nombre ?? 'sin barra'}».`
+          : `La barra «${equipo?.nombre ?? 'sin barra'}» tiene ` +
+            `${formatear(aSistema('distancia', geometriaBarra.anchoBarraM, sistema), 2)} ` +
+            `${unidad('distancia', sistema)} con ${formatear(geometriaBarra.numBoquillas, 0)} ` +
+            `boquillas a ${formatear(aSistema('distanciaCorta', geometriaBarra.espaciamientoM, sistema), 3)} ` +
+            `${unidadEspaciamiento}.`
+      )
+    );
+    botonGeometriaBarra.classList.toggle('oculto', deLaBarra);
+  }
+
+  botonGeometriaBarra.addEventListener('click', () => {
+    // Se BORRA lo capturado en vez de copiar los números de la barra: así
+    // los tres vuelven a heredar de verdad y siguen a la barra si mañana
+    // cambia, que es lo que dice el chip.
+    ctx.fijarJornada({
+      anchoBarraM: undefined,
+      numBoquillas: undefined,
+      espaciamientoM: undefined,
+      espaciamientoManual: false,
+      geometriaCalculada: undefined,
+    });
+    trio.fijar(geometriaBarra, modoBarra);
+    pintarEstadoGeometria();
+    recalcular();
+    mostrarToast('Geometría de la barra restaurada.');
   });
 
   function lecturas() {
+    const geo = trio.obtener();
     return {
       // Los campos de dato devuelven el valor en base metrica: la
       // conversion vive dentro del campo, no repetida en cada lectura.
       presionBar: campoPresion.obtenerBase(),
       velocidadKmh: campoVelocidad.obtenerBase(),
-      anchoBarraM: campoAncho.obtenerBase(),
-      numBoquillas: campoNumBoquillas.obtenerBase(),
-      espaciamientoM: campoEspaciamiento.obtenerBase(),
+      anchoBarraM: geo.anchoBarraM,
+      numBoquillas: geo.numBoquillas,
+      espaciamientoM: geo.espaciamientoM,
       lhaObjetivo: campoObjetivo.obtenerBase(),
       rpmTrabajo: campoRpmTrabajo.obtener(),
     };
@@ -368,16 +475,12 @@ export function render(panel, ctx) {
           )
         );
       } else {
-        // Guardas de plausibilidad del espaciamiento capturado (dominio):
-        // detecta captura en centimetros y discrepancia contra el
-        // derivado del ancho entre el numero de boquillas configurados.
-        try {
-          const g = geometria({ ...ctx.parametrosGeometria(), espaciamientoCapturado: espaciamientoM });
-          nodos.push(...pintarAvisos(g.avisos));
-        } catch {
-          // La geometria configurada no bloquea el calculo central: los
-          // dos metodos solo dependen de las capturas del dia.
-        }
+        // Las guardas de plausibilidad de la geometria —espaciamiento
+        // capturado en centimetros, ancho que no cuadra con las boquillas
+        // por su espaciamiento— las pinta el trio de la barra, con los
+        // tres numeros DEL DIA. Antes se comparaba el espaciamiento
+        // capturado aqui contra el ancho de la configuracion, que puede
+        // ser otro.
         const q = caudales(b, presionBar, dr);
         const resultado = ambosMetodos({
           caudalBoquillaLmin: q.caldo,
@@ -990,9 +1093,9 @@ export function render(panel, ctx) {
       zonaBoquilla,
       campoPresion.elemento,
       campoVelocidad.elemento,
-      campoAncho.elemento,
-      campoNumBoquillas.elemento,
-      campoEspaciamiento.elemento
+      trio.elemento,
+      estadoGeometria,
+      botonGeometriaBarra
     ),
     tarjeta(
       {
@@ -1032,5 +1135,6 @@ export function render(panel, ctx) {
   );
 
   pintarBoquilla();
+  pintarEstadoGeometria();
   recalcular();
 }

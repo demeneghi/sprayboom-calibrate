@@ -95,6 +95,27 @@ export const DATOS = {
       'escribe aquí el espaciamiento.',
   },
 
+  // Los tres de arriba están amarrados: `ancho = número * espaciamiento`.
+  // Este dato dice CUÁL de ellos se calcula de los otros dos, y por eso
+  // vive con ellos y no en el borrador de una pantalla: la barra propone
+  // el suyo y quien calibra puede cambiarlo para la jornada.
+  geometriaCalculada: {
+    etiqueta: '¿Cuál se calcula?',
+    tipo: 'opcion',
+    nombreEnFrase: 'cuál dato de la barra se calcula',
+    opciones: [
+      { valor: 'anchoBarra', texto: 'El ancho de la barra' },
+      { valor: 'numBoquillas', texto: 'El número de boquillas' },
+      { valor: 'espaciamiento', texto: 'El espaciamiento' },
+      { valor: 'ninguno', texto: 'Ninguno: capturo los tres' },
+    ],
+    respaldo: 'equipo.geometriaCalculada',
+    predeterminado: 'espaciamiento',
+    ayuda:
+      'Los tres datos de la barra están amarrados: el ancho es el número de boquillas por el ' +
+      'espaciamiento. Elige cuál se calcula solo y captura los otros dos.',
+  },
+
   lhaObjetivo: {
     etiqueta: 'Volumen objetivo',
     magnitud: 'volumenAplicacion',

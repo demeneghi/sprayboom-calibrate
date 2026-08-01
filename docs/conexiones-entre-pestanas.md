@@ -255,7 +255,8 @@ propia pestaña de captura reporta el «desgaste implícito» y ese número no l
 | Boquillas (candidata elegida) | Prueba de captura | ❌ | hay que volver a buscarla en el combo |
 | Barra activa `presionCalibracion` | Prueba de captura | ✅ | precarga |
 | Barra activa `presionCalibracion` | Gasto de agua | ❌ | el campo de presión arranca vacío |
-| Geometría de la barra | espaciamiento en gasto/boquillas/captura | ⚠️ | los tres precargan de configuración, pero **no entre sí**, sin chip de origen, y una vez editado ya no se resincroniza |
+| Geometría de la barra | espaciamiento en boquillas/captura | ✅ | dato de la jornada con chip de origen (`domain/datos.js`, respaldo `barra`) |
+| Geometría de la barra | ancho, boquillas y espaciamiento en Gasto de agua | ✅ | el trío de la barra: se capturan dos, el tercero se calcula, y el chip dice cuándo dejó de ser el de la barra |
 | Barra activa `volumenTanque` | Mezcla | ✅ | precarga con ayuda que lo dice |
 
 ### 5.6 Lo que sí está bien
@@ -367,6 +368,29 @@ espaciamiento (3). `crearCampoVelocidad` quedó reducido a lo propio de la veloc
 
 La bandera `guardadoSinMarcaEsManual` protege a los campos que **antes** se capturaban a mano:
 lo que ya estaba guardado sin marca es una captura del usuario y no se pisa con lo heredado.
+
+### El trío de la barra: ancho, boquillas y espaciamiento
+
+`ui/trio-barra.js` (sobre `domain/speed.js: completarTrioBarra`) captura los tres juntos,
+porque no son independientes: `ancho = número de boquillas * espaciamiento`. Se capturan **dos**
+y el tercero sale solo, en cualquiera de las tres direcciones; cuál se calcula lo dice un grupo
+de opciones y no se adivina del campo que quedó vacío. Lo usan la barra de Configuración —donde
+el dato vive— y la captura del día de Gasto de agua.
+
+Los tres siguen siendo **datos de la jornada** (`domain/datos.js`): el trío los lee y los
+escribe por `ui/dato.js`, así que lo que se captura ahí es lo mismo que ven el asistente,
+Boquillas y la Prueba de captura. Cuál se calcula es un dato más —`geometriaCalculada`—, con la
+barra como respaldo.
+
+Antes solo bajaba el espaciamiento del ancho entre las boquillas. Las otras dos direcciones se
+hacían con la calculadora del mismo teléfono, que es donde se cuela el error de geometría que
+después nadie encuentra.
+
+La cuarta opción —capturar los tres— existe a propósito: es la única que conserva la señal de
+diagnóstico de que el ancho efectivo no es el que se cree, y con un trío siempre amarrado esa
+discrepancia jamás aparecería. La barra guarda cuál calcula en `geometriaCalculada`; una barra
+guardada sin esa marca conserva su significado de siempre (espaciamiento vacío = derivado del
+ancho entre el número de boquillas).
 
 ### El volumen de aplicación conectado
 

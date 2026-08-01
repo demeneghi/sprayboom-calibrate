@@ -19,12 +19,13 @@ import { el, reemplazar } from '../../dom.js';
 import { pintarAvisos, pintarResultado, resultadoConfiable, pintarResultadoNoVerificado } from '../../render.js';
 import { crearCampoNumerico } from '../../campos.js';
 import { crearCombobox } from '../../combobox.js';
-import { crearCampoDato, valorDeDato, fijarDato, lecturaDeDatos } from '../../dato.js';
+import { crearCampoDato, valorDeDato, fijarDato, lecturaDeDatos, DATOS } from '../../dato.js';
+import { crearTrioBarra } from '../../trio-barra.js';
 import { formatear, formatearTiempo } from '../../formato.js';
 import { estiloBadgeIso } from '../../color.js';
 import { filaIso } from '../../../data/iso-colors.js';
 import { aSistema, unidad } from '../../../domain/units.js';
-import { marchasDeTractor } from '../../../domain/speed.js';
+import { marchasDeTractor, modoGeometriaDe } from '../../../domain/speed.js';
 import { volumenConBoquilla, caudalRequerido } from '../../../domain/water.js';
 import { seleccionarBoquillas, clasificarGota } from '../../../domain/nozzles.js';
 import { estadisticaCaptura } from '../../../domain/capture.js';
@@ -41,6 +42,50 @@ function pasoDatos(ctx, { paso, sistema, alCambiar }) {
     pila.append(campo.elemento);
   }
   return { nodo: pila };
+}
+
+// ---------------------------------------------------------------------
+// La barra: los tres datos amarrados
+//
+// Ancho, número de boquillas y espaciamiento cumplen
+// `ancho = número * espaciamiento`, así que aquí se confirman DOS y el
+// tercero se calcula. Es el mismo componente que monta Gasto de agua y
+// escribe en los mismos datos de la jornada: pintarlos sueltos dejaría
+// dos formas de capturar la misma geometría, y una de las dos podría
+// quedar sin cuadrar.
+// ---------------------------------------------------------------------
+function pasoBarra(ctx, { sistema, alCambiar }) {
+  const equipo = ctx.equipoActivo();
+  const modoJornada = valorDeDato(ctx, 'geometriaCalculada');
+  const trio = crearTrioBarra({
+    sistema,
+    valores: {
+      anchoBarraM: valorDeDato(ctx, 'anchoBarraM').valor,
+      numBoquillas: valorDeDato(ctx, 'numBoquillas').valor,
+      espaciamientoM: valorDeDato(ctx, 'espaciamientoM').valor,
+    },
+    calcular: modoJornada.manual ? modoJornada.valor : modoGeometriaDe(equipo),
+    umbralDiscrepanciaPct: ctx.estado().parametros.umbrales.umbralDiscrepanciaMetodos,
+    espaciamientoMinimoPlausible: ctx.estado().parametros.umbrales.espaciamientoMinimoPlausible,
+    etiquetas: {
+      anchoBarra: DATOS.anchoBarraM.etiqueta,
+      numBoquillas: DATOS.numBoquillas.etiqueta,
+      espaciamiento: DATOS.espaciamientoM.etiqueta,
+    },
+    ayudas: {
+      anchoBarra: DATOS.anchoBarraM.ayuda,
+      numBoquillas: DATOS.numBoquillas.ayuda,
+      espaciamiento: DATOS.espaciamientoM.ayuda,
+    },
+    alCambiar: ({ valores, calcular }) => {
+      fijarDato(ctx, 'anchoBarraM', valores.anchoBarraM);
+      fijarDato(ctx, 'numBoquillas', valores.numBoquillas);
+      fijarDato(ctx, 'espaciamientoM', valores.espaciamientoM);
+      fijarDato(ctx, 'geometriaCalculada', calcular);
+      if (alCambiar) alCambiar();
+    },
+  });
+  return { nodo: trio.elemento };
 }
 
 // ---------------------------------------------------------------------
@@ -557,6 +602,8 @@ function pasoRotametro(ctx, { paso, sistema, alCambiar }) {
 export function montarPaso(ctx, opciones) {
   const { paso } = opciones;
   switch (paso.tipo) {
+    case 'barra':
+      return pasoBarra(ctx, opciones);
     case 'velocidad':
       return pasoVelocidad(ctx, opciones);
     case 'boquilla':

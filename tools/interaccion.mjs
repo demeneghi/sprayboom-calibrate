@@ -360,6 +360,56 @@ texto = await pagina.locator('#panel').innerText();
 verificar(/gal\/acre|GPA|gal\/min|psi/i.test(texto), 'Imperial: la pantalla muestra unidades imperiales');
 await fijarUnidades('metrico');
 
+// ---------- El trio de la barra: los tres se calculan entre si ----------
+// Ancho, numero de boquillas y espaciamiento cumplen
+// `ancho = numero * espaciamiento`: se capturan DOS y el tercero sale
+// solo, en cualquiera de las tres direcciones. Antes solo bajaba el
+// espaciamiento del ancho entre las boquillas y las otras dos se hacian
+// con la calculadora del mismo telefono.
+await pagina.goto(`${base}#/calibrar/gasto`, { waitUntil: 'networkidle' });
+await pagina.waitForTimeout(300);
+const valorDe = (nombre) =>
+  pagina.getByRole('textbox', { name: nombre, exact: true }).inputValue();
+
+texto = await pagina.locator('#panel').innerText();
+verificar(/¿Cuál se calcula\?/.test(texto), 'Trío: el grupo dice cuál de los tres se calcula');
+verificar(
+  (await valorDe('Espaciamiento entre boquillas')).startsWith('0.6445'),
+  `Trío: por omisión el espaciamiento sale del ancho entre las boquillas, 15.47 / 24 (${await valorDe('Espaciamiento entre boquillas')})`
+);
+
+// Del espaciamiento medido y el ancho, el NÚMERO de boquillas.
+await pagina.getByRole('button', { name: 'El número de boquillas' }).click();
+await pagina.getByRole('textbox', { name: 'Espaciamiento entre boquillas', exact: true }).fill('0.5');
+await pagina.waitForTimeout(300);
+verificar(
+  (await valorDe('Número de boquillas')) === '31',
+  `Trío: 15.47 m entre 0.5 m dan 31 boquillas (${await valorDe('Número de boquillas')})`
+);
+texto = await pagina.locator('#panel').innerText();
+verificar(/se tomó 31/.test(texto), 'Trío: las boquillas se cuentan enteras y el redondeo se dice');
+
+// Del espaciamiento y las boquillas, el ANCHO.
+await pagina.getByRole('button', { name: 'El ancho de la barra' }).click();
+await pagina.getByRole('textbox', { name: 'Número de boquillas', exact: true }).fill('46');
+await pagina.waitForTimeout(300);
+verificar(
+  (await valorDe('Ancho de la barra')) === '23',
+  `Trío: 46 boquillas a 0.5 m dan 23 m de barra (${await valorDe('Ancho de la barra')})`
+);
+verificar(
+  /capturado a mano/.test(await pagina.locator('#panel').innerText()),
+  'Trío: el chip dice que la geometría ya no es la de la barra'
+);
+
+// Y se vuelve a la geometría de la barra de un botón.
+await pagina.getByRole('button', { name: 'Volver a la geometría de la barra' }).click();
+await pagina.waitForTimeout(300);
+verificar(
+  (await valorDe('Ancho de la barra')) === '15.47' && (await valorDe('Número de boquillas')) === '24',
+  `Trío: el botón devuelve la geometría de la barra (${await valorDe('Ancho de la barra')} m, ${await valorDe('Número de boquillas')} boquillas)`
+);
+
 // ---------- Boquillas: candidatas ----------
 await pagina.goto(`${base}#/calibrar/boquillas`, { waitUntil: 'networkidle' });
 await pagina.waitForTimeout(250);
@@ -615,6 +665,13 @@ verificar(
 verificar(
   etiquetasPedidas.some((t) => /Presión en la boquilla/.test(t)),
   'Asistente: la presión se pide una vez, en el paso de la boquilla'
+);
+// La barra se confirma con el MISMO trío que monta Gasto de agua: los
+// tres datos están amarrados y pintarlos sueltos aquí dejaría dos formas
+// de capturar la misma geometría.
+verificar(
+  etiquetasPedidas.some((t) => /¿Cuál se calcula\?/.test(t)),
+  'Asistente: el paso de la barra trae el trío, no los tres campos sueltos'
 );
 
 // La hoja de resultado recalcula en vivo al mover la perilla.
