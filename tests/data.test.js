@@ -137,7 +137,7 @@ test('clasificarGota funciona con las fichas del catalogo', () => {
 
 test('catalogo: hay boquillas de varias marcas y para los tamanos ISO grandes', () => {
   const marcas = new Set(CATALOGO_SIEMBRA.map((b) => b.fabricante));
-  for (const marca of ['TeeJet', 'Lechler', 'Hypro', 'Albuz']) {
+  for (const marca of ['TeeJet', 'Lechler', 'Hypro', 'Magnojet', 'Albuz']) {
     assert.ok(marcas.has(marca), `falta la marca ${marca}`);
   }
   // Los tamanos altos son los que se usan en volumenes grandes y en
@@ -183,6 +183,68 @@ test('la tabla de Hypro ULD120-08 se reproduce con exponente 0.5', () => {
   // El fabricante no publica clase por presion: la ficha no la inventa.
   assert.equal(uld08.edicionEstandar, null);
   assert.equal(clasificarGota({ boquilla: uld08, presionBar: 3 }), null);
+});
+
+test('la tabla de Magnojet se reproduce con el exponente ajustado a cada ficha', () => {
+  const en = (id, presion) => {
+    const b = CATALOGO_SIEMBRA.find((x) => x.id === id);
+    return caudalAPresion({
+      caudalRef: b.caudalRefLmin,
+      presionRef: b.presionRefBar,
+      presion,
+      exponente: b.exponente,
+    });
+  };
+  // Los extremos publicados de cada serie, contra la curva que usa la
+  // aplicacion. La tolerancia es el mismo 5 % de la compuerta contra ISO:
+  // es el criterio con el que se decidio que boquilla se podia sembrar y
+  // cual no, asi que aqui queda fijado.
+  const T = 0.05;
+  cercanoRel(en('mj-st-03', 1.4), 0.82, T, 'ST 03 a 1,4 bar');
+  cercanoRel(en('mj-st-03', 6.2), 1.7, T, 'ST 03 a 6,2 bar');
+  cercanoRel(en('mj-stia-04', 2), 1.33, T, 'ST-IA 04 a 2 bar');
+  cercanoRel(en('mj-stia-04', 6.2), 2.32, T, 'ST-IA 04 a 6,2 bar');
+  cercanoRel(en('mj-ad-05', 2), 1.67, T, 'AD 05 a 2 bar');
+  cercanoRel(en('mj-ad-05', 4.1), 2.39, T, 'AD 05 a 4,1 bar');
+  cercanoRel(en('mj-adia-08', 2), 2.65, T, 'AD-IA 08 a 2 bar');
+  cercanoRel(en('mj-adia-08', 7.6), 5.05, T, 'AD-IA 08 a 7,6 bar');
+  cercanoRel(en('mj-mug-05', 2), 1.64, T, 'MUG 05 a 2 bar');
+  cercanoRel(en('mj-mug-05', 6.2), 2.87, T, 'MUG 05 a 6,2 bar');
+});
+
+test('no se sembraron las tres fichas Magnojet que la ley presion-caudal no reproduce', () => {
+  // ST 005, ST 01 y ST-IA 005: su tabla publicada se aparta mas del 5 %
+  // de cualquier curva de potencia anclada en su presion de referencia.
+  for (const id of ['mj-st-005', 'mj-st-01', 'mj-stia-005']) {
+    assert.equal(
+      CATALOGO_SIEMBRA.find((b) => b.id === id),
+      undefined,
+      `${id} no debería estar sembrada`
+    );
+  }
+  // Las vecinas de la misma serie sí están: no se descartó la serie entera.
+  for (const id of ['mj-st-015', 'mj-stia-01']) {
+    assert.ok(CATALOGO_SIEMBRA.some((b) => b.id === id), `falta ${id}`);
+  }
+});
+
+test('las clases BCPC de Magnojet quedan traducidas a los simbolos de la aplicacion', () => {
+  // MUG es "ultra grossa" en todo su rango; el simbolo de la aplicacion es UC.
+  for (const b of CATALOGO_SIEMBRA.filter((x) => x.serie === 'MUG')) {
+    assert.deepEqual(
+      b.clasesGota.map((r) => r.clase),
+      ['UC'],
+      `${b.id} debería ser ultra gruesa en todo su rango`
+    );
+  }
+  // AD 01: "M" (média) a 2 bar y "F" (fina) de 3,1 bar en adelante.
+  const ad01 = CATALOGO_SIEMBRA.find((b) => b.id === 'mj-ad-01');
+  assert.equal(clasificarGota({ boquilla: ad01, presionBar: 2 }), 'M');
+  assert.equal(clasificarGota({ boquilla: ad01, presionBar: 4 }), 'F');
+  // AD-IA 08: "EG" (extremamente grossa) = XC, y "MG" (muito grossa) = VC.
+  const adia08 = CATALOGO_SIEMBRA.find((b) => b.id === 'mj-adia-08');
+  assert.equal(clasificarGota({ boquilla: adia08, presionBar: 3.4 }), 'XC');
+  assert.equal(clasificarGota({ boquilla: adia08, presionBar: 7 }), 'VC');
 });
 
 test('la tabla del ATR 80 del fabricante se reproduce con su exponente ajustado', () => {

@@ -2,8 +2,8 @@
 // usuario; estas entradas son la semilla inicial y todas provienen de
 // tablas publicadas por el fabricante. NO hay numeros inventados.
 //
-// Fuentes (TeeJet y Albuz consultadas 2026-07-30; Lechler e Hypro
-// consultadas 2026-08-01):
+// Fuentes (TeeJet y Albuz consultadas 2026-07-30; Lechler, Hypro y
+// Magnojet consultadas 2026-08-01):
 //
 // [TJ] TeeJet Technologies, Catalog 51A-M (metrico),
 //      https://www.teejet.com/-/media/dam/agricultural/usa/sales-material/catalog/cat51a_metric.pdf
@@ -35,6 +35,14 @@
 //      no son clases de un estandar de tamano de gota. Por eso esas
 //      fichas van con clasesGota vacia.
 //
+// [MJ] Magnojet, catalogo general 2019/2020 (trilingue),
+//      https://magnojet.co.za/wp-content/uploads/2023/12/MagnoJet-Catalogue-Downloadable.pdf
+//      Tablas de las series ST (pagina 16), ST-IA (18), AD (20),
+//      AD-IA (24) y MUG (12). El catalogo es un PDF de imagenes, sin
+//      texto: las tablas se leyeron pagina por pagina y cada renglon se
+//      comprobo contra su propia columna de l/ha, que el catalogo
+//      calcula como q x 600 / (v x f) con v = 4 km/h y f = 0,5 m.
+//
 // [AL] Albuz (CoorsTek), ficha ATR 80 cono hueco, catalogo 2024,
 //      https://albuz-spray.com/en/pdf/arbo-viticulture-NON-ISO-ATR-80.pdf
 //      Tabla de caudal 5-25 bar; angulo 80 grados a 5 bar; presion
@@ -49,6 +57,16 @@
 // primera con la siguiente. Es una interpolacion documentada del dato
 // discreto del fabricante, no un dato nuevo.
 //
+// EDICION DEL ESTANDAR EN LAS FICHAS MAGNOJET: el catalogo publica la
+// clase "según BCPC (British Crop Protection Council)" con simbolos en
+// portugues. Se registran como S572.1 porque es la misma escala de ocho
+// clases y los mismos colores: el propio catalogo de TeeJet dice que sus
+// clasificaciones "are based on BCPC specifications and in accordance
+// with ASABE Standard S572.1", asi que las fichas TeeJet ya sembradas
+// vienen de esa misma equivalencia. Traduccion de simbolos:
+// MF (muito fina) = VF, F = F, M = M, G (grossa) = C, MG (muito grossa)
+// = VC, EG (extremamente grossa) = XC, UG (ultra grossa) = UC.
+//
 // EDICION DEL ESTANDAR EN LAS FICHAS LECHLER: el catalogo 2025 publica
 // la clase "según ISO 25358". Aqui se registran como S572.3 porque esa
 // edicion de ASABE esta alineada con ISO 25358:2018 (ver el encabezado
@@ -61,7 +79,19 @@
 // 0.49-0.51 en los extremos de cada tabla, y la diferencia es el
 // redondeo a dos decimales del propio catalogo). En ATR 80 se ajusto a
 // la propia tabla del fabricante entre 5 y 20 bar, de ahi los valores
-// 0.47-0.49.
+// 0.47-0.49. En Magnojet se ajusto ficha por ficha por minimos cuadrados
+// sobre TODOS los puntos publicados de esa boquilla (ln q contra ln p),
+// con la curva obligada a pasar por su renglon de referencia: sus tablas
+// se apartan de la raiz cuadrada lo suficiente como para que un 0.5
+// forzado no las reprodujera, y el ajuste tiene que medirse contra la
+// curva que la aplicacion usa de verdad, que es la que sale del par
+// (presionRefBar, caudalRefLmin).
+//
+// Presion de referencia: 3 bar donde el fabricante la tabula. Magnojet
+// tabula en libras por pulgada cuadrada redondeadas a bar y no tiene
+// renglon de 3 bar, asi que cada ficha usa el renglon publicado mas
+// cercano a 3 (3.1 bar = 45 lbf/pol2, o 3.4 bar = 50, o 2.7 = 40) y el
+// caudal que le corresponde, sin interpolar nada.
 //
 // Pendiente declarado (no sembrado por falta de fuente verificable
 // durante la construccion): ARAG. El usuario puede capturarlo en el
@@ -412,6 +442,144 @@ CATALOGO_SIEMBRA.push(
   hy('ga110-05', 'GuardianAIR', 'GA110-05', '05', 110, 2.0, 1, 5, NOTA_GA)
 );
 
+// ----- Magnojet: abanico de barra, ceramica tecnica (99 % alumina) -----
+// La clase de gota viene del catalogo en simbolos BCPC en portugues; se
+// traduce a los simbolos de la aplicacion y se registra como S572.1 (ver
+// el encabezado). El exponente va ajustado a la tabla de cada ficha, con
+// la curva anclada en su renglon de referencia: es la curva que la
+// aplicacion usa de verdad, asi que es la que tiene que reproducir la
+// tabla.
+//
+// Se siembran las cinco series SIMPLES de barra. Quedan fuera, y a
+// proposito: las de dos y tres abanicos (ST/D, AD/D, AD/T, AD-IA/D,
+// AD-IA/T, MD-IA/D), porque tipoPatron no distingue el abanico doble del
+// simple y sembrarlas seria decir que son lo mismo; y las de uso
+// especial (MGA de fertilizante liquido, PB, BX, cono MAG, serie X), que
+// no son boquillas de barra.
+//
+// Tampoco se sembraron TRES fichas cuya tabla publicada NO se deja
+// representar por la ley presion-caudal con la que calcula la
+// aplicacion, con el mismo 5 % de tolerancia que usa la compuerta contra
+// ISO: ST 005 (la curva se aparta 13 % de la tabla), ST 01 (5.9 %) y
+// ST-IA 005 (7.2 %, y 5 % del caudal ISO). En los tres el caudal
+// publicado va en centesimas de litro sobre valores de 0,12 a 0,29
+// L/min, donde el redondeo del catalogo pesa mas que la fisica. Un dato
+// que no se puede reproducir es peor que no tenerlo: quien las use puede
+// capturarlas en el editor midiendo su propio caudal.
+function mj(id, serie, modelo, tamanoIso, angulo, patron, caudalRef, presionRef, presionMin, presionMax, exponente, clasesGota, notas = '') {
+  return {
+    id: `mj-${id}`,
+    fabricante: 'Magnojet',
+    serie,
+    modelo,
+    tipoPatron: patron === 'induccion' ? 'abanico-induccion' : 'abanico-preorificio',
+    anguloGrados: angulo,
+    tamanoIso,
+    caudalRefLmin: caudalRef,
+    presionRefBar: presionRef,
+    presionMinBar: presionMin,
+    presionMaxBar: presionMax,
+    exponente,
+    material: 'ceramica',
+    edicionEstandar: 'S572.1',
+    clasesGota,
+    notas,
+    fuente:
+      'Magnojet, catálogo general 2019/2020, tabla de la serie; clase de gota según BCPC ' +
+      '(equivale a ASABE S572.1).',
+  };
+}
+
+CATALOGO_SIEMBRA.push(
+
+  // ----- ST -----
+  mj('st-015', 'ST', 'ST 015', '015', 135, 'preorificio', 0.61, 3.1, 1.4, 6.2, 0.514,
+    rangos([1.4, 3.6, 'C'], [3.6, 6.2, 'M'])),
+  mj('st-02', 'ST', 'ST 02', '02', 135, 'preorificio', 0.82, 3.1, 1.4, 6.2, 0.482,
+    rangos([1.4, 2.55, 'VC'], [2.55, 4.65, 'C'], [4.65, 6.2, 'M'])),
+  mj('st-025', 'ST', 'ST 025', '025', 135, 'preorificio', 1.04, 3.1, 1.4, 6.2, 0.481,
+    rangos([1.4, 2.55, 'VC'], [2.55, 5.7, 'C'], [5.7, 6.2, 'M'])),
+  mj('st-03', 'ST', 'ST 03', '03', 135, 'preorificio', 1.25, 3.1, 1.4, 6.2, 0.482,
+    rangos([1.4, 2.55, 'VC'], [2.55, 5.7, 'C'], [5.7, 6.2, 'M'])),
+  mj('st-04', 'ST', 'ST 04', '04', 135, 'preorificio', 1.62, 3.1, 1.4, 6.2, 0.486,
+    rangos([1.4, 2.55, 'VC'], [2.55, 6.2, 'C'])),
+  mj('st-05', 'ST', 'ST 05', '05', 135, 'preorificio', 2.07, 3.1, 1.4, 6.2, 0.477,
+    rangos([1.4, 2.55, 'VC'], [2.55, 6.2, 'C'])),
+  mj('st-06', 'ST', 'ST 06', '06', 135, 'preorificio', 2.49, 3.1, 1.4, 6.2, 0.470,
+    rangos([1.4, 2.55, 'VC'], [2.55, 6.2, 'C'])),
+
+  // ----- ST-IA -----
+  mj('stia-01', 'ST-IA', 'ST-IA 01', '01', 110, 'induccion', 0.38, 2.7, 2.7, 6.2, 0.473,
+    rangos([2.7, 4.1, 'XC'], [4.1, 6.2, 'VC'])),
+  mj('stia-015', 'ST-IA', 'ST-IA 015', '015', 110, 'induccion', 0.65, 3.4, 2, 6.2, 0.509,
+    rangos([2, 4.1, 'XC'], [4.1, 6.2, 'VC'])),
+  mj('stia-02', 'ST-IA', 'ST-IA 02', '02', 110, 'induccion', 0.89, 3.4, 2, 6.2, 0.491,
+    rangos([2, 6.2, 'XC'])),
+  mj('stia-025', 'ST-IA', 'ST-IA 025', '025', 110, 'induccion', 1.09, 3.4, 2, 6.2, 0.497,
+    rangos([2, 6.2, 'XC'])),
+  mj('stia-03', 'ST-IA', 'ST-IA 03', '03', 110, 'induccion', 1.33, 3.4, 2, 6.2, 0.509,
+    rangos([2, 6.2, 'XC'])),
+  mj('stia-04', 'ST-IA', 'ST-IA 04', '04', 110, 'induccion', 1.73, 3.4, 2, 6.2, 0.494,
+    rangos([2, 6.2, 'XC'])),
+
+  // ----- AD -----
+  mj('ad-01', 'AD', 'AD 01', '01', 110, 'preorificio', 0.41, 3.1, 2, 4.1, 0.471,
+    rangos([2, 2.55, 'M'], [2.55, 4.1, 'F'])),
+  mj('ad-015', 'AD', 'AD 015', '015', 110, 'preorificio', 0.61, 3.1, 2, 4.1, 0.465,
+    rangos([2, 2.55, 'M'], [2.55, 4.1, 'F'])),
+  mj('ad-02', 'AD', 'AD 02', '02', 110, 'preorificio', 0.82, 3.1, 2, 4.1, 0.504,
+    rangos([2, 3.6, 'M'], [3.6, 4.1, 'F'])),
+  mj('ad-025', 'AD', 'AD 025', '025', 110, 'preorificio', 1.03, 3.1, 2, 4.1, 0.360,
+    rangos([2, 3.6, 'M'], [3.6, 4.1, 'F'])),
+  mj('ad-03', 'AD', 'AD 03', '03', 110, 'preorificio', 1.25, 3.1, 2, 4.1, 0.501,
+    rangos([2, 4.1, 'M'])),
+  mj('ad-04', 'AD', 'AD 04', '04', 110, 'preorificio', 1.62, 3.1, 2, 4.1, 0.492,
+    rangos([2, 4.1, 'M'])),
+  mj('ad-05', 'AD', 'AD 05', '05', 110, 'preorificio', 2.07, 3.1, 2, 4.1, 0.497,
+    rangos([2, 2.55, 'C'], [2.55, 4.1, 'M'])),
+
+  // ----- AD-IA -----
+  mj('adia-007', 'AD-IA', 'AD-IA 007', '0075', 110, 'induccion', 0.28, 2.7, 2.7, 7.6, 0.463,
+    rangos([2.7, 3.05, 'XC'], [3.05, 5.5, 'VC'], [5.5, 7.6, 'C'])),
+  mj('adia-01', 'AD-IA', 'AD-IA 01', '01', 110, 'induccion', 0.38, 2.7, 2.7, 7.6, 0.473,
+    rangos([2.7, 3.05, 'XC'], [3.05, 5.5, 'VC'], [5.5, 7.6, 'C'])),
+  mj('adia-015', 'AD-IA', 'AD-IA 015', '015', 110, 'induccion', 0.65, 3.4, 2, 7.6, 0.492,
+    rangos([2, 2.7, 'XC'], [2.7, 6.9, 'VC'], [6.9, 7.6, 'C'])),
+  mj('adia-02', 'AD-IA', 'AD-IA 02', '02', 110, 'induccion', 0.89, 3.4, 2, 7.6, 0.477,
+    rangos([2, 4.1, 'XC'], [4.1, 6.9, 'VC'], [6.9, 7.6, 'C'])),
+  mj('adia-025', 'AD-IA', 'AD-IA 025', '025', 110, 'induccion', 1.09, 3.4, 2, 7.6, 0.491,
+    rangos([2, 4.1, 'XC'], [4.1, 6.9, 'VC'], [6.9, 7.6, 'C'])),
+  mj('adia-03', 'AD-IA', 'AD-IA 03', '03', 110, 'induccion', 1.33, 3.4, 2, 7.6, 0.499,
+    rangos([2, 4.1, 'XC'], [4.1, 7.6, 'VC'])),
+  mj('adia-04', 'AD-IA', 'AD-IA 04', '04', 110, 'induccion', 1.73, 3.4, 2, 7.6, 0.495,
+    rangos([2, 4.1, 'XC'], [4.1, 7.6, 'VC'])),
+  mj('adia-05', 'AD-IA', 'AD-IA 05', '05', 110, 'induccion', 2.14, 3.4, 2, 7.6, 0.494,
+    rangos([2, 5.5, 'XC'], [5.5, 7.6, 'VC'])),
+  mj('adia-06', 'AD-IA', 'AD-IA 06', '06', 110, 'induccion', 2.57, 3.4, 2, 7.6, 0.501,
+    rangos([2, 5.5, 'XC'], [5.5, 7.6, 'VC'])),
+  mj('adia-08', 'AD-IA', 'AD-IA 08', '08', 110, 'induccion', 3.46, 3.4, 2, 7.6, 0.478,
+    rangos([2, 5.5, 'XC'], [5.5, 7.6, 'VC'])),
+
+  // ----- MUG -----
+  mj('mug-015', 'MUG', 'MUG 015', '015', 110, 'induccion', 0.65, 3.4, 2, 6.2, 0.587,
+    rangos([2, 6.2, 'UC']),
+    'El renglón de 6,2 bar del catálogo (0,95 L/min) se sale del patrón de la serie: los demás ' +
+      'tamaños suben con exponente cercano a 0,50 y este pide 0,59, y la ST-IA 015 —misma tabla de ' +
+      'caudal en todos los otros renglones— publica 0,86 ahí. Se sembró el dato tal como está ' +
+      'publicado (su columna de L/ha lo confirma), pero conviene medirla antes de trabajar a esa presión.'),
+  mj('mug-02', 'MUG', 'MUG 02', '02', 110, 'induccion', 0.89, 3.4, 2, 6.2, 0.491,
+    rangos([2, 6.2, 'UC'])),
+  mj('mug-025', 'MUG', 'MUG 025', '025', 110, 'induccion', 1.09, 3.4, 2, 6.2, 0.497,
+    rangos([2, 6.2, 'UC'])),
+  mj('mug-03', 'MUG', 'MUG 03', '03', 110, 'induccion', 1.33, 3.4, 2, 6.2, 0.509,
+    rangos([2, 6.2, 'UC'])),
+  mj('mug-035', 'MUG', 'MUG 035', '035', 110, 'induccion', 1.53, 3.4, 2, 6.2, 0.482,
+    rangos([2, 6.2, 'UC'])),
+  mj('mug-04', 'MUG', 'MUG 04', '04', 110, 'induccion', 1.73, 3.4, 2, 6.2, 0.494,
+    rangos([2, 6.2, 'UC'])),
+  mj('mug-05', 'MUG', 'MUG 05', '05', 110, 'induccion', 2.14, 3.4, 2, 6.2, 0.498,
+    rangos([2, 6.2, 'UC']))
+);
 export const TIPOS_PATRON = [
   'abanico-plano',
   'abanico-preorificio',
@@ -424,4 +592,12 @@ export const TIPOS_PATRON = [
 
 export const MATERIALES = ['ceramica', 'inox', 'inox/polimero', 'polimero', 'laton'];
 
-export const FABRICANTES_SUGERIDOS = ['TeeJet', 'Albuz', 'Lechler', 'Hypro', 'ARAG', 'generica'];
+export const FABRICANTES_SUGERIDOS = [
+  'TeeJet',
+  'Albuz',
+  'Lechler',
+  'Hypro',
+  'Magnojet',
+  'ARAG',
+  'generica',
+];
