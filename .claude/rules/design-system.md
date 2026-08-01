@@ -170,8 +170,34 @@ Son cinco, y ninguna es cosmética.
   `crearInterruptor` reciben `ayuda` y arman solos el botón y el globo. Un campo montado a mano
   usa **`crearEtiquetaConAyuda`** (etiqueta + botón) o `crearAyuda` (botón + globo sueltos).
   **Prohibido** volver a escribir un `<p class="ayuda">` bajo un campo.
-- **`.ayuda` a secas sigue siendo válida** para la nota de una sección —pie de tabla, aclaración de
-  un bloque—, es decir, donde no hay etiqueta de la que colgar un botón.
+
+## Ayuda de una sección (el `?` del encabezado de la tarjeta)
+
+- **La explicación estable de una tarjeta tampoco se imprime.** `tarjeta()` recibe `ayuda` y monta
+  el mismo botón `?` en su encabezado, a la derecha del título. Quitar la ayuda de los campos no
+  bastó: medido en un teléfono de 390px, la prosa que quedaba —notas de sección bajo las cifras—
+  era **entre un tercio y la mitad** de todo lo que había en las pantallas de campo. Forzamiento
+  tenía 2,127 caracteres en pantalla, de los cuales 994 eran párrafos explicativos.
+- **La frontera es qué tan seguido cambia el texto, no dónde está.**
+
+  | Va al `?` | Se sigue imprimiendo |
+  | --- | --- |
+  | El porqué del cálculo, que se lee una vez | El resultado de ESTE cálculo |
+  | La advertencia que aplica siempre | Lo que hay que hacer ahora («captura la velocidad para…») |
+  | La procedencia de un valor de configuración | El estado de lo capturado hoy («2 de 5 renglones») |
+  | El rastro de auditoría de qué parámetros se usaron | El aviso accionable del dominio |
+
+  Un ejemplo de la frontera: la advertencia de solubilidad del etileno. **Lo accionable se queda
+  a la vista** —«manda el pesaje del cilindro, no este cálculo»— y **el mecanismo se va al `?`**
+  —difusor, temperatura del agua, tiempo entre carga y aplicación—. Esconder una advertencia de
+  seguridad tras un botón sería un error; imprimir cuatro renglones de física para llegar a ella,
+  también, porque nadie los lee dos veces.
+- **`.ayuda` a secas sigue siendo válida** para lo que cambia con el cálculo: pie de una tabla de
+  resultados, aclaración de un bloque que solo aparece en cierto estado, feedback de lo capturado.
+- **Lo que se manda al `?` se calcula al montar la tarjeta**, así que solo puede depender de la
+  configuración —no de un borrador ni de un resultado—. Cambiar la configuración remonta la
+  pestaña, así que el texto nunca queda viejo. Si un texto depende de lo que el usuario está
+  capturando, **no es ayuda de sección**: es resultado, y se imprime.
 - **Solo un globo abierto a la vez** en toda la pantalla: dos o tres consultados a la vez devuelven
   el muro que este patrón vino a quitar. El estado lo lleva `campos.js`.
 - **El globo flota: no ocupa lugar en el flujo.** Es el tooltip de Sherman
@@ -330,6 +356,9 @@ suelto. Lo mismo con cada color ISO sembrado.
 - Señalar la opción elegida intercambiando variantes de botón, o maquetar el grupo con un
   `display: flex` en línea: la etiqueta larga se sale de la tarjeta.
 - Imprimir la ayuda de un campo como párrafo fijo bajo el control: va en el globo del botón `?`.
+- Imprimir la explicación estable de una tarjeta como párrafo bajo sus cifras: va en el `?` del
+  encabezado (`tarjeta({ ayuda })`). Lo que se imprime es lo que cambia con el cálculo.
+- Mandar al `?` un aviso accionable o un resultado: la ayuda se consulta, el resultado se ve.
 - Repetir la unidad en la etiqueta de un campo que ya tiene botón de unidades, o armar a mano la
   fila del input con su botón: la produce `campos.js` a partir de `magnitud` y `sistema`.
 - Convertir el campo y **no** decir que quedó en la otra unidad: sin el acento, un 43.5 en un

@@ -84,11 +84,28 @@
   border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0;
 }
 
+/* Titulo de la tarjeta y, cuando la seccion tiene explicacion, el "?"
+   al extremo derecho. Misma regla que en la etiqueta de un campo: el
+   boton cae siempre en el mismo eje vertical, asi que se encuentra sin
+   leer y la puntita del globo le apunta desde una posicion fija. */
+.card__titulo-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 .card__titulo {
   font-size: var(--text-lg);
   font-weight: 600;
   letter-spacing: -0.01em;
   color: hsl(var(--acento-texto));
+}
+
+/* El titulo se queda con el hueco sobrante: es el que parte linea si no
+   cabe, no el boton, que es cuadrado siempre. */
+.card__titulo-fila > .card__titulo {
+  flex: 1 1 auto;
 }
 
 .card__descripcion {

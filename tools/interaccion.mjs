@@ -293,6 +293,48 @@ texto = await pagina.locator('#panel').innerText();
 verificar(/g\/SCF/.test(texto), 'Gas: g/SCF visible (derivado del gas activo)');
 verificar(/32\.9|32,9/.test(texto), 'Gas: derivación cerca de 32.90 g/SCF');
 
+// ---------- Ayuda de seccion: el "?" del encabezado de la tarjeta ----------
+// La explicacion estable de una tarjeta ya no se imprime bajo el titulo.
+// Lo que hay que defender es lo que hacia insufrible imprimirla: que
+// consultarla NO descoloque la pantalla. El globo flota, asi que la
+// tarjeta de abajo no se puede mover ni un pixel al abrirlo.
+await pagina.goto(`${base}#/calibrar/forzamiento`, { waitUntil: 'networkidle' });
+await pagina.waitForTimeout(300);
+const botonAyudaSeccion = pagina.getByRole('button', { name: 'Ayuda sobre Las dos dosis' });
+verificar(
+  (await botonAyudaSeccion.count()) === 1,
+  'Ayuda de sección: la tarjeta «Las dos dosis» tiene su botón «?»'
+);
+const yAntes = await pagina.locator('#panel .card').last().evaluate((n) => n.getBoundingClientRect().top);
+await botonAyudaSeccion.click();
+await pagina.waitForTimeout(200);
+// El id del globo lo asigna un consecutivo, asi que se resuelve por el
+// aria-controls del boton y no por un id escrito a mano aqui.
+const idGlobo = await botonAyudaSeccion.getAttribute('aria-controls');
+const globoSeccion = pagina.locator(`#${idGlobo}`);
+verificar(await globoSeccion.isVisible(), 'Ayuda de sección: el globo se abre');
+const textoGlobo = await globoSeccion.innerText();
+verificar(
+  /referencia/i.test(textoGlobo) && /objetivo/i.test(textoGlobo),
+  'Ayuda de sección: el globo trae la procedencia de las dos dosis'
+);
+const yDespues = await pagina.locator('#panel .card').last().evaluate((n) => n.getBoundingClientRect().top);
+verificar(
+  Math.abs(yDespues - yAntes) < 1,
+  `Ayuda de sección: el globo FLOTA, no empuja la pantalla (${yAntes} -> ${yDespues})`
+);
+await pagina.keyboard.press('Escape');
+await pagina.waitForTimeout(200);
+verificar(!(await globoSeccion.isVisible()), 'Ayuda de sección: Escape cierra el globo');
+verificar(
+  !/poco soluble|difusor|superficie del tanque/i.test(await pagina.locator('#panel').innerText()),
+  'Ayuda de sección: el mecanismo de la solubilidad ya no se imprime en la pantalla'
+);
+verificar(
+  /pesaje del cilindro/i.test(await pagina.locator('#panel').innerText()),
+  'Ayuda de sección: la advertencia accionable SIGUE a la vista, no se escondió'
+);
+
 // ---------- Metodologia ----------
 await pagina.goto(`${base}#/sistema/metodologia`, { waitUntil: 'networkidle' });
 await pagina.waitForTimeout(250);
