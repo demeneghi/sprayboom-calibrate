@@ -335,6 +335,81 @@ verificar(
   'Ayuda de sección: la advertencia accionable SIGUE a la vista, no se escondió'
 );
 
+// ---------- Guia por objetivo ----------
+// La guia ORDENA las pantallas, no las sustituye: elegir un objetivo
+// pinta sus pasos con el estado de cada uno, y la hoja del final mueve
+// el resultado escribiendo en la pantalla que manda sobre ese dato.
+await pagina.goto(`${base}#/calibrar/guia`, { waitUntil: 'networkidle' });
+await pagina.waitForTimeout(300);
+const opcionGasto = pagina.locator('#receta-opcion-gasto-agua');
+verificar((await opcionGasto.count()) === 1, 'Guía: el objetivo «Ajustar el gasto de agua» está');
+await opcionGasto.click();
+await pagina.waitForTimeout(350);
+texto = await pagina.locator('#panel').innerText();
+verificar(
+  (await opcionGasto.getAttribute('aria-pressed')) === 'true',
+  'Guía: el objetivo elegido se señala por atributo, no cambiando de variante'
+);
+verificar(
+  (await pagina.locator('.paso-receta').count()) === 3,
+  `Guía: la receta pinta sus 3 pasos (se obtuvo ${await pagina.locator('.paso-receta').count()})`
+);
+verificar(/listo/i.test(texto), 'Guía: un paso con dato queda marcado como listo');
+verificar(
+  /de la marcha|reporte de campo|Avance/i.test(texto),
+  'Guía: el paso listo dice de dónde salió su número'
+);
+
+// La hoja de resultado recalcula en vivo al mover la perilla.
+const cifraPerilla = pagina.locator('.perilla__valor').first();
+const volumenHoja = pagina.locator('.resultado--principal').first();
+const presionAntes = await cifraPerilla.innerText();
+const volumenAntes = await volumenHoja.innerText();
+await pagina.getByRole('button', { name: 'Subir Presión en la boquilla' }).click();
+await pagina.waitForTimeout(250);
+verificar(
+  (await cifraPerilla.innerText()) !== presionAntes,
+  `Guía: la perilla mueve la presión (${presionAntes.replace(/\n/g, ' ')} → ${(await cifraPerilla.innerText()).replace(/\n/g, ' ')})`
+);
+verificar(
+  (await volumenHoja.innerText()) !== volumenAntes,
+  'Guía: el volumen de aplicación se recalcula en vivo con la perilla'
+);
+
+// Y lo que movió no es un estado propio de la guía: quedó capturado en
+// Gasto de agua, que es la pantalla que manda sobre la presión.
+await pagina.goto(`${base}#/calibrar/gasto`, { waitUntil: 'networkidle' });
+await pagina.waitForTimeout(350);
+verificar(
+  /^3[.,]1$/.test(await entradaPresion.inputValue()),
+  `Guía: la perilla escribió en Gasto de agua (se obtuvo ${await entradaPresion.inputValue()})`
+);
+
+// La tira de avance solo aparece en las pantallas que SON paso de la
+// receta activa: en una ajena diría en qué paso vas y estaría mintiendo.
+await pagina.goto(`${base}#/calibrar/avance`, { waitUntil: 'networkidle' });
+await pagina.waitForTimeout(300);
+verificar(
+  /Paso 1 de 3/.test(await pagina.locator('.tira-receta').innerText()),
+  'Guía: la tira dice en qué paso de la receta vas'
+);
+await pagina.goto(`${base}#/sistema/configuracion`, { waitUntil: 'networkidle' });
+await pagina.waitForTimeout(300);
+verificar(
+  (await pagina.locator('.tira-receta').count()) === 0,
+  'Guía: en una pantalla ajena a la receta no se pinta la tira'
+);
+
+// Salir de la guía es volver a pulsar el objetivo: nada queda encerrado.
+await pagina.goto(`${base}#/calibrar/guia`, { waitUntil: 'networkidle' });
+await pagina.waitForTimeout(300);
+await pagina.locator('#receta-opcion-gasto-agua').click();
+await pagina.waitForTimeout(350);
+verificar(
+  (await pagina.locator('.paso-receta').count()) === 0,
+  'Guía: se sale de la receta con el mismo botón con el que se entró'
+);
+
 // ---------- Metodologia ----------
 await pagina.goto(`${base}#/sistema/metodologia`, { waitUntil: 'networkidle' });
 await pagina.waitForTimeout(250);

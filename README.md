@@ -8,6 +8,11 @@ Cubre tres dominios de cálculo encadenados, todos resolubles en ambos sentidos 
 2. **Gasto de agua**: calibración de volumen de aplicación en L/ha a partir de boquillas, presión, ancho de barra y velocidad, con selección de boquillas por catálogo y verificación por aforo.
 3. **Gas etileno**: dosificación por rotámetro para forzamiento por percolación, encadenada con los otros dos dominios.
 
+La pantalla de entrada es la **Guía**: se elige qué se quiere obtener y ella dice qué pantallas
+tocar y en qué orden, con el estado de cada paso y una hoja de resultado que se ajusta en el
+momento. No es un asistente cerrado —ningún paso es obligatorio y se puede entrar directo a
+cualquier pestaña—; el porqué de esa decisión está en `docs/guia-por-objetivo.md`.
+
 ## Publicación en GitHub Pages
 
 El sitio no tiene paso de compilación: el repositorio ES el sitio. El despliegue está
@@ -87,7 +92,7 @@ batería como compuerta del despliegue: nada llega a `main` publicable sin pasar
 |---|---|
 | `pruebas` | Las pruebas de dominio con `node:test` |
 | `estatico` | Sintaxis de todos los JS (`node --check`), manifest JSON válido, prohibición de `.innerHTML`, contraste AA de tokens y colores ISO, `precache.js` al día, ortografía de textos visibles al día |
-| `humo` | Playwright con el Chrome del runner: 10 rutas x 2 viewports de teléfono y la interacción completa, incluida la recarga sin conexión |
+| `humo` | Playwright con el Chrome del runner: 11 rutas x 2 viewports de teléfono y la interacción completa, incluida la recarga sin conexión |
 
 La versión de la caché **no** se sube en el pull request: la estampa el despliegue
 (`tools/sellar-version.mjs` desde `pages.yml`, con la fecha y el commit). Antes había una
@@ -109,7 +114,7 @@ Herramientas de desarrollo (ninguna es requisito del sitio publicado):
 node tools/verificar-contraste.mjs      # contraste AA de tokens y colores ISO
 node tools/generar-precache.mjs         # regenera precache.js (lista del service worker)
 CHROMIUM_PATH=/opt/pw-browsers/chromium node tools/generar-iconos.mjs   # PNG del manifest
-CHROMIUM_PATH=... node tools/humo.mjs               # humo: 10 rutas x 2 viewports de teléfono
+CHROMIUM_PATH=... node tools/humo.mjs               # humo: 11 rutas x 2 viewports de teléfono
 CHROMIUM_PATH=... node tools/interaccion.mjs        # interacción completa + recarga sin conexión
 node tools/acentuar.mjs <archivos>      # ortografía de textos visibles
 node tools/sellar-version.mjs <sello>   # solo lo corre el despliegue (pages.yml)

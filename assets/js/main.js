@@ -17,6 +17,9 @@ import {
   decodificarEstadoCompartido,
 } from './ui/compartir.js';
 
+import { crearTiraReceta } from './ui/receta.js';
+
+import * as tabGuia from './ui/tabs/guia.js';
 import * as tabAvance from './ui/tabs/avance.js';
 import * as tabGasto from './ui/tabs/gasto.js';
 import * as tabBoquillas from './ui/tabs/boquillas.js';
@@ -35,6 +38,11 @@ export const SECCIONES = [
     id: 'calibrar',
     etiqueta: 'Calibrar',
     tabs: [
+      // La guia va primera y es la ruta por defecto: es la unica
+      // pantalla que dice por donde empezar y en que orden se encadenan
+      // las demas. No captura nada, asi que entrar por aqui no cuesta un
+      // paso a quien ya sabe a que pestana va.
+      { id: 'guia', etiqueta: 'Guía', modulo: tabGuia },
       { id: 'avance', etiqueta: 'Avance', modulo: tabAvance },
       { id: 'gasto', etiqueta: 'Gasto de agua', modulo: tabGasto },
       { id: 'boquillas', etiqueta: 'Boquillas', modulo: tabBoquillas },
@@ -61,7 +69,7 @@ export const SECCIONES = [
   },
 ];
 
-const RUTA_DEFAULT = { seccion: 'calibrar', tab: 'avance' };
+const RUTA_DEFAULT = { seccion: 'calibrar', tab: 'guia' };
 
 function leerHash() {
   const hash = location.hash.replace(/^#\/?/, '');
@@ -363,6 +371,13 @@ function renderizar({ conservarPosicion = false } = {}) {
   document.documentElement.dataset.seccion = seccion.id;
   limpiar(panel);
   try {
+    // Tira de avance de la guia. Se pinta desde aqui —y no dentro de
+    // cada pestana— porque las diez pantallas no saben nada de las
+    // recetas y no tienen por que saberlo: la guia las ordena, no las
+    // modifica. Solo aparece si hay receta activa y esta pantalla es uno
+    // de sus pasos.
+    const tira = crearTiraReceta(ctx, { seccion: seccion.id, tab: tab.id });
+    if (tira) panel.append(tira);
     tab.modulo.render(panel, ctx);
   } catch (error) {
     panel.append(
