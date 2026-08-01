@@ -1,263 +1,157 @@
-// Recetas: el ORDEN en que las pantallas se encadenan para lograr un
-// objetivo declarado, y el estado de cada paso.
+// Recetas del asistente: la secuencia de DATOS que hace falta para
+// lograr un objetivo declarado.
 //
-// Por que existe esto y por que NO es un wizard:
+// La unidad de un paso es el DATO, no la pantalla. Esa es toda la
+// diferencia con la version anterior de este archivo, y es la que
+// arregla el defecto que se vio en campo: cuando los pasos eran
+// pantallas, una calibracion guiada pedia la presion en Gasto de agua y
+// otra vez en la Prueba de captura, y el espaciamiento y el objetivo
+// tres veces. No era un defecto de la guia: cada pantalla declaraba sus
+// campos por su cuenta y todas se pedian de nuevo.
 //
-//   La aplicacion ya recalcula en vivo, ya resuelve en los dos sentidos
-//   y ya hereda el dato de una pantalla a la siguiente (ui/heredado.js).
-//   Lo que faltaba no era encerrar al usuario en un carril, sino DECIR
-//   el orden: diez pestanas sin jerarquia visible, con una cadena de
-//   dependencias real (Avance manda sobre Gasto de agua, que manda sobre
-//   Mezcla y Forzamiento) que en pantalla no se ve por ningun lado.
+// Ahora cada dato se pregunta UNA vez —vive en `estado.jornada`, ver
+// domain/datos.js— y un paso solo aparece si su dato todavia no esta
+// resuelto o si quien calibra lo abre a proposito.
 //
-//   Una receta es una LISTA DE PASOS QUE SE PUEDEN SALTAR, no un carril.
-//   Cada paso apunta a una pantalla que ya existe y dice si su dato ya
-//   esta o falta. Quien recalibra una sola cosa entra directo a su
-//   pestana, como siempre; quien no sabe por donde empezar, sigue la
-//   receta.
-//
-// Este modulo es puro: no toca DOM ni almacenamiento. Recibe una
-// INSTANTANEA —un objeto plano que la interfaz arma con lo que ya
-// derivan `ctx` y el almacen— y devuelve estado. Asi el orden de la
-// cadena y la regla de "este paso ya esta" se prueban en Node, igual
-// que el resto del dominio.
+// Las pestañas NO desaparecen: siguen siendo la via para recalcular una
+// sola cosa, para ver el desglose completo y para trabajar sin guia.
+// El asistente y las pestañas escriben en el MISMO sitio, asi que se
+// puede saltar de uno a otro a media calibracion.
+
+import { DATOS } from './datos.js';
 
 // ---------------------------------------------------------------------
-// Requisitos: la pregunta "¿este paso ya tiene su dato?"
+// Los pasos, declarados una vez y compartidos entre recetas
 //
-// Cada uno recibe la instantanea y devuelve { listo, detalle, fecha }.
-// `detalle` es lo que se pinta en el chip del paso: SIEMPRE dice de
-// donde salio el numero, nunca solo "listo". Un paso en verde sin
-// procedencia se lee como un dato propio, y entonces nadie sospecha
-// cuando esta viejo. Es la misma regla del chip de ui/heredado.js.
+// `tipo` dice que interfaz monta el paso (ui/tabs/guia/pasos.js).
+// `datos` son las claves de domain/datos.js que ese paso captura; sirven
+// para saber si ya esta resuelto sin preguntarle a la interfaz.
+// `resuelto` es la regla propia cuando el paso no se reduce a sus datos.
 // ---------------------------------------------------------------------
-
-function faltante(detalle) {
-  return { listo: false, detalle, fecha: null };
-}
-
-function desdeResultado(resultado, sinDato) {
-  if (!Number.isFinite(resultado?.valor)) return faltante(sinDato);
-  return { listo: true, detalle: resultado.detalle ?? null, fecha: resultado.fecha ?? null };
-}
-
-export const REQUISITOS = {
-  // La velocidad de trabajo que Avance tiene capturada ahora mismo. La
-  // deriva ctx.velocidadDeAvance(), que es la unica version de ese
-  // calculo en la aplicacion.
-  velocidad(instantanea) {
-    const v = instantanea.velocidad;
-    if (!Number.isFinite(v?.velocidadKmh)) {
-      return faltante('Captura los segundos por tramo o elige una marcha con su régimen.');
-    }
-    return { listo: true, detalle: v.etiqueta ?? null, fecha: null };
+export const PASOS = {
+  velocidad: {
+    id: 'velocidad',
+    tipo: 'velocidad',
+    titulo: 'Velocidad de avance',
+    pregunta: '¿A qué velocidad vas a pasar?',
+    porque: 'El volumen por hectárea y el tiempo por tabla dependen de ella.',
+    datos: ['velocidadKmh'],
   },
-
-  // El volumen objetivo de la jornada. Puede venir del rancho, asi que
-  // nunca esta "vacio"; lo que interesa es que exista un numero con el
-  // que filtrar boquillas y comparar.
-  objetivo(instantanea) {
-    if (!Number.isFinite(instantanea.lhaObjetivo)) {
-      return faltante('Captura el volumen que quieres aplicar.');
-    }
-    return { listo: true, detalle: 'objetivo de la jornada', fecha: null };
+  barra: {
+    id: 'barra',
+    // Los tres datos de la barra están amarrados
+    // (`ancho = número * espaciamiento`): se confirman dos y el tercero
+    // se calcula, con el mismo componente que monta Gasto de agua.
+    tipo: 'barra',
+    titulo: 'La barra',
+    pregunta: 'Confirma la barra con la que sales',
+    porque: 'El ancho, el número de boquillas y el espaciamiento reparten el caudal.',
+    datos: ['anchoBarraM', 'numBoquillas', 'espaciamientoM'],
+    // Estos tres salen de la barra configurada, asi que casi siempre ya
+    // tienen valor: el paso es de CONFIRMACION, y por eso se marca visto
+    // en vez de resuelto.
+    confirmacion: true,
   },
-
-  // El L/ha calculado con la ficha de la boquilla, en Gasto de agua.
-  lhaCalculado(instantanea) {
-    return desdeResultado(
-      instantanea.lhaCalculado,
-      'Elige la boquilla y captura la presión de trabajo.'
-    );
+  objetivo: {
+    id: 'objetivo',
+    tipo: 'datos',
+    titulo: 'Volumen objetivo',
+    pregunta: '¿Cuántos litros por hectárea quieres aplicar?',
+    porque: 'Es contra lo que se compara todo lo demás.',
+    datos: ['lhaObjetivo'],
   },
-
-  // El L/ha medido por aforo, en la Prueba de captura. Es el unico que
-  // sale de la barra real y no de una ficha.
-  lhaMedido(instantanea) {
-    return desdeResultado(instantanea.lhaMedido, 'Afora las boquillas para verificar el cálculo.');
+  boquilla: {
+    id: 'boquilla',
+    tipo: 'boquilla',
+    titulo: 'Boquilla y presión',
+    pregunta: '¿Qué boquilla traes y a qué presión?',
+    porque: 'De las dos sale el caudal por boquilla.',
+    datos: ['boquillaId', 'presionBar'],
   },
-
-  // El volumen de aplicacion VIGENTE: lo aforado si lo hay, si no lo
-  // calculado. Es lo que consumen Mezcla y Forzamiento.
-  volumenVigente(instantanea) {
-    const vigente = instantanea.lhaMedido ?? instantanea.lhaCalculado ?? null;
-    return desdeResultado(
-      vigente,
-      'Calcula el gasto de agua en Gasto de agua, o afora en la Prueba de captura.'
-    );
+  candidatas: {
+    id: 'candidatas',
+    tipo: 'candidatas',
+    titulo: 'Elegir del catálogo',
+    pregunta: '¿Cuál boquilla llega a tu objetivo?',
+    porque: 'Con la velocidad y el espaciamiento, el catálogo se reduce a unas cuantas.',
+    datos: ['boquillaId', 'presionBar'],
   },
-
-  // La masa de etileno por tabla que calcula Forzamiento y que Gas
-  // etileno pide como objetivo.
-  masaPorTabla(instantanea) {
-    return desdeResultado(
-      instantanea.masaPorTablaG,
-      'Captura la dosis de forzamiento y el volumen de agua.'
-    );
+  aforo: {
+    id: 'aforo',
+    tipo: 'aforo',
+    titulo: 'Verificar por aforo',
+    pregunta: '¿Qué recogiste de cada boquilla?',
+    porque: 'La ficha describe una boquilla nueva; el aforo mide la barra de hoy.',
+    datos: [],
+    opcional: true,
+    resuelto: (instantanea) => Number.isFinite(instantanea.lhaMedido?.valor),
   },
-
-  // La dosis del producto capturada en Mezcla. No produce un resultado
-  // compartido —la dosis es de este tanque y de este producto—, asi que
-  // el requisito mira el borrador de la pantalla.
-  dosisMezcla(instantanea) {
-    if (!Number.isFinite(instantanea.dosisMezcla)) {
-      return faltante('Captura el volumen del tanque y la dosis del producto.');
-    }
-    return { listo: true, detalle: 'dosis capturada en Mezcla', fecha: null };
+  volumenAplicacion: {
+    id: 'volumenAplicacion',
+    tipo: 'datos',
+    titulo: 'Volumen de aplicación',
+    pregunta: '¿Con cuántos litros por hectárea sale la barra?',
+    porque: 'De este número dependen la dosis del tanque y el etileno.',
+    datos: ['volumenAplicacionLha'],
   },
-
-  // El flujo del rotametro capturado en Gas etileno.
-  flujoGas(instantanea) {
-    if (!Number.isFinite(instantanea.flujoGas)) {
-      return faltante('Captura la lectura del rotámetro o el objetivo de masa.');
-    }
-    return { listo: true, detalle: 'lectura capturada en Gas etileno', fecha: null };
+  tanque: {
+    id: 'tanque',
+    tipo: 'datos',
+    titulo: 'Tanque y dosis',
+    pregunta: '¿Qué tanque cargas y qué dosis dice la etiqueta?',
+    porque: 'Con el volumen de aplicación dan el producto por carga.',
+    datos: ['volumenTanqueL', 'modoDosis', 'dosisCantidad', 'unidadProducto', 'superficieObjetivoHa'],
+  },
+  etileno: {
+    id: 'etileno',
+    tipo: 'datos',
+    titulo: 'Dosis de etileno',
+    pregunta: '¿Cuánto etileno por hectárea?',
+    porque: 'Con el agua por tabla da la masa que hay que inyectar.',
+    datos: ['dosisObjetivoGha'],
+  },
+  rotametro: {
+    id: 'rotametro',
+    tipo: 'rotametro',
+    titulo: 'Rotámetro',
+    pregunta: '¿Qué marca el rotámetro?',
+    porque: 'La lectura y la presión de la aguja dan el gas que de verdad entra.',
+    datos: ['scfm', 'psiManometrica'],
   },
 };
 
 // ---------------------------------------------------------------------
-// Las recetas
-//
-// Son CUATRO a proposito. Una por trabajo real de campo, no una por
-// pantalla: si hubiera una receta por pestana, la guia seria la misma
-// lista de tabs con otro nombre.
-//
-// `ajustes` declara que perillas admite la hoja de resultado al final.
-// Solo se declaran las dos que quien calibra tiene FISICAMENTE en el
-// tractor —la presion del manometro y la velocidad— y solo en las
-// recetas donde el numero que mueven (el L/ha) es el resultado de la
-// receta. En Mezcla y Forzamiento el L/ha es una ENTRADA: moverlo desde
-// la hoja cambiaria la dosis del tanque sin que se vea el calculo, y esa
-// cuenta se ve completa en su pantalla.
+// Las recetas: un objetivo y su secuencia de pasos
 // ---------------------------------------------------------------------
 export const RECETAS = [
   {
     id: 'gasto-agua',
     titulo: 'Ajustar el gasto de agua',
     objetivo: 'Quiero aplicar cierto volumen por hectárea y saber a qué presión ir.',
-    pasos: [
-      {
-        id: 'velocidad',
-        seccion: 'calibrar',
-        tab: 'avance',
-        titulo: 'Velocidad de avance',
-        porque: 'El volumen por hectárea depende de qué tan rápido pasa la barra.',
-        requisito: 'velocidad',
-      },
-      {
-        id: 'calculo',
-        seccion: 'calibrar',
-        tab: 'gasto',
-        titulo: 'Gasto de agua',
-        porque: 'La boquilla y la presión de trabajo dan el volumen por hectárea.',
-        requisito: 'lhaCalculado',
-      },
-      {
-        id: 'aforo',
-        seccion: 'registrar',
-        tab: 'captura',
-        titulo: 'Verificar por aforo',
-        porque: 'La ficha describe una boquilla nueva; el aforo mide la barra de hoy.',
-        requisito: 'lhaMedido',
-        opcional: true,
-      },
-    ],
+    pasos: ['velocidad', 'barra', 'boquilla', 'objetivo', 'aforo'],
+    // La hoja del final deja mover estas dos perillas: son las que quien
+    // calibra tiene fisicamente en el tractor.
     ajustes: ['presion', 'velocidad'],
   },
   {
     id: 'elegir-boquilla',
     titulo: 'Elegir la boquilla',
     objetivo: 'Quiero saber qué boquilla del catálogo llega a mi objetivo.',
-    pasos: [
-      {
-        id: 'velocidad',
-        seccion: 'calibrar',
-        tab: 'avance',
-        titulo: 'Velocidad de avance',
-        porque: 'Sin velocidad no se puede filtrar el catálogo.',
-        requisito: 'velocidad',
-      },
-      {
-        id: 'candidatas',
-        seccion: 'calibrar',
-        tab: 'boquillas',
-        titulo: 'Candidatas del catálogo',
-        porque: 'Con el objetivo y la velocidad, el catálogo se reduce a unas cuantas.',
-        requisito: 'objetivo',
-      },
-      {
-        id: 'calculo',
-        seccion: 'calibrar',
-        tab: 'gasto',
-        titulo: 'Confirmar con la elegida',
-        porque: 'La boquilla elegida se comprueba a la presión con la que vas a trabajar.',
-        requisito: 'lhaCalculado',
-      },
-    ],
+    pasos: ['velocidad', 'barra', 'objetivo', 'candidatas'],
     ajustes: ['presion', 'velocidad'],
   },
   {
     id: 'mezcla-tanque',
     titulo: 'Preparar la mezcla',
     objetivo: 'Quiero saber cuánto producto va en el tanque.',
-    pasos: [
-      {
-        id: 'volumen',
-        seccion: 'calibrar',
-        tab: 'gasto',
-        titulo: 'Volumen de aplicación',
-        porque: 'La dosis del tanque se calcula sobre el volumen que de verdad aplicas.',
-        requisito: 'volumenVigente',
-      },
-      {
-        id: 'mezcla',
-        seccion: 'calibrar',
-        tab: 'mezcla',
-        titulo: 'Mezcla del tanque',
-        porque: 'Con el volumen y la dosis sale el producto por tanque y por tabla.',
-        requisito: 'dosisMezcla',
-      },
-    ],
+    pasos: ['volumenAplicacion', 'tanque'],
     ajustes: [],
   },
   {
     id: 'forzamiento-etileno',
     titulo: 'Forzar con etileno',
     objetivo: 'Quiero dosificar el etileno por rotámetro para el forzamiento.',
-    pasos: [
-      {
-        id: 'velocidad',
-        seccion: 'calibrar',
-        tab: 'avance',
-        titulo: 'Velocidad de avance',
-        porque: 'De la velocidad sale el tiempo de inyección por tabla.',
-        requisito: 'velocidad',
-      },
-      {
-        id: 'volumen',
-        seccion: 'calibrar',
-        tab: 'gasto',
-        titulo: 'Volumen de aplicación',
-        porque: 'El etileno se dosifica sobre el agua que se aplica.',
-        requisito: 'volumenVigente',
-      },
-      {
-        id: 'masa',
-        seccion: 'calibrar',
-        tab: 'forzamiento',
-        titulo: 'Masa de etileno por tabla',
-        porque: 'Es el objetivo que después se convierte en flujo del rotámetro.',
-        requisito: 'masaPorTabla',
-      },
-      {
-        id: 'rotametro',
-        seccion: 'calibrar',
-        tab: 'gas',
-        titulo: 'Flujo del rotámetro',
-        porque: 'Es el número que se ajusta en el fierro, con su corrección de presión.',
-        requisito: 'flujoGas',
-      },
-    ],
+    pasos: ['velocidad', 'volumenAplicacion', 'etileno', 'rotametro'],
     ajustes: [],
   },
 ];
@@ -266,66 +160,71 @@ export function recetaPorId(id) {
   return RECETAS.find((r) => r.id === id) ?? null;
 }
 
-// ---------------------------------------------------------------------
-// Estado de un paso y avance de la receta
-// ---------------------------------------------------------------------
-
-// Un dato fechado de OTRO dia se marca. No se invalida ni se borra: un
-// aforo de la semana pasada puede seguir siendo el bueno, y decidir eso
-// es de quien calibra. Lo que no puede pasar es que no se note.
-export function esDeOtroDia(fecha, ahora) {
-  if (!fecha || !ahora) return false;
-  return String(fecha).slice(0, 10) !== String(ahora).slice(0, 10);
+export function pasoPorId(id) {
+  const paso = PASOS[id];
+  if (!paso) throw new Error(`Paso desconocido: ${id}`);
+  return paso;
 }
 
+// Los pasos de una receta, ya expandidos.
+export function pasosDeReceta(receta) {
+  return receta.pasos.map(pasoPorId);
+}
+
+// ---------------------------------------------------------------------
+// Estado de la receta
+//
+// La instantanea la arma la interfaz leyendo lo que ya existe: los datos
+// de la jornada, los resultados compartidos y los pasos que quien
+// calibra ya visito. Este modulo no toca el almacen.
+// ---------------------------------------------------------------------
+
+// Un paso esta resuelto cuando TODOS sus datos tienen valor. Los pasos
+// de confirmacion, ademas, exigen haber pasado por ahi: sus datos vienen
+// de la barra configurada y estarian resueltos desde el primer segundo,
+// asi que el asistente los saltaria sin que nadie los mirara.
 export function estadoDePaso(paso, instantanea) {
-  const requisito = REQUISITOS[paso.requisito];
-  if (!requisito) throw new Error(`Requisito desconocido: ${paso.requisito}`);
-  const r = requisito(instantanea);
-  return {
-    ...paso,
-    listo: r.listo,
-    detalle: r.detalle,
-    fecha: r.fecha,
-    viejo: r.listo && esDeOtroDia(r.fecha, instantanea.ahora),
-  };
+  // Un dato declarado OPCIONAL en el registro no cuenta para resolver el
+  // paso. La superficie objetivo de la mezcla se rotula «(opcional)» en
+  // su propia etiqueta: si contara, el objetivo de la mezcla se quedaria
+  // en «1 de 2» para siempre y el asistente no daria por cerrada una
+  // calibracion que ya tiene todo lo que el calculo necesita.
+  const exigidos = paso.datos.filter((id) => !DATOS[id]?.opcional);
+  const faltantes = exigidos.filter((id) => !tieneValor(instantanea.datos?.[id]));
+  const conDatos = exigidos.length === 0 || faltantes.length === 0;
+  const propio = paso.resuelto ? paso.resuelto(instantanea) : true;
+  const visto = instantanea.vistos?.includes(paso.id) ?? false;
+  const resuelto = conDatos && propio && (!paso.confirmacion || visto);
+  return { ...paso, resuelto, faltantes, visto };
 }
 
-// El avance de la receta. `siguiente` es el primer paso pendiente NO
-// opcional; si solo quedan opcionales, apunta al primero de esos, y si
-// no queda ninguno es null. Los pasos opcionales no cuentan para el
-// total: una receta con el aforo pendiente esta completa, porque el
-// aforo verifica y no habilita.
+function tieneValor(valor) {
+  if (valor === null || valor === undefined) return false;
+  if (typeof valor === 'number') return Number.isFinite(valor);
+  if (typeof valor === 'string') return valor.length > 0;
+  return true;
+}
+
 export function progresoDeReceta(receta, instantanea) {
-  const pasos = receta.pasos.map((paso) => estadoDePaso(paso, instantanea));
+  const pasos = pasosDeReceta(receta).map((paso) => estadoDePaso(paso, instantanea));
   const obligatorios = pasos.filter((p) => !p.opcional);
-  const listos = obligatorios.filter((p) => p.listo).length;
+  const resueltos = obligatorios.filter((p) => p.resuelto).length;
   const siguiente =
-    obligatorios.find((p) => !p.listo) ?? pasos.find((p) => p.opcional && !p.listo) ?? null;
+    obligatorios.find((p) => !p.resuelto) ?? pasos.find((p) => p.opcional && !p.resuelto) ?? null;
   return {
     pasos,
-    listos,
+    resueltos,
     total: obligatorios.length,
-    completa: listos === obligatorios.length,
+    completa: resueltos === obligatorios.length,
     siguiente,
-    // Un dato viejo no bloquea, pero la receta lo dice de una vez para
-    // que no haya que abrir los pasos uno por uno.
-    hayViejos: pasos.some((p) => p.viejo),
   };
 }
 
-// Posicion de una pantalla dentro de la receta activa, para la tira de
-// avance del encabezado. Un mismo tab puede aparecer una sola vez por
-// receta; si no aparece, se devuelve null y la tira no se pinta.
-export function posicionEnReceta(receta, { seccion, tab }) {
-  const indice = receta.pasos.findIndex((p) => p.seccion === seccion && p.tab === tab);
-  if (indice < 0) return null;
-  return {
-    indice,
-    numero: indice + 1,
-    total: receta.pasos.length,
-    paso: receta.pasos[indice],
-    anterior: indice > 0 ? receta.pasos[indice - 1] : null,
-    siguiente: indice < receta.pasos.length - 1 ? receta.pasos[indice + 1] : null,
-  };
+// El indice del paso que toca abrir al entrar o al continuar: el primero
+// sin resolver, y si no queda ninguno, el ultimo (la hoja de resultado
+// se pinta al final del recorrido).
+export function indiceDelSiguiente(receta, instantanea) {
+  const pasos = pasosDeReceta(receta).map((paso) => estadoDePaso(paso, instantanea));
+  const indice = pasos.findIndex((p) => !p.resuelto && !p.opcional);
+  return indice >= 0 ? indice : pasos.length;
 }

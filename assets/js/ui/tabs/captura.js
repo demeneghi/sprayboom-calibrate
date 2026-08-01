@@ -20,8 +20,8 @@ import {
   pintarResultadoNoVerificado,
 } from '../render.js';
 import { crearCampoNumerico, crearEtiquetaConAyuda } from '../campos.js';
-import { crearCampoVelocidad } from '../velocidad.js';
-import { crearCampoHeredado, fuenteEspaciamiento } from '../heredado.js';
+import { crearCampoDato, valorDeDato, fijarDato } from '../dato.js';
+import { crearCampoHeredado } from '../heredado.js';
 import { crearCombobox } from '../combobox.js';
 import { crearCronometro } from '../cronometro.js';
 import { formatear, formatearPorcentaje } from '../formato.js';
@@ -98,16 +98,16 @@ export function render(panel, ctx) {
   zonaCronometro.append(cronometro.elemento);
 
   // ---------------- Presion de trabajo ----------------
-  const campoPresion = crearCampoNumerico({
-    etiqueta: 'Presión de trabajo',
-    magnitud: 'presion',
+  // La presion es el MISMO dato que captura Gasto de agua y el
+  // asistente: se monta desde el registro (domain/datos.js) y se guarda
+  // en el sitio unico de la jornada. Antes esta pantalla tenia su copia
+  // en su propio borrador, con la misma clave, y las dos se pisaban sin
+  // que nada lo dijera.
+  const campoPresion = crearCampoDato(ctx, 'presionBar', {
     sistema,
-    valorInicial: aCampo('presion', borrador.presionBar ?? equipo?.presionCalibracion ?? null),
+    etiqueta: 'Presión de trabajo',
     ayuda: 'La presión durante la prueba. Con ella se saca el caudal que daría la boquilla nueva.',
-    alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { presionBar: deSistema('presion', valor, sistema) });
-      recalcular();
-    },
+    alCambiar: () => recalcular(),
   });
 
   // ---------------- Regimen del motor durante el aforo ----------------
@@ -143,7 +143,7 @@ export function render(panel, ctx) {
   });
 
   // ---------------- Boquilla de referencia (combobox) ----------------
-  let boquillaId = borrador.boquillaId ?? equipo?.boquillaId ?? null;
+  let boquillaId = valorDeDato(ctx, 'boquillaId').valor;
   function boquillaSeleccionada() {
     return ctx.estado().catalogo.find((b) => b.id === boquillaId) ?? null;
   }
@@ -161,7 +161,7 @@ export function render(panel, ctx) {
     placeholder: 'Buscar boquilla en el catálogo...',
     alSeleccionar: (opcion) => {
       boquillaId = opcion.valor;
-      ctx.guardarBorrador(id, { boquillaId });
+      fijarDato(ctx, 'boquillaId', boquillaId);
       recalcular();
     },
   });
@@ -240,53 +240,19 @@ export function render(panel, ctx) {
   // ---------------- Contexto para el volumen real ----------------
   // Hereda por defecto la velocidad capturada en Avance: la teorica sin
   // verificar sesga el volumen real, y el numero se captura una sola vez.
-  const campoVelocidad = crearCampoVelocidad({
-    ctx,
-    tabId: id,
+  const campoVelocidad = crearCampoDato(ctx, 'velocidadKmh', {
     sistema,
     etiqueta: 'Velocidad de trabajo',
     alCambiar: () => recalcular(),
   });
-  const fuenteEsp = fuenteEspaciamiento(ctx);
-  const campoEspaciamiento = crearCampoHeredado({
-    ctx,
-    tabId: id,
-    clave: 'espaciamientoM',
-    claveManual: 'espaciamientoManual',
-    etiqueta: 'Espaciamiento entre boquillas',
-    magnitud: 'distanciaCorta',
+  const campoEspaciamiento = crearCampoDato(ctx, 'espaciamientoM', {
     sistema,
-    ayuda:
-      'Sale de la barra activa: el capturado o, si no lo hay, el ancho entre el número de ' +
-      'boquillas. Cambiarlo aquí no toca la configuración.',
-    fuente: fuenteEsp.fuente,
-    nombreDato: 'el espaciamiento',
-    heredado: { valor: fuenteEsp.valor, etiqueta: fuenteEsp.etiqueta },
-    aCampo: (m) =>
-      Number.isFinite(m) ? Number(aSistema('distanciaCorta', m, sistema).toPrecision(6)) : null,
-    deCampo: (valor) => deSistema('distanciaCorta', valor, sistema),
-    formatearValor: (valor) => `${formatear(valor, 3)} ${unidadEspaciamiento}`,
-    destino: fuenteEsp.destino,
-    textoSinDato:
-      'Captura el ancho y el número de boquillas de la barra en Sistema, Configuración, o ' +
-      'escribe aquí el espaciamiento.',
-    guardadoSinMarcaEsManual: true,
     alCambiar: () => recalcular(),
   });
-  const campoObjetivo = crearCampoNumerico({
-    etiqueta: 'Volumen objetivo',
-    magnitud: 'volumenAplicacion',
+  const campoObjetivo = crearCampoDato(ctx, 'lhaObjetivo', {
     sistema,
-    // Mismo objetivo de jornada que Boquillas y Gasto de agua; si nadie
-    // lo ha capturado, el objetivo propio del rancho de Configuracion.
-    valorInicial: aCampo('volumenAplicacion', borrador.lhaObjetivo ?? ctx.objetivoVolumenLha()),
     ayuda: 'Opcional. Si lo pones, el volumen medido se compara contra él.',
-    alCambiar: (valor) => {
-      const lha = deSistema('volumenAplicacion', valor, sistema);
-      ctx.guardarBorrador(id, { lhaObjetivo: lha });
-      ctx.guardarResultado('lhaObjetivo', { valor: lha, origen: id, detalle: 'objetivo de la jornada' });
-      recalcular();
-    },
+    alCambiar: () => recalcular(),
   });
 
   // ---------------- Resultados ----------------
@@ -367,7 +333,7 @@ export function render(panel, ctx) {
       );
     } else {
       try {
-        const presionBar = deSistema('presion', campoPresion.obtener(), sistema);
+        const presionBar = campoPresion.obtenerBase();
         const boquilla = boquillaSeleccionada();
         let caudalTeoricoLmin = null;
         // Variante detallada del dominio: ademas del caudal teorico
@@ -398,9 +364,9 @@ export function render(panel, ctx) {
           }
         }
 
-        const velocidadKmh = deSistema('velocidad', campoVelocidad.obtener(), sistema);
-        const espaciamientoM = deSistema('distanciaCorta', campoEspaciamiento.obtener(), sistema);
-        const lhaObjetivo = deSistema('volumenAplicacion', campoObjetivo.obtener(), sistema);
+        const velocidadKmh = campoVelocidad.obtenerBase();
+        const espaciamientoM = campoEspaciamiento.obtenerBase();
+        const lhaObjetivo = campoObjetivo.obtenerBase();
 
         // Guardas de plausibilidad del espaciamiento capturado (dominio):
         // detecta captura en centimetros y discrepancia contra el

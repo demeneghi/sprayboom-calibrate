@@ -18,21 +18,16 @@ import {
   resultadoConfiable,
   pintarResultadoNoVerificado,
 } from '../render.js';
-import { crearCampoNumerico, crearCampoSelect } from '../campos.js';
-import { crearCampoVelocidad } from '../velocidad.js';
-import { crearCampoHeredado, fuenteEspaciamiento } from '../heredado.js';
+import { crearCampoSelect } from '../campos.js';
+import { crearCampoDato, valorDeDato, fijarDato, respaldoDeDato, DATOS } from '../dato.js';
+import { crearCampoHeredado } from '../heredado.js';
 import { crearTrioBarra } from '../trio-barra.js';
 import { formatear } from '../formato.js';
 import { mostrarToast } from '../toast.js';
 import { crearCombobox } from '../combobox.js';
 import { estiloBadgeIso } from '../color.js';
-import { aSistema, deSistema, unidad } from '../../domain/units.js';
-import {
-  redondeoLegible,
-  calibrarMarcha,
-  modoGeometriaDe,
-  MODOS_GEOMETRIA_BARRA,
-} from '../../domain/speed.js';
+import { aSistema, unidad } from '../../domain/units.js';
+import { redondeoLegible, calibrarMarcha, modoGeometriaDe } from '../../domain/speed.js';
 import {
   caudalAPresionDetallado,
   caudalConDensidadDetallado,
@@ -66,7 +61,7 @@ export function render(panel, ctx) {
 
   // Seleccion de boquilla: el borrador gana; si no hay, la instalada en
   // el equipo activo.
-  let boquillaId = borrador.boquillaId ?? equipo?.boquillaId ?? null;
+  let boquillaId = valorDeDato(ctx, 'boquillaId').valor;
   let variableLibre = borrador.variableLibre ?? 'presion';
   let ultimoCalculo = null; // resultado central listo para bitacora
 
@@ -130,7 +125,7 @@ export function render(panel, ctx) {
     placeholder: 'Buscar en el catálogo…',
     alSeleccionar: (opcion) => {
       boquillaId = opcion.valor;
-      ctx.guardarBorrador(id, { boquillaId });
+      fijarDato(ctx, 'boquillaId', boquillaId);
       pintarBoquilla();
       recalcular();
     },
@@ -179,59 +174,48 @@ export function render(panel, ctx) {
   }
 
   // ---------------- Captura de trabajo ----------------
-  const campoPresion = crearCampoNumerico({
-    etiqueta: 'Presión en la boquilla',
-    magnitud: 'presion',
+  // Los cinco datos que esta pantalla comparte con el asistente y con
+  // la Prueba de captura los monta `ui/dato.js` a partir del registro
+  // (domain/datos.js): la etiqueta, la unidad, la ayuda y —sobre todo—
+  // el SITIO donde se guardan salen de ahi. Antes cada pantalla los
+  // declaraba por su cuenta y guardaba su propia copia en su borrador,
+  // asi que una calibracion guiada pedia la misma presion tres veces.
+  const campoPresion = crearCampoDato(ctx, 'presionBar', {
     sistema,
-    // Se precarga la presion de la ultima calibracion de la barra, igual
-    // que hace la Prueba de captura: arrancar en blanco obligaba a
-    // teclear un numero que la aplicacion ya conoce.
-    valorInicial: precarga('presion', borrador.presionBar ?? equipo?.presionCalibracion ?? null),
-    ayuda:
-      'La que marca el manómetro trabajando. Viene la de la última calibración de esta barra; ' +
-      'cámbiala por la de hoy.',
-    alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { presionBar: deSistema('presion', valor, sistema) });
-      recalcular();
-    },
+    alCambiar: () => recalcular(),
   });
 
   // La velocidad de trabajo se hereda de Avance por defecto; escribir
-  // aqui la vuelve captura manual y esa manda (ver ui/velocidad.js).
-  const campoVelocidad = crearCampoVelocidad({
-    ctx,
-    tabId: id,
+  // aqui la vuelve captura manual y esa manda.
+  const campoVelocidad = crearCampoDato(ctx, 'velocidadKmh', {
     sistema,
-    etiqueta: 'Velocidad de avance',
     alCambiar: () => recalcular(),
   });
 
   // ---------------- Geometria de la barra (los tres amarrados) --------
   //
-  // Ancho, numero de boquillas y espaciamiento no son tres datos sueltos:
-  // `ancho = número * espaciamiento`. Aqui se capturan los DOS que se
-  // pueden medir parado junto a la barra y el tercero sale solo, en la
-  // direccion que elija quien captura. Antes solo bajaba el espaciamiento
-  // del ancho entre las boquillas, y las otras dos direcciones tocaba
-  // hacerlas con la calculadora del mismo telefono.
+  // Ancho, numero de boquillas y espaciamiento no son tres datos
+  // sueltos: `ancho = número * espaciamiento`. Se capturan los DOS que
+  // se pueden medir parado junto a la barra y el tercero sale solo, en
+  // la direccion que elija quien captura. Antes solo bajaba el
+  // espaciamiento del ancho entre las boquillas, y las otras dos
+  // direcciones tocaba hacerlas con la calculadora del mismo telefono.
   //
-  // Lo capturado aqui es el dato del DIA y no toca la configuracion de la
-  // barra; el chip dice cuando ya no es el de la barra y el boton lo
-  // devuelve.
-  const fuenteEsp = fuenteEspaciamiento(ctx);
+  // Los tres siguen siendo datos de la jornada: el trio los lee y los
+  // escribe por `ui/dato.js`, asi que lo que se captura aqui es lo mismo
+  // que ven el asistente, Boquillas y la Prueba de captura.
   const geometriaBarra = {
-    anchoBarraM: Number.isFinite(equipo?.anchoBarra) ? equipo.anchoBarra : null,
-    numBoquillas: Number.isFinite(equipo?.numBoquillas) ? equipo.numBoquillas : null,
-    espaciamientoM: Number.isFinite(fuenteEsp.valor) ? fuenteEsp.valor : null,
+    anchoBarraM: respaldoDeDato(ctx, 'anchoBarraM').valor,
+    numBoquillas: respaldoDeDato(ctx, 'numBoquillas').valor,
+    espaciamientoM: respaldoDeDato(ctx, 'espaciamientoM').valor,
   };
+  // La barra propone cuál de los tres se calcula; lo elegido para la
+  // jornada manda. `modoGeometriaDe` cubre a las barras guardadas sin la
+  // marca: ahí el espaciamiento vacío significa —como siempre significó—
+  // que se deriva del ancho entre el número de boquillas.
   const modoBarra = modoGeometriaDe(equipo);
-  // El borrador viejo marcaba el espaciamiento capturado a mano con
-  // `espaciamientoManual`: eso es capturar los tres.
-  const modoInicial = MODOS_GEOMETRIA_BARRA.includes(borrador.geometriaCalculada)
-    ? borrador.geometriaCalculada
-    : borrador.espaciamientoManual === true
-      ? 'ninguno'
-      : modoBarra;
+  const modoJornada = valorDeDato(ctx, 'geometriaCalculada');
+  const modoInicial = modoJornada.manual ? modoJornada.valor : modoBarra;
 
   const estadoGeometria = el('div', { clase: 'fila-control' });
   const botonGeometriaBarra = el(
@@ -243,32 +227,28 @@ export function render(panel, ctx) {
   const trio = crearTrioBarra({
     sistema,
     valores: {
-      anchoBarraM: borrador.anchoBarraM ?? geometriaBarra.anchoBarraM,
-      numBoquillas: borrador.numBoquillas ?? geometriaBarra.numBoquillas,
-      espaciamientoM: borrador.espaciamientoM ?? geometriaBarra.espaciamientoM,
+      anchoBarraM: valorDeDato(ctx, 'anchoBarraM').valor,
+      numBoquillas: valorDeDato(ctx, 'numBoquillas').valor,
+      espaciamientoM: valorDeDato(ctx, 'espaciamientoM').valor,
     },
     calcular: modoInicial,
     umbralDiscrepanciaPct: ctx.estado().parametros.umbrales.umbralDiscrepanciaMetodos,
     espaciamientoMinimoPlausible: ctx.estado().parametros.umbrales.espaciamientoMinimoPlausible,
     etiquetas: {
-      anchoBarra: 'Ancho de la barra',
-      numBoquillas: 'Número de boquillas',
-      espaciamiento: 'Espaciamiento entre boquillas',
+      anchoBarra: DATOS.anchoBarraM.etiqueta,
+      numBoquillas: DATOS.numBoquillas.etiqueta,
+      espaciamiento: DATOS.espaciamientoM.etiqueta,
     },
     ayudas: {
       anchoBarra: `Viene de la barra «${equipo?.nombre ?? 'sin barra'}». Cambiarlo aquí no toca la configuración.`,
-      numBoquillas: 'Viene de la barra activa. Cuéntalas antes de confiar en el número.',
-      espaciamiento:
-        'La distancia de centro a centro entre dos boquillas vecinas, medida con el flexómetro. ' +
-        'Cambiarla aquí no toca la configuración.',
+      numBoquillas: DATOS.numBoquillas.ayuda,
+      espaciamiento: DATOS.espaciamientoM.ayuda,
     },
     alCambiar: ({ valores, calcular }) => {
-      ctx.guardarBorrador(id, {
-        anchoBarraM: valores.anchoBarraM,
-        numBoquillas: valores.numBoquillas,
-        espaciamientoM: valores.espaciamientoM,
-        geometriaCalculada: calcular,
-      });
+      fijarDato(ctx, 'anchoBarraM', valores.anchoBarraM);
+      fijarDato(ctx, 'numBoquillas', valores.numBoquillas);
+      fijarDato(ctx, 'espaciamientoM', valores.espaciamientoM);
+      fijarDato(ctx, 'geometriaCalculada', calcular);
       pintarEstadoGeometria();
       recalcular();
     },
@@ -278,7 +258,7 @@ export function render(panel, ctx) {
   // redondeo de captura: comparar con `===` marcaria como capturado a
   // mano un espaciamiento que solo perdio decimales al pintarse.
   function mismoNumero(a, b) {
-    if (a === null || b === null) return a === b;
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return a === b;
     return Math.abs(a - b) <= Math.abs(b) * 1e-6 + 1e-9;
   }
   function esGeometriaDeLaBarra() {
@@ -315,14 +295,17 @@ export function render(panel, ctx) {
   }
 
   botonGeometriaBarra.addEventListener('click', () => {
-    trio.fijar(geometriaBarra, modoBarra);
-    const v = trio.obtener();
-    ctx.guardarBorrador(id, {
-      anchoBarraM: v.anchoBarraM,
-      numBoquillas: v.numBoquillas,
-      espaciamientoM: v.espaciamientoM,
-      geometriaCalculada: modoBarra,
+    // Se BORRA lo capturado en vez de copiar los números de la barra: así
+    // los tres vuelven a heredar de verdad y siguen a la barra si mañana
+    // cambia, que es lo que dice el chip.
+    ctx.fijarJornada({
+      anchoBarraM: undefined,
+      numBoquillas: undefined,
+      espaciamientoM: undefined,
+      espaciamientoManual: false,
+      geometriaCalculada: undefined,
     });
+    trio.fijar(geometriaBarra, modoBarra);
     pintarEstadoGeometria();
     recalcular();
     mostrarToast('Geometría de la barra restaurada.');
@@ -331,12 +314,14 @@ export function render(panel, ctx) {
   function lecturas() {
     const geo = trio.obtener();
     return {
-      presionBar: deSistema('presion', campoPresion.obtener(), sistema),
-      velocidadKmh: deSistema('velocidad', campoVelocidad.obtener(), sistema),
+      // Los campos de dato devuelven el valor en base metrica: la
+      // conversion vive dentro del campo, no repetida en cada lectura.
+      presionBar: campoPresion.obtenerBase(),
+      velocidadKmh: campoVelocidad.obtenerBase(),
       anchoBarraM: geo.anchoBarraM,
       numBoquillas: geo.numBoquillas,
       espaciamientoM: geo.espaciamientoM,
-      lhaObjetivo: deSistema('volumenAplicacion', campoObjetivo.obtener(), sistema),
+      lhaObjetivo: campoObjetivo.obtenerBase(),
       rpmTrabajo: campoRpmTrabajo.obtener(),
     };
   }
@@ -641,24 +626,9 @@ export function render(panel, ctx) {
   });
 
   // ---------------- Modo inverso ----------------
-  const campoObjetivo = crearCampoNumerico({
-    etiqueta: 'Volumen objetivo',
-    magnitud: 'volumenAplicacion',
+  const campoObjetivo = crearCampoDato(ctx, 'lhaObjetivo', {
     sistema,
-    // Mismo objetivo de jornada que Boquillas y Prueba de captura. El
-    // nombre viejo del borrador se sigue leyendo para no perder lo que ya
-    // este capturado en un telefono.
-    valorInicial: precarga(
-      'volumenAplicacion',
-      borrador.lhaObjetivo ?? borrador.lhaObjetivoLha ?? ctx.objetivoVolumenLha()
-    ),
-    ayuda: 'El volumen que quieres aplicar. Viene el último que capturaste.',
-    alCambiar: (valor) => {
-      const lha = deSistema('volumenAplicacion', valor, sistema);
-      ctx.guardarBorrador(id, { lhaObjetivo: lha });
-      ctx.guardarResultado('lhaObjetivo', { valor: lha, origen: id, detalle: 'objetivo de la jornada' });
-      recalcularInverso();
-    },
+    alCambiar: () => recalcularInverso(),
   });
   const selectVariable = crearCampoSelect({
     etiqueta: 'Variable libre a despejar',

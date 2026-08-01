@@ -10,6 +10,12 @@ Fecha del análisis: agosto de 2026. Rama: `claude/calculated-fields-tabs-sync-0
 > cuerpo del documento describe **cómo estaba** —para que el motivo de cada cambio quede
 > escrito— y la §8, al final, dice qué se hizo, qué quedó fuera y por qué. Los tiempos
 > verbales en pasado del inventario se refieren al estado anterior al arreglo.
+>
+> **Superado en parte.** Los archivos que este documento nombra —`ui/velocidad.js` y las
+> funciones `fuente*` de `ui/heredado.js`— ya no existen: el patrón que describen vive ahora
+> en el registro de datos (`domain/datos.js` y `ui/dato.js`), donde cada dato compartido se
+> declara una vez y se guarda en un solo sitio. El porqué está en `docs/guia-por-objetivo.md`.
+> El inventario de qué pantalla necesita qué dato sigue siendo válido.
 
 ---
 
@@ -249,7 +255,7 @@ propia pestaña de captura reporta el «desgaste implícito» y ese número no l
 | Boquillas (candidata elegida) | Prueba de captura | ❌ | hay que volver a buscarla en el combo |
 | Barra activa `presionCalibracion` | Prueba de captura | ✅ | precarga |
 | Barra activa `presionCalibracion` | Gasto de agua | ❌ | el campo de presión arranca vacío |
-| Geometría de la barra | espaciamiento en boquillas/captura | ✅ | campo heredado con chip de origen (`fuenteEspaciamiento`) |
+| Geometría de la barra | espaciamiento en boquillas/captura | ✅ | dato de la jornada con chip de origen (`domain/datos.js`, respaldo `barra`) |
 | Geometría de la barra | ancho, boquillas y espaciamiento en Gasto de agua | ✅ | el trío de la barra: se capturan dos, el tercero se calcula, y el chip dice cuándo dejó de ser el de la barra |
 | Barra activa `volumenTanque` | Mezcla | ✅ | precarga con ayuda que lo dice |
 
@@ -356,10 +362,9 @@ anterior al sello se acepta y se vuelve a sellar: nadie pierde su selección por
 ### El patrón de campo heredado, extraído
 
 `ui/heredado.js` tiene el patrón completo (precarga + chip de procedencia + captura manual que
-manda + botón para volver a heredar). Lo usan ahora **ocho** campos: velocidad (3 pantallas),
+manda + botón para volver a heredar). Lo usan ahora **nueve** campos: velocidad (3 pantallas),
 tiempo por tabla (2), régimen (2), volumen de aplicación (2), masa por tabla (1) y
-espaciamiento (2: Boquillas y Prueba de captura). `crearCampoVelocidad` quedó reducido a lo
-propio de la velocidad.
+espaciamiento (3). `crearCampoVelocidad` quedó reducido a lo propio de la velocidad.
 
 La bandera `guardadoSinMarcaEsManual` protege a los campos que **antes** se capturaban a mano:
 lo que ya estaba guardado sin marca es una captura del usuario y no se pisa con lo heredado.
@@ -372,6 +377,11 @@ y el tercero sale solo, en cualquiera de las tres direcciones; cuál se calcula 
 de opciones y no se adivina del campo que quedó vacío. Lo usan la barra de Configuración —donde
 el dato vive— y la captura del día de Gasto de agua.
 
+Los tres siguen siendo **datos de la jornada** (`domain/datos.js`): el trío los lee y los
+escribe por `ui/dato.js`, así que lo que se captura ahí es lo mismo que ven el asistente,
+Boquillas y la Prueba de captura. Cuál se calcula es un dato más —`geometriaCalculada`—, con la
+barra como respaldo.
+
 Antes solo bajaba el espaciamiento del ancho entre las boquillas. Las otras dos direcciones se
 hacían con la calculadora del mismo teléfono, que es donde se cuela el error de geometría que
 después nadie encuentra.
@@ -379,7 +389,8 @@ después nadie encuentra.
 La cuarta opción —capturar los tres— existe a propósito: es la única que conserva la señal de
 diagnóstico de que el ancho efectivo no es el que se cree, y con un trío siempre amarrado esa
 discrepancia jamás aparecería. La barra guarda cuál calcula en `geometriaCalculada`; una barra
-guardada sin esa marca conserva su significado de siempre (espaciamiento vacío = derivado).
+guardada sin esa marca conserva su significado de siempre (espaciamiento vacío = derivado del
+ancho entre el número de boquillas).
 
 ### El volumen de aplicación conectado
 
