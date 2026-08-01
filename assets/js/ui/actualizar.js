@@ -138,6 +138,13 @@ function esperarInstalacion() {
 // hay, la funcion que la aplica (tras aplicarla la pagina se recarga
 // sola, asi que no hay nada que hacer despues).
 export async function buscarActualizacion() {
+  // Por http:// el navegador ni siquiera expone el service worker. No es
+  // que al telefono le falte soporte: es que el sitio se abrio por una
+  // direccion insegura, y ahi la aplicacion no se instala ni guarda nada
+  // para el lote. Se distingue de 'sin-soporte' porque el remedio es
+  // otro: abrirlo por https://. La comparacion es con `=== false` para
+  // no confundir con un navegador viejo que no conoce esta propiedad.
+  if (self.isSecureContext === false) return { estado: 'sin-https' };
   if (!('serviceWorker' in navigator)) return { estado: 'sin-soporte' };
   if (!registro) {
     registro = (await navigator.serviceWorker.getRegistration()) ?? null;

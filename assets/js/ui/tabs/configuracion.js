@@ -79,6 +79,11 @@ const MENSAJES_ACTUALIZACION = {
     'La descarga se interrumpió. Vuelve a intentar; si sigue igual, usa «Reinstalar desde cero».',
   'sin-soporte':
     'Este navegador no guarda la aplicación para uso sin conexión: siempre carga la última versión al abrirla.',
+  // Por http:// no hay nada que actualizar: el navegador no deja guardar
+  // el sitio ni instalarlo. Es un problema de la dirección con la que se
+  // abrió, así que el mensaje dice exactamente qué hacer.
+  'sin-https':
+    'Abriste el sitio por una dirección insegura (http://). Así no se puede instalar ni guardar para el lote: ábrelo con https:// y vuelve a agregarlo a la pantalla de inicio.',
   // Reinstalar borra la única copia con la que la aplicación abre sin
   // señal: sin conexión no se borra nada y se dice por qué.
   reinstalarSinConexion:

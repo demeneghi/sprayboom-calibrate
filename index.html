@@ -6,6 +6,18 @@
   <meta name="description" content="Calibración de aplicaciones agrícolas en cultivo de piña MD2: velocidad y avance, gasto de agua y gas etileno por rotámetro.">
   <!-- Igual al fondo del tema oscuro en tokens.css (hsl(0 0% 10.4%)). -->
   <meta name="theme-color" content="#1b1b1b">
+  <!-- Pantalla completa al abrirla desde el icono, SIN la barra de
+       direcciones ni la de botones de Safari. El manifest ya lo pide con
+       display: standalone, pero el iPhone con el que se calibra solo
+       obedece esta meta si su version de iOS es vieja: sin ella, el
+       icono de la pantalla de inicio abria la aplicacion dentro del
+       navegador y se comia dos franjas de pantalla. mobile-web-app-capable
+       es la version estandar de lo mismo, para Android. -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <!-- Nombre bajo el icono en la pantalla de inicio. Sin esto iOS usa el
+       <title> completo y lo recorta a la mitad. -->
+  <meta name="apple-mobile-web-app-title" content="Calibración">
   <title>Calibración agrícola MD2</title>
   <script>
     // Tema antes del primer pintado, para no parpadear. Default: oscuro.

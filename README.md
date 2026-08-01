@@ -19,8 +19,40 @@ Pages. Si algo falla, no se publica: una calibración rota no llega al campo.
   **GitHub Actions** (el token del flujo no tiene permiso para crearla solo: la corrida falla
   en "Configurar Pages" hasta hacerlo). Después, cada merge a `main` despliega sin pasos
   manuales; el flujo también se puede relanzar desde la pestaña Actions.
-- El sitio queda en `https://<usuario>.github.io/sprayboom-calibrate/`.
+- El sitio queda en `https://<usuario>.github.io/sprayboom-calibrate/`, y en el dominio propio
+  `https://calibrador.aru.mx` (ver abajo).
 - No hay nada que compilar; el flujo solo valida, empaqueta y publica.
+
+### Dominio propio y HTTPS — de esto depende que la aplicación se instale
+
+**El archivo `CNAME` de la raíz no se borra ni se mueve.** Es una sola línea con el dominio
+(`calibrador.aru.mx`) y viaja dentro del paquete que publica el flujo.
+
+Con despliegue por GitHub Actions, Pages toma el dominio del sitio **del paquete publicado**, no
+de lo que quedó guardado en Settings. Sin `CNAME` dentro del paquete, cada despliegue deja el
+sitio sin dominio configurado, GitHub cancela la emisión del certificado y `https://` se queda
+sin certificado válido: el teléfono solo puede abrirlo por `http://` y muestra "No seguro".
+
+Y por `http://` **la aplicación no se instala**. No es una preferencia del navegador: sin HTTPS
+ningún navegador expone el service worker, así que no hay precache, no hay uso sin conexión y no
+hay instalación en la pantalla de inicio. El icono que se agregue abrirá una pestaña de Safari
+con sus barras, que es exactamente el síntoma que se ve cuando falta el certificado.
+
+Pasos manuales, una sola vez (no los puede hacer el flujo):
+
+1. DNS del dominio apuntando a las cuatro direcciones de GitHub Pages: `185.199.108.153`,
+   `185.199.109.153`, `185.199.110.153` y `185.199.111.153`.
+2. Settings, Pages, **Custom domain**: escribir `calibrador.aru.mx` y guardar. GitHub verifica el
+   DNS y empieza a emitir el certificado (tarda de unos minutos a una hora).
+3. Cuando la casilla **Enforce HTTPS** deje de estar deshabilitada, activarla. Eso hace que
+   `http://` redirija a `https://` y que quien abra el enlace viejo termine en el sitio seguro.
+
+Para comprobar desde cualquier máquina que quedó bien:
+
+```bash
+curl -sSI https://calibrador.aru.mx/ | head -1   # debe dar 200, sin error de certificado
+curl -sSI http://calibrador.aru.mx/  | head -1   # debe dar 301 hacia https
+```
 
 **Requisito de plan**: GitHub Pages en un repositorio privado requiere plan de pago (Pro, Team o Enterprise). Si el repositorio es privado y la cuenta es gratuita, hay que hacer el repositorio público antes de activar Pages.
 
