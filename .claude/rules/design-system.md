@@ -270,39 +270,53 @@ Son cinco, y ninguna es cosmética.
 - Vale todo lo dicho para el globo del campo: uno abierto a la vez en la pantalla, flotando en la
   capa superior, posición calculada por `campos.js`, y `Escape` o un toque fuera lo cierran.
 
-## Botón de unidades de un campo (métrico → imperial)
+## Botón de unidades de un campo (hacia las unidades de la aplicación)
 
 - **Un campo con magnitud no imprime su unidad en la etiqueta: la unidad ES el botón**, y va
   pegado al número. Se lee junto a la cifra que califica y se toca donde se lee. La etiqueta queda
   con el nombre del dato y nada más.
-- **El botón dice el SENTIDO de la conversión, no solo que ahí se convierte.** Lleva dos rótulos:
-  la unidad en la que está escrito el número —que manda, y por eso conserva el peso y el color del
-  botón—, la flecha, y la unidad a la que va al pulsarlo (`bar → psi`). El destino va atenuado y un
-  escalón más chico (`--text-meta`) para que la pareja se lea «de aquí a allá» y no como dos
-  unidades compitiendo. **Prohibido** rotularlo solo con la unidad actual o con una doble flecha:
-  no había forma de saber si al pulsarlo el número pasaba a psi o si el botón avisaba que ya venía
-  en psi, y equivocarse de sentido es exactamente el error de factor que este botón vino a quitar.
+- **El sentido es UNO SOLO y no se voltea: de la unidad ajena a la de la aplicación.** El campo se
+  queda **siempre** escrito en las unidades del sistema activo. **Prohibido** convertir hacia
+  afuera: un campo que se queda en la unidad ajena deja un número que no es el de la pantalla, y de
+  ahí a guardar una calibración con el factor equivocado hay un paso.
+- **El botón dice el SENTIDO, no solo que ahí se convierte.** Lleva dos rótulos: la unidad ajena
+  —de dónde viene lo que se acaba de teclear—, la flecha, y la unidad de la aplicación (`psi →
+  bar`). **El peso va en el destino**, que es la unidad del campo y la que hay que leer al mirar la
+  cifra; el origen va atenuado y un escalón más chico (`--text-meta`). Con el énfasis del otro lado,
+  una ojeada dejaba «psi» junto a un número que está en bar. **Prohibido** rotularlo solo con la
+  unidad del campo o con una doble flecha: no había forma de saber si al pulsarlo el número pasaba a
+  psi o si el botón avisaba que ya venía en psi, y equivocarse de sentido es exactamente el error de
+  factor que este botón vino a quitar.
+- **El segundo toque deshace; no es la conversión contraria.** Devuelve el texto tal como se
+  escribió, sin aplicar ningún factor: es el botón de arrepentirse, porque con guantes se pulsa por
+  error lo que está pegado al campo. Devuelve el texto **original** y no el reconvertido: con seis
+  dígitos significativos, 40 psi → 2.7579 bar → 40.0001 psi, y ver cambiar el número al deshacer se
+  lee como un error de la aplicación.
+- **La equivalencia aplicada se imprime bajo el campo** (`40 psi = 2.7579 bar`): es resultado, no
+  ayuda —cambia con lo capturado—, y es lo que permite revisar la cuenta sin rehacerla. Se apaga al
+  deshacer o al teclear encima.
+- **Sin número, el botón se apaga** (`disabled`): no hay nada que convertir, y un botón que no
+  responde al toque se lee como aplicación rota.
 - **Para qué existe.** Quien calibra lee el dato en la unidad del fierro que tiene enfrente —el
   manómetro de la barra marca psi, la ficha de la boquilla americana viene en GPM, el tanque está
   rotulado en galones— y la aplicación trabaja en la otra. Ese número se convertía a mano, de pie
   en el lote, con la calculadora del mismo teléfono: es justo donde se cuela un error de factor
   que después nadie encuentra.
 - **No cambia el sistema de la aplicación.** Ese sigue siendo uno solo y vive en Sistema,
-  Configuración. El botón solo cambia en qué unidad se **escribe** ese campo; hacia afuera el
-  valor sigue saliendo en el sistema que declaró la pantalla, así que ninguna pantalla cambia por
+  Configuración. El botón solo convierte **el número de ese campo**, una vez; el campo sigue
+  entregando su valor en el sistema que declaró la pantalla, así que ninguna pantalla cambia por
   esto. **Prohibido** usarlo como segundo selector global de unidades.
 - **Lo produce `campos.js`, no la pantalla.** El consumidor declara `magnitud` (clave de
   `domain/units.js`) y `sistema` (el de entrada y salida del campo) y ya no pasa `unidad`.
   `crearCampoHeredado` los reenvía igual. **Prohibido** armar a mano una fila con el input y un
   botón de unidad.
-- **La vuelta devuelve el texto original, no el reconvertido.** Con seis dígitos significativos,
-  2.7579 bar → 40.0001 psi → 2.75791 bar: ver cambiar el número al regresar se lee como un error
-  de la aplicación. El campo recuerda de dónde venía.
-- **Mientras está en la otra unidad, el botón se pinta con el acento del módulo**
-  (`data-convertido='true'`), igual que la opción elegida de un grupo y la ayuda abierta: es lo
-  que dice de un vistazo que ese campo no está en las unidades de la aplicación. Se pinta por
-  «convertido», **no** por «imperial»: con la aplicación en imperial, imperial es lo normal y no
-  hay nada que señalar.
+- **Recién convertido, el botón se pinta con el acento del módulo** (`data-convertido='true'`),
+  igual que la opción elegida de un grupo y la ayuda abierta: dice que ese número lo escribió el
+  botón y no la persona, y que ese toque se puede deshacer. Se apaga solo en cuanto se teclea
+  encima.
+- **Convertir avisa a la pantalla.** El valor cambió de verdad —40 psi no son 40 bar—, así que el
+  campo emite `input` y `change` igual que si se hubiera tecleado: borrador, recálculo y commit al
+  salir del campo. **Prohibido** convertir en silencio.
 - **Excepción declarada al piso táctil, la segunda.** El botón comparte alto con su input
   (`--control-h`, 44px) y no toma `--touch-floor`: son una sola pieza y un botón 4px más alto que
   el campo al que está pegado se lee como un desajuste. El objetivo táctil no se pierde: el ancho
@@ -444,10 +458,12 @@ suelto. Lo mismo con cada color ISO sembrado.
   el `?` y sin la fila de la etiqueta.
 - Repetir la unidad en la etiqueta de un campo que ya tiene botón de unidades, o armar a mano la
   fila del input con su botón: la produce `campos.js` a partir de `magnitud` y `sistema`.
-- Convertir el campo y **no** decir que quedó en la otra unidad: sin el acento, un 43.5 en un
-  campo que se lee como bar es una calibración mal hecha.
+- Convertir un campo hacia la unidad ajena y dejarlo escrito así: el campo se queda **siempre** en
+  las unidades de la aplicación, y el botón solo convierte hacia ellas.
 - Rotular el botón de unidades sin el sentido de la conversión (`bar` a secas, o una doble flecha):
   no se sabe si convierte a psi o avisa que el número ya viene en psi.
+- Poner el peso del rótulo en la unidad ajena: al ojear el campo, «psi» queda junto a un número que
+  está en bar.
 - Devolver el globo de ayuda al flujo (o anclarlo con `position: absolute` dentro del campo): abrir
   una ayuda volvería a empujar los campos de abajo, y dentro de una tarjeta el globo se recorta.
 - Declarar `touch-action: none` sobre el SVG entero de un instrumento: deja al dedo sin forma de

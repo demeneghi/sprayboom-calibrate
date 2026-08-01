@@ -266,44 +266,58 @@ verificar(/por boquilla/i.test(texto) && /por barra/i.test(texto), 'Gasto: ambos
 verificar(/Verificado por dos rutas|verificación/i.test(texto), 'Gasto: verificación redundante visible');
 verificar(/desglose/i.test(texto), 'Gasto: desglose paso a paso disponible');
 
-// ---------- Boton de unidades: convierte el CAMPO, no la aplicacion ----------
+// ---------- Boton de unidades: SIEMPRE hacia las unidades de la app ----------
 // El manometro de la barra viene rotulado en psi y la aplicacion trabaja
 // en bar: antes ese numero se convertia a mano, de pie en el lote.
-const botonAPsi = pagina.getByRole('button', { name: /^Presión en la boquilla en bar\./ });
-verificar((await botonAPsi.count()) === 1, 'Unidades: el campo de presión trae su botón');
+const botonUnidad = pagina.getByRole('button', { name: /^Presión en la boquilla: lo escrito/ });
+verificar((await botonUnidad.count()) === 1, 'Unidades: el campo de presión trae su botón');
 const entradaPresion = pagina.getByRole('textbox', { name: 'Presión en la boquilla' });
-// El boton dice el SENTIDO, no solo la unidad: primero en la que esta
-// escrito el numero y despues a la que va. Con «bar» a secas no habia
-// forma de saber si convertia a psi o avisaba que ya venia en psi.
+// El boton dice el SENTIDO, y es uno solo: de la unidad ajena a la de la
+// aplicacion. Con «bar» a secas no habia forma de saber si convertia a
+// psi o avisaba que ya venia en psi.
 verificar(
-  (await botonAPsi.locator('.campo__unidad-de').innerText()).trim() === 'bar' &&
-    (await botonAPsi.locator('.campo__unidad-a').innerText()).trim() === 'psi',
-  'Unidades: el botón dice de qué unidad a cuál convierte'
+  (await botonUnidad.locator('.campo__unidad-de').innerText()).trim() === 'psi' &&
+    (await botonUnidad.locator('.campo__unidad-a').innerText()).trim() === 'bar',
+  'Unidades: el botón convierte de la unidad ajena a la de la aplicación'
 );
-await botonAPsi.click();
+// La lectura del manometro, tal cual: 40 psi.
+await entradaPresion.fill('40');
+await botonUnidad.click();
 verificar(
-  (await entradaPresion.inputValue()) === '43.5113',
-  `Unidades: 3 bar se escriben como 43.5113 psi (se obtuvo ${await entradaPresion.inputValue()})`
+  (await entradaPresion.inputValue()) === '2.7579',
+  `Unidades: 40 psi quedan en 2.7579 bar (se obtuvo ${await entradaPresion.inputValue()})`
 );
 verificar(
   (await pagina.locator('.campo__unidad[data-convertido="true"]').count()) === 1,
-  'Unidades: el campo convertido queda marcado con el acento'
+  'Unidades: el campo recién convertido queda marcado con el acento'
 );
-// El sistema de la aplicacion NO se movio: el resultado sigue en metrico.
+verificar(
+  /40 psi = 2\.7579 bar/.test(await pagina.locator('#panel').innerText()),
+  'Unidades: la equivalencia queda impresa para poder revisarla'
+);
+// El sistema de la aplicacion NO se movio: la pantalla sigue en metrico.
 verificar(
   /L\/ha/.test(await pagina.locator('#panel').innerText()),
   'Unidades: convertir un campo no cambia el sistema de la pantalla'
 );
-const botonABar = pagina.getByRole('button', { name: /^Presión en la boquilla en psi\./ });
-await botonABar.click();
+// El segundo toque DESHACE: devuelve el texto tal como se escribio.
+const botonDeshacer = pagina.getByRole('button', { name: /^Presión en la boquilla: deshacer/ });
+await botonDeshacer.click();
 verificar(
-  (await entradaPresion.inputValue()) === '3',
-  `Unidades: la vuelta devuelve el 3 original, no el reconvertido (se obtuvo ${await entradaPresion.inputValue()})`
+  (await entradaPresion.inputValue()) === '40',
+  `Unidades: deshacer devuelve el 40 original (se obtuvo ${await entradaPresion.inputValue()})`
 );
 verificar(
   (await pagina.locator('.campo__unidad[data-convertido="true"]').count()) === 0,
-  'Unidades: de vuelta en las unidades de la aplicación, sin marca'
+  'Unidades: al deshacer se apaga la marca'
 );
+// Y el campo se queda SIEMPRE en las unidades de la aplicacion: el
+// rotulo con peso es el de la aplicacion, pase lo que pase.
+verificar(
+  (await botonUnidad.locator('.campo__unidad-a').innerText()).trim() === 'bar',
+  'Unidades: el campo nunca se queda rotulado en la unidad ajena'
+);
+await entradaPresion.fill('3');
 
 // ---------- El volumen de aplicación llega solo a Mezcla ----------
 // Toda la mezcla depende de este número y antes había que copiarlo a

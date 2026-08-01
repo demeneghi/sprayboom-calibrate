@@ -219,20 +219,23 @@
           <h2 class="card__titulo">Botón de unidades del campo</h2>
           <p class="card__descripcion">Cuando el campo tiene magnitud, la unidad deja de
           imprimirse en la etiqueta y pasa a ser el <strong>botón pegado al número</strong>:
-          convierte lo capturado de métrico a imperial y de regreso, para no sacar la calculadora
-          cuando el manómetro marca psi y la aplicación trabaja en bar. No cambia el sistema de la
-          aplicación —eso sigue en Configuración—; solo la unidad en que se escribe este campo.
-          Mientras está en la otra unidad, el botón se pinta con el acento del módulo.</p>
+          convierte lo capturado a las unidades de la aplicación, para no sacar la calculadora
+          cuando el manómetro marca psi y la aplicación trabaja en bar. El sentido es uno solo y
+          nunca se voltea: el campo se queda siempre en la unidad del sistema activo, que es la
+          del rótulo con peso.</p>
         </div>
         <div class="card__contenido">
           <div class="pila-campos" id="zona-unidades"></div>
           <p class="ayuda">El botón dice el <strong>sentido</strong> de la conversión, no solo que
-          ahí se convierte: primero la unidad en la que está escrito el número —que es la que
-          manda, y por eso lleva el peso—, la flecha, y la unidad a la que va al pulsarlo. Con la
-          unidad sola no había forma de saber si el botón convertía a psi o avisaba que el número ya
-          venía en psi.</p>
-          <p class="ayuda">La vuelta devuelve el número tal como se escribió: convertir y
-          desconvertir no lo mueve en el último dígito.</p>
+          ahí se convierte: primero la unidad ajena —de donde viene el número que se acaba de
+          teclear, atenuada—, la flecha, y la unidad de la aplicación, que es en la que queda el
+          número y por eso lleva el peso. Con la unidad sola no había forma de saber si el botón
+          convertía a psi o avisaba que el número ya venía en psi.</p>
+          <p class="ayuda">Escribe 40 en la presión y toca el botón: quedan 2.7579 bar, con la
+          equivalencia impresa debajo para poder revisarla. El segundo toque
+          <strong>deshace</strong> y devuelve el 40 tal como se escribió —no es la conversión
+          contraria: es el botón de arrepentirse, porque con guantes se pulsa por error lo que sea—.
+          Teclear encima apaga la marca.</p>
         </div>
       </section>
 
@@ -528,7 +531,7 @@
       etiqueta: 'Presión de trabajo',
       magnitud: 'presion',
       sistema: 'metrico',
-      valorInicial: 3,
+      valorInicial: 40,
       ayuda: 'El manómetro de la barra suele venir rotulado en psi: el botón convierte la lectura sin sacar la calculadora.',
     });
     const campoTanqueDemo = crearCampoNumerico({

@@ -353,13 +353,14 @@
    pasa a ser el BOTON que va pegado al numero: se lee donde se mira —al
    lado de la cifra que califica— y se toca donde se lee.
 
-   El boton dice el SENTIDO de la conversion —«bar -> psi»—, no solo que
+   El boton dice el SENTIDO de la conversion —«psi -> bar»—, no solo que
    ahi se convierte: con la unidad sola no habia forma de saber si al
    pulsarlo el numero pasaba a psi o si el boton avisaba que ya venia en
    psi.
 
-   Convierte lo capturado sin tocar el sistema de la aplicacion, que
-   sigue siendo uno solo y vive en Configuración.
+   El sentido es UNO SOLO: de la unidad ajena a la de la aplicacion. El
+   campo se queda siempre en las unidades del sistema activo —la del
+   rotulo con peso, a la derecha de la flecha— y nunca al reves.
 
    En un campo angosto —los volumenes por boquilla van en dos columnas—
    el par de unidades no cabe al lado del numero: entonces el boton se va
@@ -435,32 +436,41 @@
   background-color: hsl(var(--accent));
 }
 
-/* Escrito en el otro sistema: el mismo cromado del modulo que marca la
-   opcion elegida de un grupo y la ayuda abierta. Dice de un vistazo que
-   ESTE campo no esta en las unidades de la aplicacion. Se pinta por
-   `data-convertido`, no por `data-sistema`: con la aplicacion en
-   imperial, imperial es lo normal y no hay nada que señalar. */
+/* Recien convertido: el mismo cromado del modulo que marca la opcion
+   elegida de un grupo y la ayuda abierta. Dice que el numero que se ve
+   lo escribio el boton y no la persona —y que ese toque se puede
+   deshacer—. Se apaga solo, en cuanto se teclea algo encima. */
 .campo__unidad[data-convertido='true'] {
   background-color: hsl(var(--acento) / 0.14);
   border-color: hsl(var(--acento));
   color: hsl(var(--acento-texto));
 }
 
-/* Los dos rotulos del boton. El de ORIGEN es la unidad en la que esta
-   escrito el numero que se ve: manda, y por eso hereda el peso y el
-   color del boton. El de DESTINO es a donde va el numero al pulsar, y va
-   atenuado y un escalon mas chico —de la escala, no un tamaño suelto—
-   para que la pareja se lea como «de aqui a alla» y no como dos unidades
-   compitiendo. */
-.campo__unidad-de {
-  flex: none;
-}
+/* Los dos rotulos del boton. El de ORIGEN es la unidad AJENA —de donde
+   viene el numero que se acaba de teclear— y va atenuada, un escalon mas
+   chica; el de DESTINO es la unidad de la aplicacion, que es la del
+   campo, y lleva el peso y el color plenos.
 
-.campo__unidad-a {
+   El peso esta del lado del destino a proposito: es la unidad en la que
+   queda el numero, y por lo tanto la que hay que leer al mirar la cifra.
+   Con el enfasis del otro lado, una ojeada al campo dejaba «psi» junto a
+   un numero que esta en bar. */
+.campo__unidad-de {
   flex: none;
   color: hsl(var(--muted-foreground));
   font-size: var(--text-meta);
   font-weight: 500;
+}
+
+.campo__unidad-a {
+  flex: none;
+}
+
+/* Sin numero no hay nada que convertir. Se apaga en vez de quedarse
+   mudo: un boton que no responde al toque se lee como aplicacion rota. */
+.campo__unidad:disabled {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .campo__unidad-icono {
