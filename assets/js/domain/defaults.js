@@ -251,16 +251,16 @@ export const PARAMETROS = {
 // validate.js las usa para formularios e importacion por igual.
 // ---------------------------------------------------------------------
 export const COTAS_TRACTOR = {
-  regimenNominal: { min: 500, max: 5000, unidad: 'rpm', etiqueta: 'Régimen nominal' },
-  regimenMinimo: { min: 400, max: 5000, unidad: 'rpm', etiqueta: 'Régimen mínimo de trabajo' },
-  regimenMaximo: { min: 500, max: 5000, unidad: 'rpm', etiqueta: 'Régimen máximo admisible' },
-  regimenHabitual: { min: 400, max: 5000, unidad: 'rpm', etiqueta: 'Régimen habitual de trabajo' },
-  numRangos: { min: 1, max: 6, entero: true, unidad: '', etiqueta: 'Número de rangos' },
-  marchasPorRango: { min: 1, max: 8, entero: true, unidad: '', etiqueta: 'Marchas por rango' },
+  regimenNominal: { min: 500, max: 5000, unidad: 'rpm', magnitud: null, etiqueta: 'Régimen nominal' },
+  regimenMinimo: { min: 400, max: 5000, unidad: 'rpm', magnitud: null, etiqueta: 'Régimen mínimo de trabajo' },
+  regimenMaximo: { min: 500, max: 5000, unidad: 'rpm', magnitud: null, etiqueta: 'Régimen máximo admisible' },
+  regimenHabitual: { min: 400, max: 5000, unidad: 'rpm', magnitud: null, etiqueta: 'Régimen habitual de trabajo' },
+  numRangos: { min: 1, max: 6, entero: true, unidad: '', magnitud: null, etiqueta: 'Número de rangos' },
+  marchasPorRango: { min: 1, max: 8, entero: true, unidad: '', magnitud: null, etiqueta: 'Marchas por rango' },
 };
 
 export const COTAS_VELOCIDAD_MARCHA = {
-  kmhNominal: { min: 0.1, max: 60, unidad: 'km/h', etiqueta: 'Velocidad nominal de la marcha' },
+  kmhNominal: { min: 0.1, max: 60, unidad: 'km/h', magnitud: 'velocidad', etiqueta: 'Velocidad nominal de la marcha' },
 };
 
 // Geometria PROPIA de cada barra de aplicacion. Va aparte de
@@ -272,6 +272,7 @@ export const COTAS_BARRA = {
     min: 0.5,
     max: 100,
     unidad: 'm',
+    magnitud: 'distancia',
     etiqueta: 'Ancho de barra de aplicación',
     ayuda: 'El ancho que moja esta barra. Con él se reparte el volumen por hectárea.',
   },
@@ -279,6 +280,7 @@ export const COTAS_BARRA = {
     min: 1,
     max: 200,
     unidad: '',
+    magnitud: null,
     entero: true,
     etiqueta: 'Número de boquillas instaladas',
     ayuda: 'Cuéntalas en la barra: el número que viene puesto es solo un estimado.',
@@ -287,6 +289,7 @@ export const COTAS_BARRA = {
     min: 0.01,
     max: 10,
     unidad: 'm',
+    magnitud: 'distanciaCorta',
     opcional: true,
     etiqueta: 'Espaciamiento entre boquillas (capturado)',
     ayuda:
@@ -296,17 +299,19 @@ export const COTAS_BARRA = {
 
 export const COTAS_EQUIPO = {
   ...COTAS_BARRA,
-  tdfNominal: { min: 300, max: 1200, unidad: 'rpm', etiqueta: 'Régimen de TDF nominal' },
+  tdfNominal: { min: 300, max: 1200, unidad: 'rpm', magnitud: null, etiqueta: 'Régimen de TDF nominal' },
   rpmMotorTdfNominal: {
     min: 500,
     max: 5000,
     unidad: 'rpm',
+    magnitud: null,
     etiqueta: 'Régimen del motor para TDF nominal',
   },
   rpmCalibracion: {
     min: 400,
     max: 5000,
     unidad: 'rpm',
+    magnitud: null,
     opcional: true,
     etiqueta: 'Régimen del motor en la última calibración',
   },
@@ -314,30 +319,34 @@ export const COTAS_EQUIPO = {
     min: 0.1,
     max: 50,
     unidad: 'bar',
+    magnitud: 'presion',
     opcional: true,
     etiqueta: 'Presión de la última calibración',
   },
-  volumenTanque: { min: 1, max: 50000, unidad: 'L', etiqueta: 'Volumen del tanque' },
+  volumenTanque: { min: 1, max: 50000, unidad: 'L', magnitud: 'volumen', etiqueta: 'Volumen del tanque' },
 };
 
 export const COTAS_GAS = {
-  pesoMolecular: { min: 1, max: 200, unidad: 'g/mol', etiqueta: 'Peso molecular' },
+  pesoMolecular: { min: 1, max: 200, unidad: 'g/mol', magnitud: null, etiqueta: 'Peso molecular' },
   presionEstandarPsia: {
     min: 5,
     max: 20,
     unidad: 'psia',
+    magnitud: null,
     etiqueta: 'Presión estándar de calibración',
   },
   temperaturaEstandarF: {
     min: 32,
     max: 120,
     unidad: 'F',
+    magnitud: null,
     etiqueta: 'Temperatura estándar de calibración',
   },
   gPorScfManual: {
     min: 1,
     max: 200,
     unidad: 'g/SCF',
+    magnitud: null,
     opcional: true,
     etiqueta: 'Masa por pie cúbico estándar (anulación manual)',
   },
@@ -347,12 +356,12 @@ export const COTAS_GAS = {
 // formulario de captura y la importacion JSON: mismo criterio y mismo
 // mensaje en ambos caminos.
 export const COTAS_BOQUILLA = {
-  caudalRefLmin: { min: 0.01, max: 200, unidad: 'L/min', etiqueta: 'Caudal de referencia' },
-  presionRefBar: { min: 0.1, max: 50, unidad: 'bar', etiqueta: 'Presión de referencia' },
-  presionMinBar: { min: 0.1, max: 50, unidad: 'bar', etiqueta: 'Presión mínima de operación' },
-  presionMaxBar: { min: 0.1, max: 50, unidad: 'bar', etiqueta: 'Presión máxima de operación' },
-  exponente: { min: 0.2, max: 0.8, unidad: '', etiqueta: 'Exponente presión-caudal' },
-  anguloGrados: { min: 10, max: 180, unidad: 'grados', etiqueta: 'Ángulo de aspersión' },
+  caudalRefLmin: { min: 0.01, max: 200, unidad: 'L/min', magnitud: 'caudal', etiqueta: 'Caudal de referencia' },
+  presionRefBar: { min: 0.1, max: 50, unidad: 'bar', magnitud: 'presion', etiqueta: 'Presión de referencia' },
+  presionMinBar: { min: 0.1, max: 50, unidad: 'bar', magnitud: 'presion', etiqueta: 'Presión mínima de operación' },
+  presionMaxBar: { min: 0.1, max: 50, unidad: 'bar', magnitud: 'presion', etiqueta: 'Presión máxima de operación' },
+  exponente: { min: 0.2, max: 0.8, unidad: '', magnitud: null, etiqueta: 'Exponente presión-caudal' },
+  anguloGrados: { min: 10, max: 180, unidad: 'grados', magnitud: null, etiqueta: 'Ángulo de aspersión' },
 };
 
 // Semilla del formulario "agregar boquilla": los valores de arranque de
@@ -370,15 +379,15 @@ export const BOQUILLA_NUEVA = {
 };
 
 export const COTAS_ROTAMETRO = {
-  escalaMin: { min: 0, max: 100, unidad: 'SCFM', etiqueta: 'Escala mínima' },
-  escalaMax: { min: 0, max: 100, unidad: 'SCFM', etiqueta: 'Escala máxima' },
-  resolucion: { min: 0.01, max: 5, unidad: 'SCFM', etiqueta: 'Resolución legible' },
+  escalaMin: { min: 0, max: 100, unidad: 'SCFM', magnitud: null, etiqueta: 'Escala mínima' },
+  escalaMax: { min: 0, max: 100, unidad: 'SCFM', magnitud: null, etiqueta: 'Escala máxima' },
+  resolucion: { min: 0.01, max: 5, unidad: 'SCFM', magnitud: null, etiqueta: 'Resolución legible' },
 };
 
 export const COTAS_FACTOR_DESVIACION = {
-  rpm: { min: 400, max: 5000, unidad: 'rpm', etiqueta: 'Régimen de la medición' },
-  velocidadTeorica: { min: 0.1, max: 60, unidad: 'km/h', etiqueta: 'Velocidad teórica' },
-  velocidadMedida: { min: 0.1, max: 60, unidad: 'km/h', etiqueta: 'Velocidad medida' },
+  rpm: { min: 400, max: 5000, unidad: 'rpm', magnitud: null, etiqueta: 'Régimen de la medición' },
+  velocidadTeorica: { min: 0.1, max: 60, unidad: 'km/h', magnitud: 'velocidad', etiqueta: 'Velocidad teórica' },
+  velocidadMedida: { min: 0.1, max: 60, unidad: 'km/h', magnitud: 'velocidad', etiqueta: 'Velocidad medida' },
 };
 
 // ---------------------------------------------------------------------

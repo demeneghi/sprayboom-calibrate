@@ -3,6 +3,8 @@
 // validacion en sitio.
 import { el } from './dom.js';
 import { aNumero } from './formato.js';
+import { nodoSvg } from './svg.js';
+import { entreSistemas, esConvertible, otroSistema, unidad as unidadDe } from '../domain/units.js';
 
 let consecutivo = 0;
 function idUnico(prefijo) {
@@ -176,10 +178,130 @@ export function crearEtiquetaConAyuda({ idCampo, etiqueta, unidad = '', ayuda = 
   return { cabecera: el('div', { clase: 'campo__cabecera' }, rotulo, boton), globo };
 }
 
+/* Las dos flechas del boton de unidades. Van dibujadas y no como signo
+   de texto: el subconjunto latino de las fuentes autohospedadas no trae
+   flechas, asi que un caracter como el de doble flecha caeria en la
+   fuente del sistema —o en un recuadro vacio— y cambiaria de tamano
+   entre telefonos. El color no se escribe aqui: lo pone
+   `.campo__unidad-icono` con el token del tema. */
+function iconoIntercambio() {
+  const svg = nodoSvg('svg', {
+    class: 'campo__unidad-icono',
+    viewBox: '0 0 16 16',
+    'aria-hidden': 'true',
+    focusable: 'false',
+  });
+  svg.append(
+    nodoSvg('path', { d: 'M2.5 5.5H13M10.5 3L13 5.5L10.5 8' }),
+    nodoSvg('path', { d: 'M13.5 10.5H3M5.5 8L3 10.5L5.5 13' })
+  );
+  return svg;
+}
+
+/* Numero convertido a texto para el input: los MISMOS seis digitos
+   significativos con los que cada pantalla precarga sus campos, para que
+   lo que escribe el boton de unidades se lea igual que lo que ya venia y
+   no aparezcan colas de punto flotante (39.370078740157481). */
+function textoDeValor(valor) {
+  if (valor === null || valor === undefined || !Number.isFinite(valor)) return '';
+  return String(Number(valor.toPrecision(6)));
+}
+
+/* Boton de unidades de un campo: convierte lo capturado de metrico a
+   imperial y de regreso.
+
+   Para que sirve: quien calibra lee el dato en la unidad que trae el
+   fierro que tiene enfrente —el manometro de la barra marca psi, la
+   ficha de la boquilla americana viene en GPM, el tanque esta rotulado
+   en galones— y la aplicacion trabaja en la otra. Antes ese numero se
+   convertia a mano, con el telefono en una mano y el celular de la
+   calculadora en la otra, de pie en el lote. Es justo donde se cuela un
+   error de factor que despues nadie encuentra.
+
+   Que NO hace: cambiar el sistema de la aplicacion. Eso sigue viviendo
+   en Sistema, Configuración y sigue siendo uno solo para toda la
+   pantalla. Este boton solo cambia en que unidad se ESCRIBE este campo;
+   hacia afuera el valor sigue saliendo en `sistemaBase`, que es lo que
+   la pantalla que lo creo espera recibir.
+
+   La vuelta devuelve el texto ORIGINAL, no el reconvertido: con seis
+   digitos significativos, 2.7579 bar -> 40.0001 psi -> 2.75791 bar, y
+   ver cambiar el numero al regresar se lee como un error de la
+   aplicacion. Por eso se guarda de donde se venia. */
+function crearBotonUnidad({ idCampo, etiqueta, magnitud, sistemaBase, entrada }) {
+  let sistemaCampo = sistemaBase;
+  let regreso = null;
+
+  const rotulo = el('span', { clase: 'campo__unidad-texto' });
+  const boton = el(
+    'button',
+    { type: 'button', clase: 'campo__unidad', id: `${idCampo}-unidad` },
+    rotulo,
+    iconoIntercambio()
+  );
+
+  function unidadActual() {
+    return unidadDe(magnitud, sistemaCampo);
+  }
+
+  function rotular() {
+    const actual = unidadActual();
+    const otra = unidadDe(magnitud, otroSistema(sistemaCampo));
+    rotulo.textContent = actual;
+    // El nombre accesible incluye el texto visible (la unidad) y dice
+    // que pasa al pulsar, que es lo que no se ve.
+    boton.setAttribute('aria-label', `${etiqueta} en ${actual}. Convertir a ${otra}.`);
+    boton.dataset.sistema = sistemaCampo;
+    // Marca de "este campo NO está en las unidades de la aplicación",
+    // que es lo que hay que ver de lejos. No es "esta en imperial": con
+    // la aplicacion en imperial, imperial es lo normal.
+    boton.dataset.convertido = String(sistemaCampo !== sistemaBase);
+  }
+
+  boton.addEventListener('click', () => {
+    const destino = otroSistema(sistemaCampo);
+    const textoAntes = entrada.value;
+    const valor = aNumero(textoAntes);
+    if (regreso && regreso.destino === destino && regreso.textoResultado === textoAntes) {
+      entrada.value = regreso.textoOrigen;
+    } else if (valor !== null) {
+      entrada.value = textoDeValor(entreSistemas(magnitud, valor, sistemaCampo, destino));
+    }
+    // Un campo vacio —o con algo que no es numero— solo cambia de
+    // unidad: no hay nada que convertir y no se borra lo escrito.
+    regreso = { destino: sistemaCampo, textoOrigen: textoAntes, textoResultado: entrada.value };
+    sistemaCampo = destino;
+    rotular();
+  });
+
+  rotular();
+
+  return {
+    boton,
+    // Del sistema en que se esta escribiendo al que espera la pantalla.
+    aBase: (valor) => entreSistemas(magnitud, valor, sistemaCampo, sistemaBase),
+    // Del valor que manda la pantalla al texto que toca mostrar. Sin
+    // conversion de por medio se escribe tal cual, como siempre.
+    textoDesdeBase(valor) {
+      regreso = null;
+      if (sistemaCampo === sistemaBase) return String(valor);
+      return textoDeValor(entreSistemas(magnitud, valor, sistemaBase, sistemaCampo));
+    },
+    olvidarRegreso() {
+      regreso = null;
+    },
+  };
+}
+
 export function crearCampoNumerico({
   id = null,
   etiqueta,
   unidad = '',
+  // Magnitud de units.js y sistema en el que ENTRAN y SALEN los valores
+  // de este campo. Con los dos, el campo lleva boton de conversion; la
+  // unidad la pone entonces el boton y no hace falta pasarla.
+  magnitud = null,
+  sistema = null,
   ayuda = null,
   valorInicial = null,
   placeholder = '',
@@ -197,47 +319,74 @@ export function crearCampoNumerico({
     readonly: soloLectura || null,
     value: valorInicial === null || valorInicial === undefined ? '' : String(valorInicial),
   });
+  const unidades =
+    sistema && esConvertible(magnitud)
+      ? crearBotonUnidad({ idCampo, etiqueta, magnitud, sistemaBase: sistema, entrada })
+      : null;
   const nodoError = el('p', { clase: 'campo__error oculto', id: `${idCampo}-error` });
-  const { cabecera, globo: nodoAyuda } = crearEtiquetaConAyuda({ idCampo, etiqueta, unidad, ayuda });
-  if (nodoAyuda) entrada.setAttribute('aria-describedby', nodoAyuda.id);
+  const { cabecera, globo: nodoAyuda } = crearEtiquetaConAyuda({
+    idCampo,
+    etiqueta,
+    // Con boton, la unidad va pegada al numero y no se repite arriba.
+    unidad: unidades ? '' : unidad,
+    ayuda,
+  });
   const raiz = el(
     'div',
     { clase: 'campo' },
     cabecera,
-    entrada,
+    unidades ? el('div', { clase: 'campo__medida' }, entrada, unidades.boton) : entrada,
     nodoError,
     nodoAyuda
   );
 
+  // Descripcion del control: el error si esta a la vista, la unidad —que
+  // ya no esta en la etiqueta— y la ayuda. En ese orden: lo que corrige
+  // primero.
+  function sincronizarDescripcion() {
+    const ids = [];
+    if (!nodoError.classList.contains('oculto')) ids.push(nodoError.id);
+    if (unidades) ids.push(unidades.boton.id);
+    if (nodoAyuda) ids.push(nodoAyuda.id);
+    if (ids.length > 0) entrada.setAttribute('aria-describedby', ids.join(' '));
+    else entrada.removeAttribute('aria-describedby');
+  }
+  sincronizarDescripcion();
+
+  function obtener() {
+    const valor = aNumero(entrada.value);
+    return unidades ? unidades.aBase(valor) : valor;
+  }
+
   if (alCambiar) {
-    entrada.addEventListener('input', () => alCambiar(aNumero(entrada.value), entrada.value));
+    entrada.addEventListener('input', () => alCambiar(obtener(), entrada.value));
   }
 
   return {
     elemento: raiz,
     entrada,
-    obtener() {
-      return aNumero(entrada.value);
-    },
+    obtener,
     obtenerTexto() {
       return entrada.value;
     },
     fijar(valor) {
-      entrada.value = valor === null || valor === undefined ? '' : String(valor);
+      if (valor === null || valor === undefined) {
+        if (unidades) unidades.olvidarRegreso();
+        entrada.value = '';
+        return;
+      }
+      entrada.value = unidades ? unidades.textoDesdeBase(valor) : String(valor);
     },
     fijarError(mensaje) {
-      const idsAyuda = nodoAyuda ? `${nodoAyuda.id} ` : '';
       if (mensaje) {
         nodoError.textContent = mensaje;
         nodoError.classList.remove('oculto');
         entrada.setAttribute('aria-invalid', 'true');
-        entrada.setAttribute('aria-describedby', `${nodoError.id} ${idsAyuda}`.trim());
       } else {
         nodoError.classList.add('oculto');
         entrada.removeAttribute('aria-invalid');
-        if (nodoAyuda) entrada.setAttribute('aria-describedby', nodoAyuda.id);
-        else entrada.removeAttribute('aria-describedby');
       }
+      sincronizarDescripcion();
     },
   };
 }

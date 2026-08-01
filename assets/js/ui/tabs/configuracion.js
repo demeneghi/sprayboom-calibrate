@@ -56,6 +56,17 @@ import {
 
 export const id = 'configuracion';
 
+// Configuración captura y guarda SIEMPRE en base metrica, este la
+// aplicación en metrico o en imperial: son los parametros del rancho y
+// del fierro, no una captura de jornada, y el dominio los quiere asi.
+//
+// Eso NO obliga a quien los teclea: cada campo con magnitud lleva el
+// boton de unidades, asi que la ficha de una boquilla americana se
+// captura en GPM y psi —que es como viene impresa— y se guarda
+// convertida. El sistema que aqui se declara es el de SALIDA del campo,
+// no el de captura.
+const SISTEMA_PARAMETROS = 'metrico';
+
 // Respuesta en palabras de cada estado de la busqueda de version nueva.
 // Quien lee esto esta de pie en el lote: cada mensaje dice que paso y
 // que hacer, sin hablar de caches ni de service workers.
@@ -301,6 +312,8 @@ export function render(panel, ctx) {
       const campo = crearCampoNumerico({
         etiqueta: defCampo.etiqueta,
         unidad: defCampo.unidad,
+        magnitud: defCampo.magnitud,
+        sistema: SISTEMA_PARAMETROS,
         valorInicial: ctx.estado().parametros[nombreGrupo][nombreCampo],
         ayuda: `${defCampo.origen} De ${defCampo.min} a ${defCampo.max}${defCampo.unidad ? ` ${defCampo.unidad}` : ''}. De fábrica: ${defCampo.valor === null ? 'pendiente de capturar' : defCampo.valor}.`,
         alCambiar: (valor, texto) => {
@@ -418,6 +431,8 @@ export function render(panel, ctx) {
       const entrada = crearCampoNumerico({
         etiqueta: cota.etiqueta,
         unidad: cota.unidad,
+        magnitud: cota.magnitud,
+        sistema: SISTEMA_PARAMETROS,
         valorInicial: tractor[campo],
         ayuda: `De ${cota.min} a ${cota.max}${cota.unidad ? ` ${cota.unidad}` : ''}. Se guarda al salir del campo.`,
         alCambiar: (valor) => {
@@ -629,6 +644,8 @@ export function render(panel, ctx) {
       const entrada = crearCampoNumerico({
         etiqueta: cota.etiqueta,
         unidad: cota.unidad,
+        magnitud: cota.magnitud,
+        sistema: SISTEMA_PARAMETROS,
         ayuda:
           cota.ayuda ??
           `De ${cota.min} a ${cota.max} ${cota.unidad}.${cota.opcional ? ' Opcional: vacío es por capturar.' : ''}`,
@@ -795,6 +812,8 @@ export function render(panel, ctx) {
       const entrada = crearCampoNumerico({
         etiqueta: cota.etiqueta,
         unidad: cota.unidad,
+        magnitud: cota.magnitud,
+        sistema: SISTEMA_PARAMETROS,
         valorInicial: gas[campo],
         ayuda:
           campo === 'gPorScfManual'
@@ -848,6 +867,8 @@ export function render(panel, ctx) {
       const entrada = crearCampoNumerico({
         etiqueta: cota.etiqueta,
         unidad: cota.unidad,
+        magnitud: cota.magnitud,
+        sistema: SISTEMA_PARAMETROS,
         valorInicial: rotametro[campo],
         ayuda: 'La escala solo sirve para los avisos y el dibujo del tubo. Nunca recorta un cálculo.',
         alCambiar: (valor) => {
@@ -900,8 +921,8 @@ export function render(panel, ctx) {
         valorInicial: estadoActual.tractorActivoId,
       });
       const campoRpm = crearCampoNumerico({ etiqueta: COTAS_FACTOR_DESVIACION.rpm.etiqueta, unidad: 'rpm' });
-      const campoTeorica = crearCampoNumerico({ etiqueta: COTAS_FACTOR_DESVIACION.velocidadTeorica.etiqueta, unidad: 'km/h' });
-      const campoMedida = crearCampoNumerico({ etiqueta: COTAS_FACTOR_DESVIACION.velocidadMedida.etiqueta, unidad: 'km/h' });
+      const campoTeorica = crearCampoNumerico({ etiqueta: COTAS_FACTOR_DESVIACION.velocidadTeorica.etiqueta, magnitud: 'velocidad', sistema: SISTEMA_PARAMETROS });
+      const campoMedida = crearCampoNumerico({ etiqueta: COTAS_FACTOR_DESVIACION.velocidadMedida.etiqueta, magnitud: 'velocidad', sistema: SISTEMA_PARAMETROS });
       const campoCondiciones = el('input', { clase: 'entrada', id: 'factor-condiciones', placeholder: 'Implemento, humedad del suelo...' });
       const cuerpo = el('div', { clase: 'pila-campos' },
         selectorTractor.elemento, campoRpm.elemento, campoTeorica.elemento, campoMedida.elemento,
@@ -1004,10 +1025,10 @@ export function render(panel, ctx) {
       valorInicial: b.tamanoIso ?? '',
     });
     const campoAngulo = crearCampoNumerico({ etiqueta: 'Angulo de aspersión', unidad: 'grados', valorInicial: b.anguloGrados });
-    const campoCaudal = crearCampoNumerico({ etiqueta: 'Caudal de referencia', unidad: 'L/min', valorInicial: b.caudalRefLmin });
-    const campoPresionRef = crearCampoNumerico({ etiqueta: 'Presión de referencia', unidad: 'bar', valorInicial: b.presionRefBar, ayuda: '3 bar es el estándar ISO.' });
-    const campoPresionMin = crearCampoNumerico({ etiqueta: 'Presión mínima de operación', unidad: 'bar', valorInicial: b.presionMinBar });
-    const campoPresionMax = crearCampoNumerico({ etiqueta: 'Presión máxima de operación', unidad: 'bar', valorInicial: b.presionMaxBar });
+    const campoCaudal = crearCampoNumerico({ etiqueta: 'Caudal de referencia', magnitud: 'caudal', sistema: SISTEMA_PARAMETROS, valorInicial: b.caudalRefLmin });
+    const campoPresionRef = crearCampoNumerico({ etiqueta: 'Presión de referencia', magnitud: 'presion', sistema: SISTEMA_PARAMETROS, valorInicial: b.presionRefBar, ayuda: '3 bar es el estándar ISO.' });
+    const campoPresionMin = crearCampoNumerico({ etiqueta: 'Presión mínima de operación', magnitud: 'presion', sistema: SISTEMA_PARAMETROS, valorInicial: b.presionMinBar });
+    const campoPresionMax = crearCampoNumerico({ etiqueta: 'Presión máxima de operación', magnitud: 'presion', sistema: SISTEMA_PARAMETROS, valorInicial: b.presionMaxBar });
     const campoExponente = crearCampoNumerico({
       etiqueta: 'Exponente presión-caudal',
       valorInicial: b.exponente,

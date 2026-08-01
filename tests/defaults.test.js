@@ -9,14 +9,18 @@ import {
   GASES_SIEMBRA,
   ROTAMETROS_SIEMBRA,
   COTAS_TRACTOR,
+  COTAS_VELOCIDAD_MARCHA,
+  COTAS_BARRA,
   COTAS_EQUIPO,
   COTAS_GAS,
+  COTAS_BOQUILLA,
   COTAS_ROTAMETRO,
+  COTAS_FACTOR_DESVIACION,
   ORIGENES_VELOCIDAD,
   TIPOS_BOMBA,
   ACCIONAMIENTOS,
 } from '../assets/js/domain/defaults.js';
-import { MAGNITUDES } from '../assets/js/domain/units.js';
+import { MAGNITUDES, unidad } from '../assets/js/domain/units.js';
 
 test('todo campo de parametro tiene metadatos completos y default dentro de cotas', () => {
   for (const [nombreGrupo, grupo] of Object.entries(PARAMETROS)) {
@@ -45,6 +49,41 @@ test('todo campo de parametro tiene metadatos completos y default dentro de cota
           assert.ok(Number.isInteger(campo.valor), `${ruta} debe ser entero`);
         }
       }
+    }
+  }
+});
+
+// La magnitud es lo que decide si un campo lleva boton de conversion y
+// con que factor convierte. Declararla mal —o declarar una unidad que no
+// es la metrica de esa magnitud— pondria el boton a convertir con el
+// factor de otra cosa, y eso sale en el lote, no en pantalla.
+test('cotas y parametros: la magnitud declarada coincide con su unidad metrica', () => {
+  const grupos = {
+    PARAMETROS: Object.fromEntries(
+      Object.entries(PARAMETROS).flatMap(([grupo, def]) =>
+        Object.entries(def.campos).map(([campo, d]) => [`${grupo}.${campo}`, d])
+      )
+    ),
+    COTAS_TRACTOR,
+    COTAS_VELOCIDAD_MARCHA,
+    COTAS_BARRA,
+    COTAS_EQUIPO,
+    COTAS_GAS,
+    COTAS_BOQUILLA,
+    COTAS_ROTAMETRO,
+    COTAS_FACTOR_DESVIACION,
+  };
+  for (const [nombreGrupo, grupo] of Object.entries(grupos)) {
+    for (const [campo, def] of Object.entries(grupo)) {
+      const ruta = `${nombreGrupo}.${campo}`;
+      assert.ok('magnitud' in def, `${ruta} no declara magnitud (usa null si no convierte)`);
+      if (def.magnitud === null) continue;
+      assert.ok(MAGNITUDES[def.magnitud], `${ruta} refiere magnitud inexistente ${def.magnitud}`);
+      assert.equal(
+        def.unidad,
+        unidad(def.magnitud, 'metrico'),
+        `${ruta}: la unidad declarada no es la metrica de ${def.magnitud}`
+      );
     }
   }
 });

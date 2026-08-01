@@ -38,7 +38,8 @@ export function crearCampoVelocidad({
     clave: 'velocidadKmh',
     claveManual: 'velocidadManual',
     etiqueta,
-    unidad: unidadVelocidad,
+    magnitud: 'velocidad',
+    sistema,
     ayuda:
       'Viene de Avance: los segundos por tramo o la marcha con su régimen. Si escribes un ' +
       'número aquí, manda el tuyo.',

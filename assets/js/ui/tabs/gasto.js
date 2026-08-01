@@ -56,7 +56,6 @@ export function render(panel, ctx) {
   const unidadVelocidad = unidad('velocidad', sistema);
   const unidadCaudal = unidad('caudal', sistema);
   const unidadVolumen = unidad('volumenAplicacion', sistema);
-  const unidadDistancia = unidad('distancia', sistema);
   const unidadEspaciamiento = unidad('distanciaCorta', sistema);
 
   // Seleccion de boquilla: el borrador gana; si no hay, la instalada en
@@ -176,7 +175,8 @@ export function render(panel, ctx) {
   // ---------------- Captura de trabajo ----------------
   const campoPresion = crearCampoNumerico({
     etiqueta: 'Presión en la boquilla',
-    unidad: unidadPresion,
+    magnitud: 'presion',
+    sistema,
     // Se precarga la presion de la ultima calibracion de la barra, igual
     // que hace la Prueba de captura: arrancar en blanco obligaba a
     // teclear un numero que la aplicacion ya conoce.
@@ -202,7 +202,8 @@ export function render(panel, ctx) {
 
   const campoAncho = crearCampoNumerico({
     etiqueta: 'Ancho de la barra',
-    unidad: unidadDistancia,
+    magnitud: 'distancia',
+    sistema,
     valorInicial: precarga('distancia', borrador.anchoBarraM ?? equipo?.anchoBarra),
     ayuda: `Viene de la barra «${equipo?.nombre ?? 'sin barra'}». Cambiarlo aquí no toca la configuración.`,
     alCambiar: (valor) => {
@@ -227,7 +228,8 @@ export function render(panel, ctx) {
     clave: 'espaciamientoM',
     claveManual: 'espaciamientoManual',
     etiqueta: 'Espaciamiento entre boquillas',
-    unidad: unidadEspaciamiento,
+    magnitud: 'distanciaCorta',
+    sistema,
     ayuda:
       'Sale de la barra activa: el capturado o, si no lo hay, el ancho entre el número de ' +
       'boquillas. Cambiarlo aquí no toca la configuración.',
@@ -544,7 +546,8 @@ export function render(panel, ctx) {
   // ---------------- Modo inverso ----------------
   const campoObjetivo = crearCampoNumerico({
     etiqueta: 'Volumen objetivo',
-    unidad: unidadVolumen,
+    magnitud: 'volumenAplicacion',
+    sistema,
     // Mismo objetivo de jornada que Boquillas y Prueba de captura. El
     // nombre viejo del borrador se sigue leyendo para no perder lo que ya
     // este capturado en un telefono.

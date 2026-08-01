@@ -107,7 +107,8 @@ export function render(panel, ctx) {
   // ---------------- Presion de trabajo ----------------
   const campoPresion = crearCampoNumerico({
     etiqueta: 'Presión de trabajo',
-    unidad: unidadPresion,
+    magnitud: 'presion',
+    sistema,
     valorInicial: aCampo('presion', borrador.presionBar ?? equipo?.presionCalibracion ?? null),
     ayuda: 'La presión durante la prueba. Con ella se saca el caudal que daría la boquilla nueva.',
     alCambiar: (valor) => {
@@ -229,7 +230,8 @@ export function render(panel, ctx) {
     const campos = volumenes.map((valor, i) =>
       crearCampoNumerico({
         etiqueta: `Boquilla ${i + 1}`,
-        unidad: unidadVolChico,
+        magnitud: 'volumenChico',
+        sistema,
         valorInicial: aCampo('volumenChico', valor),
         alCambiar: (capturado) => {
           volumenes[i] = deSistema('volumenChico', capturado, sistema);
@@ -259,7 +261,8 @@ export function render(panel, ctx) {
     clave: 'espaciamientoM',
     claveManual: 'espaciamientoManual',
     etiqueta: 'Espaciamiento entre boquillas',
-    unidad: unidadEspaciamiento,
+    magnitud: 'distanciaCorta',
+    sistema,
     ayuda:
       'Sale de la barra activa: el capturado o, si no lo hay, el ancho entre el número de ' +
       'boquillas. Cambiarlo aquí no toca la configuración.',
@@ -279,7 +282,8 @@ export function render(panel, ctx) {
   });
   const campoObjetivo = crearCampoNumerico({
     etiqueta: 'Volumen objetivo',
-    unidad: unidadVolumen,
+    magnitud: 'volumenAplicacion',
+    sistema,
     // Mismo objetivo de jornada que Boquillas y Gasto de agua; si nadie
     // lo ha capturado, el objetivo propio del rancho de Configuracion.
     valorInicial: aCampo('volumenAplicacion', borrador.lhaObjetivo ?? ctx.objetivoVolumenLha()),
