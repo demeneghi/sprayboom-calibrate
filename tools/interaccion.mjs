@@ -208,6 +208,14 @@ verificar(/desglose/i.test(texto), 'Gasto: desglose paso a paso disponible');
 const botonAPsi = pagina.getByRole('button', { name: /^Presión en la boquilla en bar\./ });
 verificar((await botonAPsi.count()) === 1, 'Unidades: el campo de presión trae su botón');
 const entradaPresion = pagina.getByRole('textbox', { name: 'Presión en la boquilla' });
+// El boton dice el SENTIDO, no solo la unidad: primero en la que esta
+// escrito el numero y despues a la que va. Con «bar» a secas no habia
+// forma de saber si convertia a psi o avisaba que ya venia en psi.
+verificar(
+  (await botonAPsi.locator('.campo__unidad-de').innerText()).trim() === 'bar' &&
+    (await botonAPsi.locator('.campo__unidad-a').innerText()).trim() === 'psi',
+  'Unidades: el botón dice de qué unidad a cuál convierte'
+);
 await botonAPsi.click();
 verificar(
   (await entradaPresion.inputValue()) === '43.5113',
