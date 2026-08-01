@@ -322,6 +322,99 @@
   border-color: hsl(var(--destructive));
 }
 
+/* ------------------------------------------------------------------ */
+/* Boton de unidades de un campo (metrico <-> imperial)                */
+/* ------------------------------------------------------------------ */
+/* La unidad de un campo convertible deja de imprimirse en la etiqueta y
+   pasa a ser el BOTON que va pegado al numero: se lee donde se mira —al
+   lado de la cifra que califica— y se toca donde se lee.
+
+   Convierte lo capturado sin tocar el sistema de la aplicacion, que
+   sigue siendo uno solo y vive en Configuración. */
+.campo__medida {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* El input se queda con el ancho que sobra. `min-width: 0` es
+   obligatorio: sin el, el ancho por defecto de un input en una fila
+   flexible no se deja encoger y el boton se sale de la tarjeta. */
+.campo__medida > .entrada {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+}
+
+/* Comparte ALTO con su input (`--control-h`), no el piso tactil: son una
+   sola pieza y un boton 4px mas alto que el campo al que esta pegado se
+   lee como un desajuste. El objetivo tactil no se pierde —se recupera
+   abajo, en el pseudo-elemento—, asi que esto no es parchear la altura
+   de un `.boton`: es un componente propio, como el boton "?" de la
+   ayuda. */
+.campo__unidad {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  height: var(--control-h);
+  min-width: var(--touch-floor, 0px);
+  padding: 0 0.6rem;
+  border: 1px solid hsl(var(--input));
+  border-radius: var(--radius-md);
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* El piso tactil por el eje que falta: el ancho ya lo garantiza
+   `min-width`, y el alto lo pone un pseudo-elemento que NO ocupa lugar
+   en el flujo. Asi el boton se toca en 48px sin estirar la fila del
+   campo. */
+.campo__unidad::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  height: max(100%, var(--touch-floor, 0px));
+  transform: translate(-50%, -50%);
+}
+
+.campo__unidad:active {
+  background-color: hsl(var(--accent));
+}
+
+/* Escrito en el otro sistema: el mismo cromado del modulo que marca la
+   opcion elegida de un grupo y la ayuda abierta. Dice de un vistazo que
+   ESTE campo no esta en las unidades de la aplicacion. Se pinta por
+   `data-convertido`, no por `data-sistema`: con la aplicacion en
+   imperial, imperial es lo normal y no hay nada que señalar. */
+.campo__unidad[data-convertido='true'] {
+  background-color: hsl(var(--acento) / 0.14);
+  border-color: hsl(var(--acento));
+  color: hsl(var(--acento-texto));
+}
+
+.campo__unidad-icono {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .campo__error {
   color: hsl(var(--destructive-texto));
   font-size: var(--text-sm);

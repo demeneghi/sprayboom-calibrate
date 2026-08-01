@@ -74,7 +74,8 @@ export function render(panel, ctx) {
   // ---------------- Captura del objetivo ----------------
   const campoVolumen = crearCampoNumerico({
     etiqueta: 'Volumen de aplicación objetivo',
-    unidad: unidadVolumen,
+    magnitud: 'volumenAplicacion',
+    sistema,
     // El objetivo de la jornada es UNO: se precarga lo ultimo capturado
     // en cualquiera de las tres pantallas que lo piden (aqui, Gasto de
     // agua y Prueba de captura) y, si no hay, el objetivo propio del
@@ -82,8 +83,8 @@ export function render(panel, ctx) {
     // veces distinto.
     valorInicial: aCampo('volumenAplicacion', borrador.lhaObjetivo ?? ctx.objetivoVolumenLha()),
     ayuda:
-      'Objetivo primero: el volumen agronómico manda y de él se despeja el caudal que cada ' +
-      'boquilla debe entregar. Se precarga el último objetivo capturado en la aplicación.',
+      'Primero el objetivo: de él sale el caudal que debe dar cada boquilla. Viene el último ' +
+      'que capturaste.',
     alCambiar: (valor) => {
       const lha = deSistema('volumenAplicacion', valor, sistema);
       ctx.guardarBorrador(id, { lhaObjetivo: lha });
@@ -107,10 +108,11 @@ export function render(panel, ctx) {
     clave: 'espaciamientoM',
     claveManual: 'espaciamientoManual',
     etiqueta: 'Espaciamiento entre boquillas',
-    unidad: unidadEspaciamiento,
+    magnitud: 'distanciaCorta',
+    sistema,
     ayuda:
-      'Sale de la geometría de la barra activa: el capturado si lo hay, y si no el ancho entre ' +
-      'el número de boquillas. Editarlo aquí no cambia la configuración.',
+      'Sale de la barra activa: el capturado o, si no lo hay, el ancho entre el número de ' +
+      'boquillas. Cambiarlo aquí no toca la configuración.',
     fuente: fuenteEsp.fuente,
     nombreDato: 'el espaciamiento',
     heredado: { valor: fuenteEsp.valor, etiqueta: fuenteEsp.etiqueta },
@@ -132,7 +134,7 @@ export function render(panel, ctx) {
       ...ORDEN_CLASES.map((s) => ({ valor: s, texto: `${s} — ${NOMBRE_CLASE.get(s) ?? s}` })),
     ],
     valorInicial: borrador.claseDeseada ?? '',
-    ayuda: 'Filtra por la clase que el fabricante publica a la presión requerida. Las boquillas sin clase publicada quedan fuera del filtro.',
+    ayuda: 'Filtra por la clase que el fabricante publica a esa presión. Las que no la publican quedan fuera.',
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { claseDeseada: valor || null });
       recalcular();
@@ -145,7 +147,7 @@ export function render(panel, ctx) {
       ...EDICIONES_S572.map((e) => ({ valor: e, texto: e })),
     ],
     valorInicial: borrador.edicionEstandar ?? '',
-    ayuda: 'No se comparan clases entre ediciones: S572.3 subió los umbrales de las clases gruesas e invirtió los colores de C y VC respecto a S572.1. Solo filtra junto con una clase deseada.',
+    ayuda: 'No compares clases de ediciones distintas: la S572.3 subió los umbrales de las clases gruesas e invirtió los colores de C y VC. Solo filtra si elegiste una clase.',
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { edicionEstandar: valor || null });
       recalcular();
@@ -257,7 +259,7 @@ export function render(panel, ctx) {
         el(
           'p',
           { clase: 'ayuda' },
-          'Para lograr el caudal exigirían una presión fuera del rango del fabricante: aunque el caudal saliera exacto, el patrón y el tamaño de gota serían defectuosos.'
+          'Para dar ese caudal necesitan una presión fuera del rango del fabricante: la gota y el patrón saldrían mal.'
         ),
         el(
           'div',
@@ -390,10 +392,9 @@ export function render(panel, ctx) {
             el(
               'p',
               { clase: 'ayuda' },
-              `Densidad relativa del caldo: ${formatear(dr, 2)}. La calibración se hace con agua y un ` +
-                'caldo más denso sale más despacio por la misma boquilla (q_caldo = q_agua / raíz(dr)): ' +
-                'el caudal requerido y las presiones de las candidatas se despejan contra este ' +
-                'equivalente para que el caldo entregue el objetivo real.'
+              `Densidad relativa del caldo: ${formatear(dr, 2)}. Un caldo más denso sale más despacio ` +
+                'por la misma boquilla (q_caldo = q_agua / raíz(dr)), así que el caudal y las ' +
+                'presiones se despejan contra su equivalente en agua.'
             )
           );
         }

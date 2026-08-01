@@ -213,6 +213,45 @@ Son cinco, y ninguna es cosmética.
   propósito** — a los lados del botón no hay nada más que tocar, pero arriba y abajo están los
   controles de los campos vecinos y un área de 44px de alto les robaría el toque.
 
+## Botón de unidades de un campo (métrico ⇄ imperial)
+
+- **Un campo con magnitud no imprime su unidad en la etiqueta: la unidad ES el botón**, y va
+  pegado al número. Se lee junto a la cifra que califica y se toca donde se lee. La etiqueta queda
+  con el nombre del dato y nada más.
+- **Para qué existe.** Quien calibra lee el dato en la unidad del fierro que tiene enfrente —el
+  manómetro de la barra marca psi, la ficha de la boquilla americana viene en GPM, el tanque está
+  rotulado en galones— y la aplicación trabaja en la otra. Ese número se convertía a mano, de pie
+  en el lote, con la calculadora del mismo teléfono: es justo donde se cuela un error de factor
+  que después nadie encuentra.
+- **No cambia el sistema de la aplicación.** Ese sigue siendo uno solo y vive en Sistema,
+  Configuración. El botón solo cambia en qué unidad se **escribe** ese campo; hacia afuera el
+  valor sigue saliendo en el sistema que declaró la pantalla, así que ninguna pantalla cambia por
+  esto. **Prohibido** usarlo como segundo selector global de unidades.
+- **Lo produce `campos.js`, no la pantalla.** El consumidor declara `magnitud` (clave de
+  `domain/units.js`) y `sistema` (el de entrada y salida del campo) y ya no pasa `unidad`.
+  `crearCampoHeredado` los reenvía igual. **Prohibido** armar a mano una fila con el input y un
+  botón de unidad.
+- **La vuelta devuelve el texto original, no el reconvertido.** Con seis dígitos significativos,
+  2.7579 bar → 40.0001 psi → 2.75791 bar: ver cambiar el número al regresar se lee como un error
+  de la aplicación. El campo recuerda de dónde venía.
+- **Mientras está en la otra unidad, el botón se pinta con el acento del módulo**
+  (`data-convertido='true'`), igual que la opción elegida de un grupo y la ayuda abierta: es lo
+  que dice de un vistazo que ese campo no está en las unidades de la aplicación. Se pinta por
+  «convertido», **no** por «imperial»: con la aplicación en imperial, imperial es lo normal y no
+  hay nada que señalar.
+- **Excepción declarada al piso táctil, la segunda.** El botón comparte alto con su input
+  (`--control-h`, 44px) y no toma `--touch-floor`: son una sola pieza y un botón 4px más alto que
+  el campo al que está pegado se lee como un desajuste. El objetivo táctil no se pierde: el ancho
+  ya está en `min-width: var(--touch-floor)` y el alto lo recupera un pseudo-elemento que **no
+  ocupa lugar en el flujo**. Por eso `.campo__unidad` es componente propio y no una variante de
+  `.boton`: así nadie parchea la altura de un botón desde el consumidor.
+- **El icono de las dos flechas va dibujado en SVG, no como carácter.** El subconjunto latino de
+  las fuentes autohospedadas no trae flechas: un `⇄` de texto caería en la fuente del sistema —o
+  en un recuadro vacío— y cambiaría de tamaño entre teléfonos.
+- **Accesibilidad por atributo:** el nombre accesible del botón contiene el texto visible y dice
+  qué pasa al pulsarlo (`Presión de trabajo en bar. Convertir a psi.`), y el input apunta al botón
+  con `aria-describedby` porque la unidad ya no está en su etiqueta.
+
 ## Selección dentro de un grupo de opciones
 
 - **El estado lo dice el atributo, no una clase de variante que el consumidor intercambia.** Un
@@ -291,6 +330,10 @@ suelto. Lo mismo con cada color ISO sembrado.
 - Señalar la opción elegida intercambiando variantes de botón, o maquetar el grupo con un
   `display: flex` en línea: la etiqueta larga se sale de la tarjeta.
 - Imprimir la ayuda de un campo como párrafo fijo bajo el control: va en el globo del botón `?`.
+- Repetir la unidad en la etiqueta de un campo que ya tiene botón de unidades, o armar a mano la
+  fila del input con su botón: la produce `campos.js` a partir de `magnitud` y `sistema`.
+- Convertir el campo y **no** decir que quedó en la otra unidad: sin el acento, un 43.5 en un
+  campo que se lee como bar es una calibración mal hecha.
 - Devolver el globo de ayuda al flujo (o anclarlo con `position: absolute` dentro del campo): abrir
   una ayuda volvería a empujar los campos de abajo, y dentro de una tarjeta el globo se recorta.
 - Sumar relleno a una tarjeta desde su contenido.

@@ -135,6 +135,29 @@ export function unidad(magnitud, sistema) {
   return sistema === 'imperial' ? def.imperial : def.metrico;
 }
 
+// El sistema contrario. Es lo que necesita el boton de unidades de un
+// campo: convertir lo capturado al otro sistema y de regreso.
+export function otroSistema(sistema) {
+  return sistema === 'imperial' ? 'metrico' : 'imperial';
+}
+
+// Una magnitud es convertible cuando sus dos unidades son distintas.
+// Un campo sin magnitud declarada —segundos, rpm, por ciento— no lo es y
+// no lleva boton.
+export function esConvertible(magnitud) {
+  const def = MAGNITUDES[magnitud];
+  return Boolean(def) && def.metrico !== def.imperial;
+}
+
+// Convierte entre dos sistemas cualesquiera pasando por la base metrica.
+// No introduce un factor nuevo: reusa el unico de la magnitud, asi que
+// la ida y vuelta sigue sin acumular deriva.
+export function entreSistemas(magnitud, valor, desde, hacia) {
+  if (valor === null || valor === undefined) return valor;
+  if (desde === hacia) return valor;
+  return aSistema(magnitud, deSistema(magnitud, valor, desde), hacia);
+}
+
 // La presion metrica se muestra en bar y tambien en kPa.
 export function barAKpa(bar) {
   if (bar === null || bar === undefined) return bar;

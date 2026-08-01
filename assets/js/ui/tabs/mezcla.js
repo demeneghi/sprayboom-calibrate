@@ -74,11 +74,12 @@ export function render(panel, ctx) {
   // ---------------- Captura ----------------
   const campoTanque = crearCampoNumerico({
     etiqueta: 'Volumen del tanque',
-    unidad: unidadVolumen,
+    magnitud: 'volumen',
+    sistema,
     valorInicial: precarga('volumen', borrador.volumenTanqueL ?? equipo?.volumenTanque ?? null),
     ayuda: equipo
-      ? `Precargado del tanque de la barra activa (${equipo.nombre}); ajústalo si hoy cargas distinto.`
-      : 'Sin barra de aplicación configurada: captura el volumen del tanque a mano.',
+      ? `Viene del tanque de la barra activa (${equipo.nombre}). Cámbialo si hoy cargas distinto.`
+      : 'No hay barra configurada: escribe el volumen del tanque a mano.',
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { volumenTanqueL: deSistema('volumen', valor, sistema) });
       recalcular();
@@ -97,11 +98,11 @@ export function render(panel, ctx) {
     clave: 'lhaAplicacionLha',
     claveManual: 'lhaAplicacionManual',
     etiqueta: 'Volumen de aplicación',
-    unidad: unidadAplicacion,
+    magnitud: 'volumenAplicacion',
+    sistema,
     ayuda:
-      'El L/ha REAL con el que va a salir la barra, no un valor supuesto: toda la mezcla depende ' +
-      'de este número. Se precarga el medido en la prueba de captura y, si no lo hay, el ' +
-      'calculado en Gasto de agua. Si hoy aplicas con otro, escríbelo aquí.',
+      'El L/ha REAL con el que va a salir la barra: de este número depende toda la mezcla. ' +
+      'Viene del aforo y, si no lo hay, de Gasto de agua.',
     fuente: fuenteVolumen.fuente,
     nombreDato: 'el volumen de aplicación',
     heredado: { valor: fuenteVolumen.valor, etiqueta: fuenteVolumen.etiqueta },
@@ -123,7 +124,7 @@ export function render(panel, ctx) {
     etiqueta: 'Dosis del producto',
     unidad: '',
     valorInicial: borrador.dosisCantidad ?? null,
-    ayuda: 'Cantidad tal como viene en la etiqueta, en la forma y unidad elegidas abajo.',
+    ayuda: 'La cantidad tal como viene en la etiqueta, con la forma y la unidad de abajo.',
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { dosisCantidad: valor });
       recalcular();
@@ -137,7 +138,7 @@ export function render(panel, ctx) {
       { valor: 'por-100L', texto: 'Por cada 100 L de caldo' },
     ],
     valorInicial: modoDosis,
-    ayuda: 'Las dos formas en que vienen las etiquetas de producto. Revisa la tuya antes de elegir.',
+    ayuda: 'Las dos formas en que viene una etiqueta. Revisa la tuya antes de elegir.',
     alCambiar: (valor) => {
       modoDosis = valor;
       ctx.guardarBorrador(id, { modoDosis });
@@ -152,7 +153,7 @@ export function render(panel, ctx) {
       { valor: 'kg', texto: 'kg (producto sólido)' },
     ],
     valorInicial: unidadProducto,
-    ayuda: 'Con producto sólido el volumen que desplaza en el tanque se desprecia.',
+    ayuda: 'Si el producto es sólido, lo que ocupa en el tanque no se cuenta.',
     alCambiar: (valor) => {
       unidadProducto = valor;
       ctx.guardarBorrador(id, { unidadProducto });
@@ -162,9 +163,10 @@ export function render(panel, ctx) {
 
   const campoSuperficie = crearCampoNumerico({
     etiqueta: 'Superficie objetivo (opcional)',
-    unidad: unidadSuperficie,
+    magnitud: 'superficie',
+    sistema,
     valorInicial: precarga('superficie', borrador.superficieObjetivoHa ?? null),
-    ayuda: 'Si la capturas, se arma el plan de cargas con la carga parcial del último tanque.',
+    ayuda: 'Si la pones, se arma el plan de cargas con el último tanque a medias.',
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { superficieObjetivoHa: deSistema('superficie', valor, sistema) });
       recalcular();
@@ -221,7 +223,7 @@ export function render(panel, ctx) {
           el(
             'p',
             { clase: 'ayuda' },
-            'La equivalencia depende del volumen de aplicación real: si el L/ha cambia, la misma dosis por 100 L entrega otra cantidad por hectárea.'
+            'Si cambia el L/ha, la misma dosis por 100 L entrega otra cantidad por hectárea.'
           )
         );
       }
@@ -311,7 +313,7 @@ export function render(panel, ctx) {
         el(
           'p',
           { clase: 'ayuda' },
-          'El último tanque no se llena completo: prepara solo este caldo con su producto proporcional para no dejar mezcla sobrante.'
+          'El último tanque no va completo: prepara solo este caldo y no te sobra mezcla.'
         )
       );
     } else {

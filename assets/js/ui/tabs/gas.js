@@ -114,10 +114,11 @@ export function render(panel, ctx) {
     clave: 'masaObjetivoG',
     claveManual: 'masaObjetivoManual',
     etiqueta: 'Masa de gas objetivo',
-    unidad: unidadMasa,
+    magnitud: 'masa',
+    sistema,
     ayuda:
-      'La masa de etileno que se quiere inyectar en la corrida. Se precarga la masa por tabla ' +
-      'que calculó Forzamiento desde la dosis objetivo; si inyectas otra cantidad, escríbela aquí.',
+      'El etileno que quieres inyectar en la corrida. Viene la masa por tabla que calculó ' +
+      'Forzamiento; si inyectas otra cantidad, escríbela aquí.',
     fuente: 'Forzamiento',
     nombreDato: 'la masa por tabla',
     heredado: {
@@ -152,7 +153,7 @@ export function render(panel, ctx) {
     unidad: 'psi',
     valorInicial: borrador.psiManometrica ?? null,
     ayuda:
-      'La presión del manómetro a la entrada del tubo. La escala está calibrada a la presión estándar: con el gas comprimido el flotador subestima el flujo real y la corrección lo compensa.',
+      'La presión a la entrada del tubo. Con el gas comprimido la bola se queda corta y la corrección lo compensa.',
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { psiManometrica: valor });
       recalcular();
@@ -175,8 +176,8 @@ export function render(panel, ctx) {
     etiqueta: 'Tiempo de inyección',
     unidad: 's',
     ayuda:
-      'Tiempo con la válvula abierta. Se precarga el tiempo por tabla que sale de lo capturado ' +
-      'en Avance; si inyectas durante otro tiempo, escríbelo aquí y manda el tuyo.',
+      'Tiempo con la válvula abierta. Viene el tiempo por tabla que sale de Avance; si ' +
+      'inyectas otro rato, escríbelo aquí y manda el tuyo.',
     fuente: 'Avance',
     nombreDato: 'el tiempo por tabla',
     heredado: {
@@ -344,7 +345,7 @@ export function render(panel, ctx) {
           el(
             'p',
             { clase: 'ayuda' },
-            'Son dos parámetros distintos: la estándar es la condición a la que el fabricante calibró la escala del tubo; la local es la presión absoluta del sitio. El despeje de presión resta la atmosférica LOCAL, no la estándar. ' +
+            'Son dos cosas distintas: la estándar es con la que el fabricante calibró el tubo; la local es la del sitio. El despeje resta la LOCAL. ' +
               (ctx.atmosferaSitio().valores.anulado
                 ? 'La local está anulada a mano.'
                 : `La local sale de los ${formatear(p.sitio.altitudM, 0)} m de altitud del sitio.`) +
