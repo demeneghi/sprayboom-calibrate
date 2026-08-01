@@ -208,43 +208,45 @@ function textoDeValor(valor) {
   return String(Number(valor.toPrecision(6)));
 }
 
-/* Boton de unidades de un campo: convierte lo capturado de metrico a
-   imperial y de regreso.
+/* Boton de unidades de un campo: pasa lo capturado A las unidades de la
+   aplicacion.
 
    Para que sirve: quien calibra lee el dato en la unidad que trae el
    fierro que tiene enfrente —el manometro de la barra marca psi, la
    ficha de la boquilla americana viene en GPM, el tanque esta rotulado
    en galones— y la aplicacion trabaja en la otra. Antes ese numero se
-   convertia a mano, con el telefono en una mano y el celular de la
-   calculadora en la otra, de pie en el lote. Es justo donde se cuela un
-   error de factor que despues nadie encuentra.
+   convertia a mano, con el telefono en una mano y la calculadora del
+   mismo telefono en la otra, de pie en el lote. Es justo donde se cuela
+   un error de factor que despues nadie encuentra.
 
-   Que NO hace: cambiar el sistema de la aplicacion. Eso sigue viviendo
-   en Sistema, Configuración y sigue siendo uno solo para toda la
-   pantalla. Este boton solo cambia en que unidad se ESCRIBE este campo;
-   hacia afuera el valor sigue saliendo en `sistemaBase`, que es lo que
-   la pantalla que lo creo espera recibir.
+   El sentido es UNO SOLO y no se voltea: de la unidad ajena a la de la
+   aplicacion. El campo se queda SIEMPRE en las unidades del sistema
+   activo —esa es la unidad que rotula, en negritas y a la derecha de la
+   flecha— y nunca se queda escrito en la otra. Convertir hacia afuera
+   dejaba el numero en una unidad que no es la de la pantalla, y de ahi a
+   guardar una calibracion con el numero equivocado hay un paso.
 
-   La vuelta devuelve el texto ORIGINAL, no el reconvertido: con seis
-   digitos significativos, 2.7579 bar -> 40.0001 psi -> 2.75791 bar, y
-   ver cambiar el numero al regresar se lee como un error de la
-   aplicacion. Por eso se guarda de donde se venia.
+   El segundo toque DESHACE: devuelve el texto tal como se escribio. No
+   es la conversion contraria —no se aplica ningun factor—, es el boton
+   de arrepentirse: con guantes y el teclado del telefono, pulsar por
+   error un boton pegado al campo es de lo mas facil que hay. Devuelve el
+   texto ORIGINAL y no el reconvertido porque con seis digitos
+   significativos 40 psi -> 2.7579 bar -> 40.0001 psi, y ver cambiar el
+   numero al deshacer se lee como un error de la aplicacion. */
+function crearBotonUnidad({ idCampo, etiqueta, magnitud, sistemaBase, entrada, alConvertir }) {
+  const unidadApp = unidadDe(magnitud, sistemaBase);
+  const unidadAjena = unidadDe(magnitud, otroSistema(sistemaBase));
+  // Lo que hay que deshacer, o null si lo que se ve lo escribio el
+  // usuario. Se compara el texto: en cuanto se teclea algo, la marca
+  // deja de valer y el boton vuelve a ofrecer la conversion.
+  let hecho = null;
 
-   El boton dice el SENTIDO de la conversion, no solo que la hay: la
-   unidad en la que esta escrito el numero, la flecha y la unidad a la
-   que se va («bar -> psi»). Con la unidad sola, o con una doble flecha,
-   no habia forma de saber si al pulsarlo el numero pasaba a psi o si el
-   boton estaba avisando que ya venia en psi; y equivocarse de sentido es
-   exactamente el error de factor que este boton vino a quitar. */
-function crearBotonUnidad({ idCampo, etiqueta, magnitud, sistemaBase, entrada }) {
-  let sistemaCampo = sistemaBase;
-  let regreso = null;
-
-  // Dos rotulos, no uno: el de ORIGEN es la unidad del numero que se ve
-  // —manda, y por eso lleva el peso— y el de DESTINO es a donde va al
-  // pulsar, atenuado y un escalon mas chico.
-  const rotuloOrigen = el('span', { clase: 'campo__unidad-de' });
-  const rotuloDestino = el('span', { clase: 'campo__unidad-a' });
+  // El rotulo de ORIGEN es la unidad ajena —de donde viene el numero que
+  // se acaba de teclear— y va atenuada; el de DESTINO es la unidad de la
+  // aplicacion, que es la del campo, y va con el peso: es la que hay que
+  // leer al mirar la cifra.
+  const rotuloOrigen = el('span', { clase: 'campo__unidad-de' }, unidadAjena);
+  const rotuloDestino = el('span', { clase: 'campo__unidad-a' }, unidadApp);
   const boton = el(
     'button',
     { type: 'button', clase: 'campo__unidad', id: `${idCampo}-unidad` },
@@ -253,58 +255,64 @@ function crearBotonUnidad({ idCampo, etiqueta, magnitud, sistemaBase, entrada })
     rotuloDestino
   );
 
-  function unidadActual() {
-    return unidadDe(magnitud, sistemaCampo);
+  function convertido() {
+    return hecho !== null && entrada.value === hecho.texto;
   }
 
-  function rotular() {
-    const actual = unidadActual();
-    const otra = unidadDe(magnitud, otroSistema(sistemaCampo));
-    rotuloOrigen.textContent = actual;
-    rotuloDestino.textContent = otra;
-    // El nombre accesible arranca con el texto visible y dice en una
-    // frase lo que la flecha dice en un signo.
-    boton.setAttribute('aria-label', `${etiqueta} en ${actual}. Convertir a ${otra}.`);
-    boton.dataset.sistema = sistemaCampo;
-    // Marca de "este campo NO está en las unidades de la aplicación",
-    // que es lo que hay que ver de lejos. No es "esta en imperial": con
-    // la aplicacion en imperial, imperial es lo normal.
-    boton.dataset.convertido = String(sistemaCampo !== sistemaBase);
+  // La equivalencia que se acaba de aplicar, para poder verificarla de un
+  // vistazo. null cuando lo que se ve lo escribio el usuario.
+  function equivalencia() {
+    if (!convertido()) return null;
+    return `${hecho.original} ${unidadAjena} = ${hecho.texto} ${unidadApp}.`;
+  }
+
+  function sincronizar() {
+    const listo = convertido();
+    boton.dataset.convertido = String(listo);
+    // Sin numero no hay nada que convertir: el boton lo dice apagandose,
+    // que es mejor que un toque sin respuesta.
+    boton.disabled = !listo && aNumero(entrada.value) === null;
+    boton.setAttribute(
+      'aria-label',
+      listo
+        ? `${etiqueta}: deshacer la conversión y volver a ${hecho.original} ${unidadAjena}.`
+        : `${etiqueta}: lo escrito está en ${unidadAjena}, convertirlo a ${unidadApp}.`
+    );
+    if (alConvertir) alConvertir(equivalencia());
   }
 
   boton.addEventListener('click', () => {
-    const destino = otroSistema(sistemaCampo);
-    const textoAntes = entrada.value;
-    const valor = aNumero(textoAntes);
-    if (regreso && regreso.destino === destino && regreso.textoResultado === textoAntes) {
-      entrada.value = regreso.textoOrigen;
-    } else if (valor !== null) {
-      entrada.value = textoDeValor(entreSistemas(magnitud, valor, sistemaCampo, destino));
+    if (convertido()) {
+      entrada.value = hecho.original;
+      hecho = null;
+    } else {
+      const valor = aNumero(entrada.value);
+      if (valor === null) return;
+      const original = entrada.value;
+      const enUnidadesApp = entreSistemas(
+        magnitud,
+        valor,
+        otroSistema(sistemaBase),
+        sistemaBase
+      );
+      entrada.value = textoDeValor(enUnidadesApp);
+      hecho = { original, texto: entrada.value };
     }
-    // Un campo vacio —o con algo que no es numero— solo cambia de
-    // unidad: no hay nada que convertir y no se borra lo escrito.
-    regreso = { destino: sistemaCampo, textoOrigen: textoAntes, textoResultado: entrada.value };
-    sistemaCampo = destino;
-    rotular();
+    sincronizar();
+    // El valor del campo CAMBIO de verdad —40 psi no son 40 bar—, asi
+    // que la pantalla tiene que enterarse igual que si se hubiera
+    // tecleado: borrador, recalculo y commit al salir del campo.
+    entrada.dispatchEvent(new Event('input', { bubbles: true }));
+    entrada.dispatchEvent(new Event('change', { bubbles: true }));
   });
 
-  rotular();
+  // Teclear invalida la marca: lo que se ve ya no es lo que convirtio el
+  // boton, asi que vuelve a ofrecer la conversion.
+  entrada.addEventListener('input', sincronizar);
 
-  return {
-    boton,
-    // Del sistema en que se esta escribiendo al que espera la pantalla.
-    aBase: (valor) => entreSistemas(magnitud, valor, sistemaCampo, sistemaBase),
-    // Del valor que manda la pantalla al texto que toca mostrar. Sin
-    // conversion de por medio se escribe tal cual, como siempre.
-    textoDesdeBase(valor) {
-      regreso = null;
-      if (sistemaCampo === sistemaBase) return String(valor);
-      return textoDeValor(entreSistemas(magnitud, valor, sistemaBase, sistemaCampo));
-    },
-    olvidarRegreso() {
-      regreso = null;
-    },
-  };
+  sincronizar();
+
+  return { boton, sincronizar };
 }
 
 export function crearCampoNumerico({
@@ -333,9 +341,24 @@ export function crearCampoNumerico({
     readonly: soloLectura || null,
     value: valorInicial === null || valorInicial === undefined ? '' : String(valorInicial),
   });
+  // Nota de la conversion: la equivalencia que se acaba de aplicar, para
+  // poder verificarla de un vistazo («40 psi = 2.7579 bar»). Es
+  // resultado, no ayuda: cambia con lo capturado y por eso se imprime en
+  // vez de esconderse tras un "?".
+  const nodoConversion = el('p', { clase: 'ayuda oculto' });
   const unidades =
     sistema && esConvertible(magnitud)
-      ? crearBotonUnidad({ idCampo, etiqueta, magnitud, sistemaBase: sistema, entrada })
+      ? crearBotonUnidad({
+          idCampo,
+          etiqueta,
+          magnitud,
+          sistemaBase: sistema,
+          entrada,
+          alConvertir: (texto) => {
+            nodoConversion.textContent = texto ? `${texto} Toca otra vez para deshacerlo.` : '';
+            nodoConversion.classList.toggle('oculto', !texto);
+          },
+        })
       : null;
   const nodoError = el('p', { clase: 'campo__error oculto', id: `${idCampo}-error` });
   const { cabecera, globo: nodoAyuda } = crearEtiquetaConAyuda({
@@ -351,6 +374,7 @@ export function crearCampoNumerico({
     cabecera,
     unidades ? el('div', { clase: 'campo__medida' }, entrada, unidades.boton) : entrada,
     nodoError,
+    unidades ? nodoConversion : null,
     nodoAyuda
   );
 
@@ -367,9 +391,11 @@ export function crearCampoNumerico({
   }
   sincronizarDescripcion();
 
+  // El campo esta SIEMPRE en las unidades del sistema activo: el boton
+  // convierte hacia ellas, nunca al contrario. Por eso lo capturado sale
+  // tal cual, sin conversion de salida.
   function obtener() {
-    const valor = aNumero(entrada.value);
-    return unidades ? unidades.aBase(valor) : valor;
+    return aNumero(entrada.value);
   }
 
   if (alCambiar) {
@@ -384,12 +410,8 @@ export function crearCampoNumerico({
       return entrada.value;
     },
     fijar(valor) {
-      if (valor === null || valor === undefined) {
-        if (unidades) unidades.olvidarRegreso();
-        entrada.value = '';
-        return;
-      }
-      entrada.value = unidades ? unidades.textoDesdeBase(valor) : String(valor);
+      entrada.value = valor === null || valor === undefined ? '' : String(valor);
+      if (unidades) unidades.sincronizar();
     },
     fijarError(mensaje) {
       if (mensaje) {
