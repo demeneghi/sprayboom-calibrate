@@ -199,22 +199,20 @@ export function render(panel, ctx) {
           texto: `${formatear(valor, decimales)} ${unidadTexto}`,
           ayuda,
         });
+      // No se imprime el área en m2: es la MISMA cifra que la superficie
+      // en hectáreas dividida entre 10000, y la aplicación dosifica por
+      // hectárea. Dos renglones para un solo dato obligan a leer los dos
+      // para darse cuenta de que dicen lo mismo.
       reemplazar(
         zonaDerivados,
-        fila(
-          'Área por tabla',
-          aSistema('areaChica', g.valores.areaM2, sistema),
-          unidad('areaChica', sistema),
-          2,
-          'El largo de la tabla por el ancho de la barra: lo que cubre un pase completo.'
-        ),
         fila(
           'Superficie por tabla',
           aSistema('superficie', g.valores.hectareasPorTabla, sistema),
           unidad('superficie', sistema),
           6,
-          'La misma área en hectáreas. Multiplica a la dosis por hectárea para saber cuánto ' +
-            'producto o cuánto gas lleva una tabla.'
+          'Las hectáreas que cubre un pase de la tabla: su largo por el ancho de la barra. ' +
+            'Multiplica a la dosis por hectárea para saber cuánto producto o cuánto gas lleva ' +
+            'una tabla.'
         ),
         fila(
           'Tramos por tabla',

@@ -427,6 +427,13 @@ export function render(panel, ctx) {
 
         nodos.push(...pintarAvisos(resultado.avisos));
 
+        // Dispersión: se imprimen la media y el CV, y nada más. Antes se
+        // pintaban ADEMÁS la DE poblacional y la DE muestral, dos cifras
+        // casi idénticas entre sí (con 8 boquillas difieren un 7 %) que
+        // dicen lo mismo que el CV en L/min en vez de en por ciento —y el
+        // criterio de aceptación de un aforo es el CV, no la DE—. La nota
+        // de abajo ya trae el CV muestral y la DE poblacional sigue
+        // auditable en el desglose paso a paso.
         nodos.push(
           grid2(
             pintarResultado({
@@ -450,25 +457,6 @@ export function render(panel, ctx) {
                 'Qué tan parejas van las boquillas entre sí, en porcentaje de la media. Es la ' +
                 'cifra que dice si la barra aplica pareja: por norma se busca 5 % o menos, y ' +
                 'arriba de 10 % hay boquillas que reponer.',
-            }),
-            pintarResultado({
-              etiqueta: 'DE poblacional',
-              valor: aSistema('caudal', resultado.valores.dePoblacional, sistema),
-              unidad: unidadCaudal,
-              decimales: 4,
-              ayuda:
-                'Cuánto se aparta cada boquilla de la media, en las mismas unidades del caudal. ' +
-                'Es la desviación estándar de la que sale el CV.',
-            }),
-            pintarResultado({
-              etiqueta: 'DE muestral (n − 1)',
-              valor: aSistema('caudal', resultado.valores.deMuestral, sistema),
-              unidad: unidadCaudal,
-              decimales: 4,
-              ayuda:
-                'La misma dispersión calculada como si las boquillas capturadas fueran una ' +
-                'muestra de una barra más grande. Sale un poco más alta y se muestra solo para ' +
-                'comparar con quien reporta así.',
             })
           ),
           el(
@@ -683,7 +671,14 @@ export function render(panel, ctx) {
           'Un renglón por boquilla, todos con el mismo tiempo de prueba. Los renglones vacíos se ignoran al calcular.',
       },
       cuadriculaRenglones,
-      el('div', { estilo: { display: 'flex', gap: '0.5rem' } }, botonAgregar, botonQuitar)
+      // Envuelve: en un telefono de 360px «Quitar último renglón» se
+      // salia de la tarjeta y quedaba cortado contra el borde.
+      el(
+        'div',
+        { estilo: { display: 'flex', gap: '0.5rem', flexWrap: 'wrap' } },
+        botonAgregar,
+        botonQuitar
+      )
     ),
     tarjeta(
       {

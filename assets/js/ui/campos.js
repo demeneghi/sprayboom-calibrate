@@ -178,23 +178,24 @@ export function crearEtiquetaConAyuda({ idCampo, etiqueta, unidad = '', ayuda = 
   return { cabecera: el('div', { clase: 'campo__cabecera' }, rotulo, boton), globo };
 }
 
-/* Las dos flechas del boton de unidades. Van dibujadas y no como signo
-   de texto: el subconjunto latino de las fuentes autohospedadas no trae
-   flechas, asi que un caracter como el de doble flecha caeria en la
-   fuente del sistema —o en un recuadro vacio— y cambiaria de tamano
-   entre telefonos. El color no se escribe aqui: lo pone
+/* La flecha del boton de unidades. Es UNA sola y apunta a la derecha,
+   de la unidad de origen a la de destino: la doble flecha decia que ahi
+   se convierte, pero no en que sentido, y con dos unidades a los lados
+   el sentido es justo lo que hay que leer.
+
+   Va dibujada y no como signo de texto: el subconjunto latino de las
+   fuentes autohospedadas no trae flechas, asi que un caracter de flecha
+   caeria en la fuente del sistema —o en un recuadro vacio— y cambiaria
+   de tamaño entre telefonos. El color no se escribe aqui: lo pone
    `.campo__unidad-icono` con el token del tema. */
-function iconoIntercambio() {
+function iconoFlecha() {
   const svg = nodoSvg('svg', {
     class: 'campo__unidad-icono',
     viewBox: '0 0 16 16',
     'aria-hidden': 'true',
     focusable: 'false',
   });
-  svg.append(
-    nodoSvg('path', { d: 'M2.5 5.5H13M10.5 3L13 5.5L10.5 8' }),
-    nodoSvg('path', { d: 'M13.5 10.5H3M5.5 8L3 10.5L5.5 13' })
-  );
+  svg.append(nodoSvg('path', { d: 'M2.5 8H13M9.5 4.5L13 8L9.5 11.5' }));
   return svg;
 }
 
@@ -227,17 +228,29 @@ function textoDeValor(valor) {
    La vuelta devuelve el texto ORIGINAL, no el reconvertido: con seis
    digitos significativos, 2.7579 bar -> 40.0001 psi -> 2.75791 bar, y
    ver cambiar el numero al regresar se lee como un error de la
-   aplicacion. Por eso se guarda de donde se venia. */
+   aplicacion. Por eso se guarda de donde se venia.
+
+   El boton dice el SENTIDO de la conversion, no solo que la hay: la
+   unidad en la que esta escrito el numero, la flecha y la unidad a la
+   que se va («bar -> psi»). Con la unidad sola, o con una doble flecha,
+   no habia forma de saber si al pulsarlo el numero pasaba a psi o si el
+   boton estaba avisando que ya venia en psi; y equivocarse de sentido es
+   exactamente el error de factor que este boton vino a quitar. */
 function crearBotonUnidad({ idCampo, etiqueta, magnitud, sistemaBase, entrada }) {
   let sistemaCampo = sistemaBase;
   let regreso = null;
 
-  const rotulo = el('span', { clase: 'campo__unidad-texto' });
+  // Dos rotulos, no uno: el de ORIGEN es la unidad del numero que se ve
+  // —manda, y por eso lleva el peso— y el de DESTINO es a donde va al
+  // pulsar, atenuado y un escalon mas chico.
+  const rotuloOrigen = el('span', { clase: 'campo__unidad-de' });
+  const rotuloDestino = el('span', { clase: 'campo__unidad-a' });
   const boton = el(
     'button',
     { type: 'button', clase: 'campo__unidad', id: `${idCampo}-unidad` },
-    rotulo,
-    iconoIntercambio()
+    rotuloOrigen,
+    iconoFlecha(),
+    rotuloDestino
   );
 
   function unidadActual() {
@@ -247,9 +260,10 @@ function crearBotonUnidad({ idCampo, etiqueta, magnitud, sistemaBase, entrada })
   function rotular() {
     const actual = unidadActual();
     const otra = unidadDe(magnitud, otroSistema(sistemaCampo));
-    rotulo.textContent = actual;
-    // El nombre accesible incluye el texto visible (la unidad) y dice
-    // que pasa al pulsar, que es lo que no se ve.
+    rotuloOrigen.textContent = actual;
+    rotuloDestino.textContent = otra;
+    // El nombre accesible arranca con el texto visible y dice en una
+    // frase lo que la flecha dice en un signo.
     boton.setAttribute('aria-label', `${etiqueta} en ${actual}. Convertir a ${otra}.`);
     boton.dataset.sistema = sistemaCampo;
     // Marca de "este campo NO está en las unidades de la aplicación",

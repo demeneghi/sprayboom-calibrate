@@ -245,7 +245,7 @@ Son cinco, y ninguna es cosmética.
   `ayuda` y monta el mismo botón de los campos y las tarjetas, a la derecha de la etiqueta, dentro
   de `.resultado__cabecera`.
 - **Para qué existe.** Una etiqueta no alcanza a decir qué es la cifra. «CV de la barra», «factor
-  requerido», «método por barra» o «DE muestral (n − 1)» son nombres correctos y opacos: quien
+  requerido», «método por barra» o «masa por pie cúbico estándar» son nombres correctos y opacos: quien
   calibra de pie en el lote no deduce de ahí qué significa el número, con qué compararlo ni qué
   hacer si sale alto. **El desglose paso a paso no lo resuelve**: contesta *cómo* se calculó —la
   fórmula con los números sustituidos—, que es otra pregunta.
@@ -270,11 +270,18 @@ Son cinco, y ninguna es cosmética.
 - Vale todo lo dicho para el globo del campo: uno abierto a la vez en la pantalla, flotando en la
   capa superior, posición calculada por `campos.js`, y `Escape` o un toque fuera lo cierran.
 
-## Botón de unidades de un campo (métrico ⇄ imperial)
+## Botón de unidades de un campo (métrico → imperial)
 
 - **Un campo con magnitud no imprime su unidad en la etiqueta: la unidad ES el botón**, y va
   pegado al número. Se lee junto a la cifra que califica y se toca donde se lee. La etiqueta queda
   con el nombre del dato y nada más.
+- **El botón dice el SENTIDO de la conversión, no solo que ahí se convierte.** Lleva dos rótulos:
+  la unidad en la que está escrito el número —que manda, y por eso conserva el peso y el color del
+  botón—, la flecha, y la unidad a la que va al pulsarlo (`bar → psi`). El destino va atenuado y un
+  escalón más chico (`--text-meta`) para que la pareja se lea «de aquí a allá» y no como dos
+  unidades compitiendo. **Prohibido** rotularlo solo con la unidad actual o con una doble flecha:
+  no había forma de saber si al pulsarlo el número pasaba a psi o si el botón avisaba que ya venía
+  en psi, y equivocarse de sentido es exactamente el error de factor que este botón vino a quitar.
 - **Para qué existe.** Quien calibra lee el dato en la unidad del fierro que tiene enfrente —el
   manómetro de la barra marca psi, la ficha de la boquilla americana viene en GPM, el tanque está
   rotulado en galones— y la aplicación trabaja en la otra. Ese número se convertía a mano, de pie
@@ -302,9 +309,18 @@ Son cinco, y ninguna es cosmética.
   ya está en `min-width: var(--touch-floor)` y el alto lo recupera un pseudo-elemento que **no
   ocupa lugar en el flujo**. Por eso `.campo__unidad` es componente propio y no una variante de
   `.boton`: así nadie parchea la altura de un botón desde el consumidor.
-- **El icono de las dos flechas va dibujado en SVG, no como carácter.** El subconjunto latino de
-  las fuentes autohospedadas no trae flechas: un `⇄` de texto caería en la fuente del sistema —o
-  en un recuadro vacío— y cambiaría de tamaño entre teléfonos.
+- **La flecha va dibujada en SVG, no como carácter, y es UNA sola apuntando al destino.** El
+  subconjunto latino de las fuentes autohospedadas no trae flechas: una flecha de texto caería en
+  la fuente del sistema —o en un recuadro vacío— y cambiaría de tamaño entre teléfonos.
+- **La fila del campo se parte, el rótulo nunca.** Donde el par de unidades no cabe al lado del
+  número —los volúmenes por boquilla van en dos columnas—, el botón baja al renglón de abajo
+  entero. La base del input son 96px y **no** `auto`: el renglón se parte comparando las bases,
+  antes de encoger a nadie, y con `auto` el input pedía sus 20 caracteres por omisión y mandaba el
+  botón abajo hasta en las tarjetas anchas. Recortar el botón dejaría un `gal/…` cortado contra el
+  borde, que es peor que ambiguo.
+- **`.campo` lleva `min-width: 0`.** Un campo dentro de una rejilla no puede empujar su columna:
+  sin eso, la columna `1fr` se estira hasta el ancho mínimo del contenido, las dos columnas suman
+  más que la tarjeta y la mitad derecha de la pantalla queda cortada contra el borde.
 - **Accesibilidad por atributo:** el nombre accesible del botón contiene el texto visible y dice
   qué pasa al pulsarlo (`Presión de trabajo en bar. Convertir a psi.`), y el input apunta al botón
   con `aria-describedby` porque la unidad ya no está en su etiqueta.
@@ -326,6 +342,38 @@ Son cinco, y ninguna es cosmética.
   línea.
 - El piso táctil sigue mandando el alto: `height: auto` deja crecer a dos renglones sin bajar de
   los 48px del piso.
+
+## Instrumento que se captura: la parte móvil se arrastra
+
+Los dos instrumentos dibujados —el tubo del rotámetro y la carátula del manómetro— no solo se
+pican: **el flotador se arrastra y la aguja se gira**. Acertarle de un toque a una raya de la
+escala es justo lo que no se puede hacer de pie en el lote, con guantes y el teléfono a la
+distancia del brazo. El tap sigue vivo: es el mismo gesto con recorrido cero.
+
+- **La zona de agarre es una figura transparente, último hijo del SVG** (`.instrumento__agarre`):
+  la franja del tubo con su escala, la carátula completa del manómetro. Va encima de todo para ser
+  siempre el destino del toque, así que el gesto **no depende de acertarle a la bola ni a la
+  aguja**. Fuera de ella —chasis, bisel, márgenes— el toque sigue capturando de un tap y el dedo
+  puede desplazar la pantalla.
+- **`touch-action: none` va en el agarre, nunca en el SVG entero.** El arrastre del flotador y el
+  desplazamiento de la página comparten eje: dentro de la zona gana el instrumento, fuera gana la
+  página. Poner el bloqueo en todo el dibujo dejaría al dedo sin forma de bajar la pantalla.
+- **Safari en iPhone ignora `touch-action` cuando cuelga de un hijo del SVG**, que es exactamente
+  el teléfono con el que se calibra. Por eso el gesto lo respalda un `preventDefault` en
+  `touchmove` **mientras dura**, con el listener declarado no pasivo. Sin ese respaldo el gesto se
+  lo lleva el scroll y el flotador no se mueve: es el fallo que trajo este patrón.
+- **La parte móvil vive en un grupo aparte** (`.instrumento__movil`) que se vuelve a pintar solo,
+  decenas de veces por segundo. **Prohibido** recalcular la pestaña en cada paso del dedo:
+  remontar destruiría el mismo SVG que está recibiendo el gesto.
+- **El valor se entrega una sola vez, al soltar.** Durante el gesto la pastilla ya va mostrando a
+  dónde va la lectura, así que el feedback no depende del recálculo.
+- El puntero se **captura** (`setPointerCapture`): el gesto sobrevive aunque el dedo se salga del
+  tubo o de la carátula. Nadie sigue una franja de 4 mm en línea recta parado sobre un tractor.
+- **Donde el toque no dice nada, no se captura**: el eje del manómetro y el hueco de 90° sin
+  escala. Ahí la aguja se queda donde iba en vez de saltar al tope.
+- El teclado sigue siendo cosa de los **botones más y menos** de la fila de captura: el SVG es
+  `role="img"`, y un control arrastrable dentro de él quedaría fuera del alcance de un lector de
+  pantalla de todos modos.
 
 ## Anillo de foco y apilado de campos
 
@@ -398,8 +446,16 @@ suelto. Lo mismo con cada color ISO sembrado.
   fila del input con su botón: la produce `campos.js` a partir de `magnitud` y `sistema`.
 - Convertir el campo y **no** decir que quedó en la otra unidad: sin el acento, un 43.5 en un
   campo que se lee como bar es una calibración mal hecha.
+- Rotular el botón de unidades sin el sentido de la conversión (`bar` a secas, o una doble flecha):
+  no se sabe si convierte a psi o avisa que el número ya viene en psi.
 - Devolver el globo de ayuda al flujo (o anclarlo con `position: absolute` dentro del campo): abrir
   una ayuda volvería a empujar los campos de abajo, y dentro de una tarjeta el globo se recorta.
+- Declarar `touch-action: none` sobre el SVG entero de un instrumento: deja al dedo sin forma de
+  desplazar la pantalla desde ese pedazo grande de la pestaña.
+- Confiar el gesto solo a `touch-action`: en el iPhone con el que se calibra hay que respaldarlo
+  con `preventDefault` en `touchmove`.
+- Recalcular la pestaña en cada paso de un arrastre: remonta el SVG que está recibiendo el gesto y
+  lo deja muerto a media captura.
 - Sumar relleno a una tarjeta desde su contenido.
 - Apilar campos en un `<div>` sin clase: quedan sin separación y el anillo de foco pisa la
   etiqueta del campo de abajo.

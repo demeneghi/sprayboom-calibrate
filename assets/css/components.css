@@ -264,6 +264,13 @@
   display: flex;
   flex-direction: column;
   gap: calc(var(--foco-holgura) + 2px);
+  /* Un campo dentro de una rejilla —los volumenes por boquilla van en
+     dos columnas— NO puede empujar su columna. Sin esto, la columna
+     `1fr` se estira hasta el ancho minimo del contenido (el numero mas
+     su boton de unidades), las dos columnas suman mas que la tarjeta y
+     la pantalla entera se va de lado. Con `min-width: 0` la columna se
+     queda en su mitad y es la fila del campo la que se acomoda. */
+  min-width: 0;
 }
 
 /* Apilado de campos: la columna de un formulario, dentro de un dialogo
@@ -346,19 +353,37 @@
    pasa a ser el BOTON que va pegado al numero: se lee donde se mira —al
    lado de la cifra que califica— y se toca donde se lee.
 
+   El boton dice el SENTIDO de la conversion —«bar -> psi»—, no solo que
+   ahi se convierte: con la unidad sola no habia forma de saber si al
+   pulsarlo el numero pasaba a psi o si el boton avisaba que ya venia en
+   psi.
+
    Convierte lo capturado sin tocar el sistema de la aplicacion, que
-   sigue siendo uno solo y vive en Configuración. */
+   sigue siendo uno solo y vive en Configuración.
+
+   En un campo angosto —los volumenes por boquilla van en dos columnas—
+   el par de unidades no cabe al lado del numero: entonces el boton se va
+   al renglon de abajo, entero (`flex-wrap`). Se parte la fila, nunca el
+   rotulo: un «gal/…» cortado contra el borde es peor que ambiguo. */
 .campo__medida {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
 }
 
 /* El input se queda con el ancho que sobra. `min-width: 0` es
    obligatorio: sin el, el ancho por defecto de un input en una fila
-   flexible no se deja encoger y el boton se sale de la tarjeta. */
+   flexible no se deja encoger y el boton se sale de la tarjeta.
+
+   La base son 96px —el ancho minimo en el que un numero capturado se
+   sigue leyendo—, y NO `auto`. El renglon se parte comparando las bases,
+   antes de encoger a nadie: con base `auto` el input pedia sus 20
+   caracteres por omision y mandaba el boton abajo hasta en las tarjetas
+   anchas, donde cabian de sobra. Con 96px se parte solo cuando de
+   verdad no cabe. */
 .campo__medida > .entrada {
-  flex: 1 1 auto;
+  flex: 1 1 96px;
   width: auto;
   min-width: 0;
 }
@@ -419,6 +444,23 @@
   background-color: hsl(var(--acento) / 0.14);
   border-color: hsl(var(--acento));
   color: hsl(var(--acento-texto));
+}
+
+/* Los dos rotulos del boton. El de ORIGEN es la unidad en la que esta
+   escrito el numero que se ve: manda, y por eso hereda el peso y el
+   color del boton. El de DESTINO es a donde va el numero al pulsar, y va
+   atenuado y un escalon mas chico —de la escala, no un tamaño suelto—
+   para que la pareja se lea como «de aqui a alla» y no como dos unidades
+   compitiendo. */
+.campo__unidad-de {
+  flex: none;
+}
+
+.campo__unidad-a {
+  flex: none;
+  color: hsl(var(--muted-foreground));
+  font-size: var(--text-meta);
+  font-weight: 500;
 }
 
 .campo__unidad-icono {
@@ -1504,6 +1546,28 @@ dialog.dialogo::backdrop {
 
 .instrumento[data-captura='true']:active {
   opacity: 0.9;
+}
+
+/* Zona por donde se agarra la parte movil del instrumento: la franja
+   del tubo para arrastrar el flotador, la caratula para girar la aguja.
+   Va transparente y encima de todo el dibujo, asi que el gesto no
+   depende de acertarle a la bola ni a la aguja.
+
+   `touch-action: none` es lo que impide que el desplazamiento vertical
+   de la pagina se robe el gesto dentro de esta zona y SOLO dentro de
+   ella: sobre el chasis, el bisel y los margenes del dibujo el dedo
+   sigue desplazando la pantalla. Safari en iPhone ignora esta
+   declaracion cuando cuelga de un hijo del SVG, asi que `tubo.js` y
+   `manometro.js` la respaldan con `preventDefault` en `touchmove`
+   mientras dura el gesto. */
+.instrumento__agarre {
+  fill: transparent;
+  touch-action: none;
+  cursor: grab;
+}
+
+.instrumento__agarre:active {
+  cursor: grabbing;
 }
 
 /* Caratula del manometro: bisel, fondo y aguja. */

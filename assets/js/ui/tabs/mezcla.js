@@ -257,6 +257,9 @@ export function render(panel, ctx) {
       );
       return;
     }
+    // «Superficie por carga» no se repite aquí: es el mismo valor que ya
+    // encabeza «Resultado por carga», la tarjeta de arriba. Este plan
+    // habla de los totales de la superficie objetivo, no de una carga.
     const nodos = [
       el(
         'div',
@@ -285,16 +288,6 @@ export function render(panel, ctx) {
           ayuda:
             'Cuántas veces hay que ir a cargar en total, contando la carga parcial del final. ' +
             'Es el número para planear el día y el agua.',
-        }),
-        pintarResultado({
-          etiqueta: 'Superficie por carga',
-          valor: aSistema('superficie', resultado.valores.hectareasPorCarga, sistema),
-          unidad: unidadSuperficie,
-          decimales: 2,
-          ayuda:
-            'Cuánto alcanza a cubrir un tanque lleno: el volumen del tanque entre el volumen ' +
-            'de aplicación. Si el tanque se vacía antes, el volumen real es mayor que el ' +
-            'capturado.',
         })
       ),
     ];
@@ -426,28 +419,10 @@ export function render(panel, ctx) {
               'del tanque, porque el producto también ocupa lugar; con producto en polvo se ' +
               'desprecia y es el tanque completo.',
           }),
-          el(
-            'div',
-            { estilo: CUADRICULA_2 },
-            pintarResultado({
-              etiqueta: 'Dosis por hectárea',
-              valor: resultado.valores.dosisPorHa,
-              unidad: `${unidadProducto}/ha`,
-              decimales: 3,
-              ayuda:
-                'La dosis agronómica que se está aplicando de verdad. Es la que hay que ' +
-                'comparar contra la etiqueta del producto.',
-            }),
-            pintarResultado({
-              etiqueta: 'Dosis por cada 100 L',
-              valor: resultado.valores.dosisPor100L,
-              unidad: `${unidadProducto}/100 L`,
-              decimales: 3,
-              ayuda:
-                'La concentración del caldo en el tanque. Sirve cuando la etiqueta viene ' +
-                'escrita así y para revisar que no quede demasiado cargado.',
-            })
-          ),
+          // La dosis en las dos formas NO se repite aquí: es el mismo par
+          // de números que ya pinta la tarjeta «Dosis en las dos formas»,
+          // con la misma fórmula, y allá además se marca cuál de las dos
+          // fue la capturada. Esta tarjeta es lo que va en UNA carga.
           pintarVerificacion(resultado.verificacion)
         );
       } else {
