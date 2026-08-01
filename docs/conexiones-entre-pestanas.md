@@ -418,3 +418,45 @@ se guardan con tipo `'borrador'`, que a propósito **no** re-renderiza (`main.js
 Eso es correcto y no hay que tocarlo: como cada pestaña se re-monta al entrar, un derivado en
 `ctx` se recalcula solo. Lo que **no** se recalcula es un valor ya copiado a un borrador, y por
 eso la solución de fondo es derivar, no copiar.
+
+---
+
+## 10. Seguimiento: el tiempo de inyección y el avance (agosto de 2026)
+
+Rama `claude/injection-time-advance-bk8iw1`. El trabajo anterior dejó el **tiempo de inyección**
+de Gas etileno y el **tiempo por tabla** de Forzamiento heredando de Avance con
+`ctx.avanceDeAvance()`. Faltaban las dos mitades que hacían que esa conexión sirviera en campo.
+
+### 10.1 El enlace se quedaba en blanco
+
+`velocidadDeAvance` solo devolvía número si el borrador de Avance traía una marcha elegida o
+segundos por tramo. Abrir la aplicación e ir directo a Gas etileno mostraba «sin dato en
+Avance» y un campo vacío, aunque el tractor lleve meses trabajando con la misma marcha.
+
+El borrador tampoco alcanzaba: es de la **pantalla** y recuerda una sola marcha, así que
+cambiar de tractor y volver borraba la del primero.
+
+La marcha de trabajo pasó a ser un dato **del tractor** (`tractor.marchaHabitual`):
+
+- Avance la escribe en cuanto se elige una marcha en la cuadrícula, y la preselecciona al
+  montar cuando el borrador no trae marcha de ese tractor.
+- `velocidadDeAvance` la usa como **último** respaldo —después del reporte de campo y de la
+  marcha elegida— y emite el aviso `marcha-de-trabajo-del-tractor`: nunca gana sobre una
+  captura de hoy, y cuando entra se dice.
+- Configuración la deja fijar o corregir sin pasar por Avance, y la olvida si la transmisión se
+  encoge por debajo de esa posición.
+- Nace **vacía** en los dos tractores sembrados: con qué marcha se aplica es del rancho y no de
+  la ficha del fabricante, así que no se inventa.
+
+### 10.2 El tiempo requerido no decía cómo lograrse
+
+El modo «tiempo requerido» del rotámetro despeja los segundos que hay que tener abierta la
+válvula, y ese tiempo solo se cumple si la barra cruza la tabla en ese mismo rato. El número
+salía suelto y había que ir a Avance a tantear marchas hasta que el tiempo por tabla cuadrara.
+
+`velocidadParaTiempoPorTabla` (dominio A) es el inverso exacto de `avance()`, y
+`ui/marchas.js::nodosAvanceParaTiempo` pinta el bloque «Cómo se logra ese tiempo»: velocidad de
+avance, segundos por tramo y las marchas que la reproducen con sus rpm, filtradas al rango de
+trabajo del motor —igual que la tabla de Avance—. Lo usan Gas etileno (modo «tiempo requerido»)
+y Forzamiento (despeje «tiempo de inyección requerido»), que son las dos pantallas que producen
+ese número.

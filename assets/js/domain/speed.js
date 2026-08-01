@@ -101,6 +101,55 @@ export function avance({ velocidadKmh, distanciaReferencia, largoTabla }) {
   };
 }
 
+// Sentido inverso del avance: que velocidad recorre una tabla completa
+// en un tiempo dado. Es lo que conecta el TIEMPO DE INYECCION del gas
+// con el avance del tractor: el rotametro despeja cuantos segundos hay
+// que tener abierta la valvula para soltar la masa objetivo, y ese
+// tiempo solo se cumple si la barra cruza la tabla a esta velocidad.
+// Sin esto, el numero de segundos quedaba en pantalla sin decir como
+// lograrlo.
+//
+// El tiempo por tabla no depende de la distancia de referencia —los
+// tramos se cancelan con los segundos por tramo—, asi que la velocidad
+// sale del largo de tabla y nada mas. La distancia de referencia entra
+// solo para devolver, ademas, los segundos por tramo que se cronometran
+// en campo.
+export function velocidadParaTiempoPorTabla({ tiempoTotalS, largoTabla, distanciaReferencia }) {
+  requierePositivo('el tiempo por tabla', tiempoTotalS);
+  requierePositivo('el largo de tabla', largoTabla);
+  requierePositivo('la distancia de referencia', distanciaReferencia);
+  const velocidadKmh = (largoTabla * KMH_A_MS) / tiempoTotalS;
+  const tramosPorTabla = largoTabla / distanciaReferencia;
+  const segundos = tiempoTotalS / tramosPorTabla;
+  return {
+    valores: { velocidadKmh, segundosPorTramo: segundos, tramosPorTabla },
+    desglose: [
+      paso(
+        'Velocidad que recorre la tabla en ese tiempo',
+        'largo_tabla * 3.6 / tiempo_por_tabla',
+        `${redondeoLegible(largoTabla)} * ${KMH_A_MS} / ${redondeoLegible(tiempoTotalS)}`,
+        velocidadKmh,
+        'km/h'
+      ),
+      paso(
+        'Tramos por tabla',
+        'largo_tabla / distancia_referencia',
+        `${redondeoLegible(largoTabla)} / ${redondeoLegible(distanciaReferencia)}`,
+        tramosPorTabla,
+        'tramos'
+      ),
+      paso(
+        'Segundos por tramo',
+        'tiempo_por_tabla / tramos_por_tabla',
+        `${redondeoLegible(tiempoTotalS)} / ${redondeoLegible(tramosPorTabla)}`,
+        segundos,
+        's'
+      ),
+    ],
+    avisos: [],
+  };
+}
+
 // Avance completo a partir del reporte de campo (sentido inverso).
 export function avanceDesdeReporte({ segundosPorTramo: segundos, distanciaReferencia, largoTabla }) {
   const velocidadKmh = velocidadDesdeReporte({ segundosPorTramo: segundos, distanciaReferencia });
@@ -257,6 +306,31 @@ export function marchasDeTractor(tractor) {
     }
   }
   return filas;
+}
+
+// Marcha de trabajo del tractor: la ultima que se eligio en Avance,
+// guardada en el tractor y no en el borrador de la pantalla.
+//
+// Vive con el tractor por dos razones. La primera es que la marcha se
+// identifica por POSICION, asi que el borrador solo puede recordar una a
+// la vez: cambiar de tractor y volver borraba la del primero, y la
+// pantalla quedaba sin velocidad sin decir por que. La segunda es que un
+// tractor SI tiene una marcha con la que se trabaja, y darla por sabida
+// es lo que dejaba el tiempo de inyeccion en blanco la primera vez que
+// se abria Gas etileno.
+//
+// Devuelve la fila completa, o null si no hay marcha guardada, si apunta
+// a una posicion que ya no existe (se redujo la transmision) o si esa
+// marcha esta pendiente de velocidad.
+export function marchaHabitualDe(tractor) {
+  const guardada = tractor?.marchaHabitual;
+  if (!guardada || !Number.isInteger(guardada.rango) || !Number.isInteger(guardada.marcha)) {
+    return null;
+  }
+  const fila = marchasDeTractor(tractor).find(
+    (f) => f.rango === guardada.rango && f.marcha === guardada.marcha
+  );
+  return fila && fila.kmhNominal !== null ? fila : null;
 }
 
 // Que marchas reproducen una velocidad medida y a que rpm. Marca las que
@@ -425,6 +499,10 @@ export function velocidadCorregida({ velocidadTeoricaKmh, factor, umbralDesviaci
 // que la pantalla que hereda pida la captura. Solo lanza si la
 // configuracion es invalida (distancia de referencia, regimen nominal).
 //
+// Cuando NINGUNO de los dos modos tiene datos queda un ultimo respaldo:
+// la marcha de trabajo guardada del tractor (ver marchaHabitualDe), con
+// su aviso. Sale al final, nunca por encima de una captura de hoy.
+//
 //   captura: borrador de la pestana Avance ({ modo, marcha, rpm,
 //            segundosPorTramo })
 //   mediciones: factores de desviacion MEDIDOS de ese mismo tractor
@@ -506,34 +584,66 @@ export function velocidadDeAvance({
       // Marcha pendiente de velocidad: no hay de donde heredar, se
       // intenta la otra fuente.
       if (!fila || fila.kmhNominal === null) continue;
-      const teorica = velocidadEfectiva({
-        kmhNominal: fila.kmhNominal,
-        rpm,
-        regimenNominal: tractor.regimenNominal,
-      });
-      const factor = factorDesviacion({ mediciones, rpm });
-      const corregida = velocidadCorregida({
-        velocidadTeoricaKmh: teorica,
-        factor: factor.factor,
-        umbralDesviacionPct,
-      });
-      // Lo que decide si la velocidad esta respaldada es el ESTADO del
-      // factor, no que la correccion devuelva numero: sin mediciones el
-      // factor vale 1.0 y la corregida sale identica a la teorica, que
-      // no es lo mismo que estar medida.
-      const medida =
-        (factor.estado === 'medido' || factor.estado === 'interpolado') &&
-        corregida.valores.velocidadCorregidaKmh !== null;
-      return {
-        velocidadKmh: medida ? corregida.valores.velocidadCorregidaKmh : teorica,
-        origen: medida ? 'marcha-corregida' : 'marcha-teorica',
-        etiqueta: medida
-          ? `de la marcha ${fila.etiqueta} con factor medido`
-          : `de la marcha ${fila.etiqueta} (teórica sin verificar)`,
-        marcha: fila.etiqueta,
-        avisos: [...avisosDeFuente('marcha'), ...factor.avisos, ...corregida.avisos],
-      };
+      return desdeMarcha(fila, 'marcha', avisosDeFuente('marcha'));
     }
   }
+
+  // Ultimo respaldo: la marcha de TRABAJO del tractor, la que se eligio
+  // la vez pasada en Avance. No es una captura de hoy y por eso va al
+  // final —despues del reporte de campo y de la marcha elegida— y sale
+  // con su aviso, pero es lo que evita que Gas etileno y Forzamiento
+  // aparezcan sin tiempo de inyeccion cada vez que se abre la aplicacion
+  // sin haber pasado antes por Avance. Un tractor tiene una marcha con
+  // la que se trabaja; darla por olvidada era pedir dos veces el mismo
+  // dato.
+  const habitual = marchaHabitualDe(tractor);
+  if (habitual && rpm !== null) {
+    return desdeMarcha(habitual, 'marcha de trabajo', [
+      aviso(
+        'info',
+        'marcha-de-trabajo-del-tractor',
+        `En Avance no hay marcha elegida ni reporte de campo: se usa la marcha de trabajo ` +
+          `guardada del ${tractor.nombre} (${habitual.etiqueta}). Confírmala en Avance si hoy ` +
+          `vas en otra.`,
+        { marcha: habitual.etiqueta }
+      ),
+    ]);
+  }
   return sinDatos;
+
+  // Velocidad a partir de una fila de marcha, con el regimen vigente y
+  // los factores medidos. Lo comparten la marcha elegida en Avance y la
+  // marcha de trabajo del tractor: es el mismo calculo y solo cambia de
+  // donde salio la marcha. `comoSeLlama` entra en la etiqueta porque esa
+  // frase viaja al chip de procedencia de las pantallas que heredan, y
+  // ahi tiene que quedar claro si el numero es de hoy o del tractor.
+  function desdeMarcha(fila, comoSeLlama, avisosDeOrigen) {
+    const teorica = velocidadEfectiva({
+      kmhNominal: fila.kmhNominal,
+      rpm,
+      regimenNominal: tractor.regimenNominal,
+    });
+    const factor = factorDesviacion({ mediciones, rpm });
+    const corregida = velocidadCorregida({
+      velocidadTeoricaKmh: teorica,
+      factor: factor.factor,
+      umbralDesviacionPct,
+    });
+    // Lo que decide si la velocidad esta respaldada es el ESTADO del
+    // factor, no que la correccion devuelva numero: sin mediciones el
+    // factor vale 1.0 y la corregida sale identica a la teorica, que
+    // no es lo mismo que estar medida.
+    const medida =
+      (factor.estado === 'medido' || factor.estado === 'interpolado') &&
+      corregida.valores.velocidadCorregidaKmh !== null;
+    return {
+      velocidadKmh: medida ? corregida.valores.velocidadCorregidaKmh : teorica,
+      origen: medida ? 'marcha-corregida' : 'marcha-teorica',
+      etiqueta: medida
+        ? `de la ${comoSeLlama} ${fila.etiqueta} con factor medido`
+        : `de la ${comoSeLlama} ${fila.etiqueta} (teórica sin verificar)`,
+      marcha: fila.etiqueta,
+      avisos: [...avisosDeOrigen, ...factor.avisos, ...corregida.avisos],
+    };
+  }
 }

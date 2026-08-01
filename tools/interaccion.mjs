@@ -173,6 +173,70 @@ verificar(
   'Estreno: Gasto ya no se queda sin velocidad con Avance mostrando una'
 );
 
+// ---------- La marcha de trabajo queda en el TRACTOR ----------
+// Elegir la marcha en Avance la guarda en el tractor, no solo en el
+// borrador de la pantalla. Sin eso, abrir la aplicacion e ir directo a
+// Gas etileno dejaba el tiempo de inyeccion en blanco aunque el tractor
+// lleve meses trabajando con la misma marcha.
+const marchaGuardada = await pagina.evaluate(() => {
+  const estado = JSON.parse(localStorage.getItem('sprayboom.v1'));
+  const t = estado.tractores.find((x) => x.id === estado.tractorActivoId);
+  return t.marchaHabitual;
+});
+verificar(
+  marchaGuardada && marchaGuardada.rango === 0 && marchaGuardada.marcha === 1,
+  'Marcha de trabajo: elegir A1 en Avance la guarda en el tractor'
+);
+
+// Se borra TODO el borrador y se recarga: es la jornada nueva que abre la
+// aplicacion sin pasar por Avance.
+await pagina.evaluate(() => {
+  const clave = 'sprayboom.v1';
+  const estado = JSON.parse(localStorage.getItem(clave));
+  estado.borradores = {};
+  localStorage.setItem(clave, JSON.stringify(estado));
+});
+await pagina.goto(`${base}#/calibrar/gas`, { waitUntil: 'networkidle' });
+await pagina.reload({ waitUntil: 'networkidle' });
+await pagina.waitForTimeout(300);
+const gasSinAvance = await pagina.locator('#panel').innerText();
+verificar(
+  !/sin dato en Avance/i.test(gasSinAvance),
+  'Marcha de trabajo: Gas etileno ya no abre con el tiempo de inyección en blanco'
+);
+verificar(
+  /se usa la marcha de trabajo guardada/i.test(gasSinAvance),
+  'Marcha de trabajo: y se dice que el número no salió de una captura de hoy'
+);
+
+// ---------- El tiempo requerido dice COMO lograrse ----------
+// El modo que despeja el tiempo entrega segundos de valvula abierta; ese
+// tiempo solo se cumple si la barra cruza la tabla en ese mismo rato.
+await pagina.getByRole('button', { name: 'Tiempo requerido' }).click();
+await pagina.waitForTimeout(200);
+const camposGas = pagina.locator('input.entrada:visible');
+const cuantosGas = await camposGas.count();
+for (let i = 0; i < cuantosGas; i += 1) {
+  const etiqueta = await camposGas.nth(i).evaluate((n) => {
+    const l = n.labels && n.labels[0] ? n.labels[0].textContent : '';
+    return l || n.getAttribute('aria-label') || '';
+  });
+  if (/Masa de gas objetivo/i.test(etiqueta)) await camposGas.nth(i).fill('1500');
+  else if (/Lectura del flotador/i.test(etiqueta)) await camposGas.nth(i).fill('1.7');
+  else if (/Presión manométrica/i.test(etiqueta)) await camposGas.nth(i).fill('33');
+}
+await pagina.waitForTimeout(300);
+const gasTiempo = await pagina.locator('#panel').innerText();
+verificar(/Tiempo requerido/i.test(gasTiempo), 'Tiempo requerido: sale el resultado');
+verificar(
+  /Cómo se logra ese tiempo/i.test(gasTiempo) && /Velocidad de avance/i.test(gasTiempo),
+  'Tiempo requerido: se conecta con el avance (velocidad que recorre la tabla)'
+);
+verificar(
+  /rpm requeridas|Ninguna marcha/i.test(gasTiempo),
+  'Tiempo requerido: y con qué marchas se logra, o que ninguna sirve'
+);
+
 // ---------- Gasto de agua: ambos metodos ----------
 await pagina.goto(`${base}#/calibrar/gasto`, { waitUntil: 'networkidle' });
 await pagina.waitForTimeout(250);
