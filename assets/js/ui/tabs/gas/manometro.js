@@ -79,7 +79,8 @@ function piezasCaratula() {
 //   resPsi            resolucion legible de la caratula
 //   presion           psi vigente del modo (capturada o despejada)
 //   capturable        false en el modo que DESPEJA la presion
-//   alCapturar(valor) toque sobre la caratula, ya pegado al escalon
+//   alCapturar(valor) toque o giro sobre la caratula, ya pegado al
+//                     escalon; se llama al SOLTAR, no en cada paso
 export function nodosManometro({ maxPsi, resPsi, presion, capturable, alCapturar }) {
   const nodos = [];
   if (!(maxPsi > 0)) {
@@ -99,31 +100,27 @@ export function nodosManometro({ maxPsi, resPsi, presion, capturable, alCapturar
 
   const fueraDeEscala = presion !== null && (presion < 0 || presion > maxPsi);
   const eps = maxPsi * 1e-6;
-  const etiquetaAria =
-    presion === null
+  const etiquetaDe = (valor) =>
+    valor === null
       ? `Manómetro de 0 a ${formatear(maxPsi, 2, { fijos: false })} psi: sin lectura`
-      : `Manómetro: aguja en ${formatear(presion, 1)} psi` +
-        (fueraDeEscala ? ', fuera de escala' : '');
+      : `Manómetro: aguja en ${formatear(valor, 1)} psi` +
+        (valor < 0 || valor > maxPsi ? ', fuera de escala' : '');
   const svg = nodoSvg('svg', {
     class: 'instrumento',
     viewBox: `0 0 ${M.ancho} ${M.alto}`,
     role: 'img',
-    'aria-label': etiquetaAria,
+    'aria-label': etiquetaDe(presion),
     'data-fuera': fueraDeEscala ? 'true' : 'false',
   });
 
-  // Captura por toque, salvo en el modo que despeja la presion.
-  if (capturable) {
-    svg.setAttribute('data-captura', 'true');
-    svg.addEventListener('click', (evento) => {
-      const punto = puntoEnSvg(svg, evento, M.ancho);
-      if (!punto) return;
-      if (Math.hypot(punto.x - M.cx, punto.y - M.cy) < 18) return; // el eje no dice angulo
-      const fraccion = fraccionDesdePunto(punto.x, punto.y);
-      if (fraccion === null) return;
-      alCapturar(ajustar(fraccion * maxPsi, resPsi, 0, maxPsi));
-    });
-  }
+  // Punto de la caratula -> presion, ya pegada al escalon. Devuelve null
+  // donde el toque no dice angulo: el eje y el hueco de abajo.
+  const valorEn = (punto) => {
+    if (Math.hypot(punto.x - M.cx, punto.y - M.cy) < 18) return null;
+    const fraccion = fraccionDesdePunto(punto.x, punto.y);
+    if (fraccion === null) return null;
+    return ajustar(fraccion * maxPsi, resPsi, 0, maxPsi);
+  };
 
   svg.append(...piezasCaratula());
 
@@ -151,25 +148,37 @@ export function nodosManometro({ maxPsi, resPsi, presion, capturable, alCapturar
       textoSvg(xn, yn + 4, formatear(v, 2, { fijos: false }), { anclaje: 'middle' })
     );
   }
-  // La unidad va donde iria la pastilla de lectura: si hay aguja, la
-  // cifra ya la trae, y un rotulo fijo en medio de la caratula queda
-  // tarde o temprano debajo de la aguja.
-  if (presion === null) {
-    svg.append(
-      textoSvg(M.cx, M.cy + 60, 'psi', { clase: 'instrumento__unidad', anclaje: 'middle' })
-    );
-  }
-
   // Aguja: fuera de escala se fija al tope en ambar y la cifra sigue
   // siendo la real, igual que el flotador del tubo.
-  if (presion !== null) {
-    const fraccion = Math.min(Math.max(presion / maxPsi, 0), 1);
+  //
+  // Va en un grupo aparte porque durante el giro se vuelve a pintar SOLO
+  // ella, decenas de veces por segundo: rehacer la pestana en cada paso
+  // del dedo destruiria el propio SVG que esta recibiendo el gesto.
+  const capaAguja = nodoSvg('g', { class: 'instrumento__movil' });
+  svg.append(capaAguja);
+
+  function pintarAguja(valor) {
+    capaAguja.replaceChildren();
+    const fuera = valor !== null && (valor < 0 || valor > maxPsi);
+    svg.setAttribute('data-fuera', fuera ? 'true' : 'false');
+    svg.setAttribute('aria-label', etiquetaDe(valor));
+    // La unidad va donde iria la pastilla de lectura: si hay aguja, la
+    // cifra ya la trae, y un rotulo fijo en medio de la caratula queda
+    // tarde o temprano debajo de la aguja.
+    if (valor === null) {
+      capaAguja.append(
+        textoSvg(M.cx, M.cy + 60, 'psi', { clase: 'instrumento__unidad', anclaje: 'middle' }),
+        nodoSvg('circle', { class: 'instrumento__eje', cx: M.cx, cy: M.cy, r: 7 })
+      );
+      return;
+    }
+    const fraccion = Math.min(Math.max(valor / maxPsi, 0), 1);
     const grados = anguloManometro(fraccion);
     const rad = (grados * Math.PI) / 180;
     const dx = Math.cos(rad);
     const dy = -Math.sin(rad);
     const ancho = 4;
-    svg.append(
+    capaAguja.append(
       poligonoSvg('instrumento__aguja', [
         [M.cx + dx * M.rAguja, M.cy + dy * M.rAguja],
         [M.cx - dy * ancho, M.cy + dx * ancho],
@@ -185,13 +194,96 @@ export function nodosManometro({ maxPsi, resPsi, presion, capturable, alCapturar
         height: 22,
         rx: 7,
       }),
-      textoSvg(M.cx, M.cy + 60, `${formatear(presion, 1)} psi`, {
+      textoSvg(M.cx, M.cy + 60, `${formatear(valor, 1)} psi`, {
         clase: 'instrumento__lectura',
         anclaje: 'middle',
       })
     );
-  } else {
-    svg.append(nodoSvg('circle', { class: 'instrumento__eje', cx: M.cx, cy: M.cy, r: 7 }));
+  }
+  pintarAguja(presion);
+
+  // Captura por gesto, salvo en el modo que despeja la presion.
+  //
+  // La aguja se gira, no solo se pica: con guantes y el telefono a la
+  // distancia del brazo, acertarle de un toque a la raya de la caratula
+  // es justo lo que no se puede hacer en el lote. El tap sigue vivo: es
+  // el mismo gesto con recorrido cero.
+  if (capturable) {
+    svg.setAttribute('data-captura', 'true');
+    // El agarre es la caratula entera, transparente y como ultimo hijo
+    // para que sea SIEMPRE el destino del toque. El bisel y las esquinas
+    // quedan fuera: ahi el dedo tiene que poder desplazar la pagina.
+    const agarre = nodoSvg('circle', {
+      class: 'instrumento__agarre',
+      cx: M.cx,
+      cy: M.cy,
+      r: M.rCaratula,
+    });
+    svg.append(agarre);
+
+    let puntero = null; // id del dedo que trae el gesto, o null
+    let valorGesto = null;
+
+    const seguir = (evento) => {
+      const punto = puntoEnSvg(svg, evento, M.ancho);
+      if (!punto) return;
+      // Sobre el eje o cruzando el hueco de abajo el punto no dice
+      // angulo: la aguja se queda donde iba en vez de saltar al tope.
+      const valor = valorEn(punto);
+      if (valor === null) return;
+      valorGesto = valor;
+      pintarAguja(valorGesto);
+    };
+
+    agarre.addEventListener('pointerdown', (evento) => {
+      if (puntero !== null) return; // un segundo dedo no manda
+      const punto = puntoEnSvg(svg, evento, M.ancho);
+      if (!punto || valorEn(punto) === null) return;
+      puntero = evento.pointerId;
+      // Con el puntero capturado el giro sobrevive aunque el dedo se
+      // salga de la caratula, y de hecho conviene: mientras mas lejos
+      // del eje, mas fino queda el angulo.
+      if (svg.setPointerCapture) svg.setPointerCapture(evento.pointerId);
+      seguir(evento);
+    });
+
+    svg.addEventListener('pointermove', (evento) => {
+      if (evento.pointerId !== puntero) return;
+      seguir(evento);
+    });
+
+    // iOS Safari no respeta `touch-action` declarado sobre un hijo del
+    // SVG: sin este preventDefault, el giro se lo lleva el scroll de la
+    // pagina y la aguja no se mueve. Va no pasivo a proposito.
+    svg.addEventListener(
+      'touchmove',
+      (evento) => {
+        if (puntero !== null) evento.preventDefault();
+      },
+      { passive: false }
+    );
+
+    const soltar = (evento) => {
+      if (evento.pointerId !== puntero) return;
+      puntero = null;
+      // El valor se entrega UNA vez, al soltar: durante el gesto la
+      // pastilla ya iba mostrando a donde va, y recalcular en cada paso
+      // volveria a montar la pestana bajo el dedo.
+      if (valorGesto !== null) alCapturar(valorGesto);
+    };
+    svg.addEventListener('pointerup', soltar);
+    svg.addEventListener('pointercancel', soltar);
+
+    // Toque fuera de la caratula (bisel, vastago): sigue capturando de un
+    // tap, como antes. El de adentro ya lo resolvio el gesto, asi que
+    // aqui se ignora para no capturar dos veces.
+    svg.addEventListener('click', (evento) => {
+      if (evento.target === agarre) return;
+      const punto = puntoEnSvg(svg, evento, M.ancho);
+      if (!punto) return;
+      const valor = valorEn(punto);
+      if (valor !== null) alCapturar(valor);
+    });
   }
   nodos.push(svg);
 
@@ -210,7 +302,7 @@ export function nodosManometro({ maxPsi, resPsi, presion, capturable, alCapturar
       el(
         'p',
         { clase: 'texto-suave' },
-        'Toca la carátula donde marca la aguja, o usa los botones, para capturar la presión.'
+        'Gira la aguja hasta donde marca el manómetro —o toca ahí de una vez—, o usa los botones, para capturar la presión.'
       )
     );
   }

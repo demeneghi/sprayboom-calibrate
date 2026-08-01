@@ -226,6 +226,11 @@
         </div>
         <div class="card__contenido">
           <div class="pila-campos" id="zona-unidades"></div>
+          <p class="ayuda">El botón dice el <strong>sentido</strong> de la conversión, no solo que
+          ahí se convierte: primero la unidad en la que está escrito el número —que es la que
+          manda, y por eso lleva el peso—, la flecha, y la unidad a la que va al pulsarlo. Con la
+          unidad sola no había forma de saber si el botón convertía a psi o avisaba que el número ya
+          venía en psi.</p>
           <p class="ayuda">La vuelta devuelve el número tal como se escribió: convertir y
           desconvertir no lo mueve en el último dígito.</p>
         </div>
@@ -397,6 +402,63 @@
             <button class="marcha"><span class="marcha__nombre">B1</span><span class="marcha__velocidad">6.8 km/h</span></button>
             <button class="marcha"><span class="marcha__nombre">B2</span><span class="marcha__velocidad">10.5 km/h</span></button>
             <button class="marcha"><span class="marcha__nombre">B3</span><span class="marcha__velocidad">14.0 km/h</span></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- La guía vive en la sección Calibrar: el bloque declara su
+           módulo para que la tira y el paso listo tomen ese acento, igual
+           que hace la muestra de acentos por sección. -->
+      <section class="card" data-seccion="calibrar">
+        <div class="card__encabezado">
+          <h2 class="card__titulo">Guía por objetivo</h2>
+          <p class="card__descripcion">Tira de avance, pasos de la receta y perilla de la hoja de resultado.</p>
+        </div>
+        <div class="card__contenido">
+          <div class="tira-receta" role="group" aria-label="Guía: ajustar el gasto de agua">
+            <button class="boton boton--contorno boton--icono boton--sm" aria-label="Paso anterior" disabled>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+            </button>
+            <button class="tira-receta__centro">
+              <span class="tira-receta__paso texto-meta">Paso 1 de 3 · Ajustar el gasto de agua</span>
+              <span class="tira-receta__titulo">Velocidad de avance</span>
+            </button>
+            <button class="boton boton--contorno boton--icono boton--sm" aria-label="Paso siguiente">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+
+          <div class="pila-pasos">
+            <button class="paso-receta" data-listo="true">
+              <span class="paso-receta__numero mono" aria-hidden="true">1</span>
+              <span class="paso-receta__cuerpo">
+                <span class="paso-receta__titulo">Velocidad de avance <span class="badge badge--exito">listo</span></span>
+                <span class="paso-receta__detalle texto-meta">de la marcha B1 a 1 800 rpm</span>
+              </span>
+            </button>
+            <button class="paso-receta" data-listo="false">
+              <span class="paso-receta__numero mono" aria-hidden="true">2</span>
+              <span class="paso-receta__cuerpo">
+                <span class="paso-receta__titulo">Gasto de agua <span class="badge badge--advertencia">falta</span></span>
+                <span class="paso-receta__detalle texto-meta">Elige la boquilla y captura la presión de trabajo.</span>
+              </span>
+            </button>
+          </div>
+
+          <div class="pila-perillas">
+            <div class="perilla">
+              <span class="perilla__etiqueta texto-meta">Presión en la boquilla</span>
+              <div class="perilla__control">
+                <button class="boton boton--contorno boton--icono" aria-label="Bajar presión">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12"/></svg>
+                </button>
+                <span class="perilla__valor mono">3.10 bar</span>
+                <button class="boton boton--contorno boton--icono" aria-label="Subir presión">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12"/><path d="M12 6v12"/></svg>
+                </button>
+              </div>
+              <span class="perilla__nota"><span class="badge badge--advertencia">fuera del rango de presión de la ficha</span></span>
+            </div>
           </div>
         </div>
       </section>

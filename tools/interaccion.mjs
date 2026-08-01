@@ -272,6 +272,14 @@ verificar(/desglose/i.test(texto), 'Gasto: desglose paso a paso disponible');
 const botonAPsi = pagina.getByRole('button', { name: /^Presión en la boquilla en bar\./ });
 verificar((await botonAPsi.count()) === 1, 'Unidades: el campo de presión trae su botón');
 const entradaPresion = pagina.getByRole('textbox', { name: 'Presión en la boquilla' });
+// El boton dice el SENTIDO, no solo la unidad: primero en la que esta
+// escrito el numero y despues a la que va. Con «bar» a secas no habia
+// forma de saber si convertia a psi o avisaba que ya venia en psi.
+verificar(
+  (await botonAPsi.locator('.campo__unidad-de').innerText()).trim() === 'bar' &&
+    (await botonAPsi.locator('.campo__unidad-a').innerText()).trim() === 'psi',
+  'Unidades: el botón dice de qué unidad a cuál convierte'
+);
 await botonAPsi.click();
 verificar(
   (await entradaPresion.inputValue()) === '43.5113',
@@ -357,6 +365,153 @@ texto = await pagina.locator('#panel').innerText();
 verificar(/g\/SCF/.test(texto), 'Gas: g/SCF visible (derivado del gas activo)');
 verificar(/32\.9|32,9/.test(texto), 'Gas: derivación cerca de 32.90 g/SCF');
 
+// ---------- Tubo del rotametro: el flotador se ARRASTRA ----------
+// Acertarle de un tap a un renglon de la escala, con guantes y el
+// telefono a la distancia del brazo, es justo lo que no se puede hacer
+// en el lote. El gesto tiene que mover el flotador mientras el dedo se
+// mueve —no solo al soltar— y la franja del tubo tiene que quedarse el
+// arrastre en vez de cederselo al desplazamiento de la pagina.
+const tubo = pagina.locator('.instrumento[data-captura="true"]').first();
+verificar(
+  /Tubo del rotámetro/.test((await tubo.getAttribute('aria-label')) ?? ''),
+  'Tubo: el instrumento capturable de Gas es el tubo del rotámetro'
+);
+verificar(
+  (await pagina
+    .locator('.instrumento__agarre')
+    .first()
+    .evaluate((n) => getComputedStyle(n).touchAction)) === 'none',
+  'Tubo: la franja de agarre no le cede el gesto vertical al scroll de la página'
+);
+
+await tubo.scrollIntoViewIfNeeded();
+await pagina.waitForTimeout(150);
+const cajaTubo = await tubo.boundingBox();
+const xTubo = cajaTubo.x + cajaTubo.width / 2;
+const yAbajo = cajaTubo.y + cajaTubo.height * 0.72;
+const yArriba = cajaTubo.y + cajaTubo.height * 0.32;
+await pagina.mouse.move(xTubo, yAbajo);
+await pagina.mouse.down();
+await pagina.waitForTimeout(60);
+const etiquetaAlBajar = (await tubo.getAttribute('aria-label')) ?? '';
+await pagina.mouse.move(xTubo, yArriba, { steps: 12 });
+await pagina.waitForTimeout(60);
+// Todavia sin soltar: el flotador ya tiene que haberse movido.
+const etiquetaArrastrando = (await tubo.getAttribute('aria-label')) ?? '';
+verificar(
+  /flotador en \d/.test(etiquetaArrastrando) && etiquetaArrastrando !== etiquetaAlBajar,
+  `Tubo: el flotador sigue al dedo durante el arrastre (${etiquetaAlBajar} -> ${etiquetaArrastrando})`
+);
+await pagina.mouse.up();
+await pagina.waitForTimeout(250);
+
+const campoLectura = pagina.getByRole('textbox', { name: /^Lectura del flotador/ });
+const leerScfm = () => campoLectura.inputValue();
+const scfmArrastrado = Number(await leerScfm());
+const valorEnEtiqueta = Number((etiquetaArrastrando.match(/flotador en ([\d.]+)/) ?? [])[1]);
+verificar(
+  Number.isFinite(scfmArrastrado) && scfmArrastrado === valorEnEtiqueta,
+  `Tubo: al soltar se captura el mismo número que mostraba el flotador (${scfmArrastrado} = ${valorEnEtiqueta})`
+);
+const scfmAlBajar = Number((etiquetaAlBajar.match(/flotador en ([\d.]+)/) ?? [])[1]);
+verificar(
+  scfmArrastrado > scfmAlBajar,
+  `Tubo: arrastrar hacia arriba SUBE la lectura (${scfmAlBajar} -> ${scfmArrastrado})`
+);
+
+// El tap de siempre sigue capturando: es el mismo gesto con recorrido cero.
+await pagina.mouse.click(xTubo, yAbajo);
+await pagina.waitForTimeout(250);
+const scfmTocado = Number(await leerScfm());
+verificar(
+  scfmTocado === scfmAlBajar,
+  `Tubo: el toque simple sigue capturando donde se toca (${scfmTocado})`
+);
+
+// El gesto con el DEDO es el que importa: en el teléfono, arrastrar
+// hacia arriba sobre el tubo compite con el desplazamiento de la página,
+// que va en el mismo eje. Dentro de la franja del tubo tiene que ganar el
+// flotador, y la pantalla no se puede mover ni un pixel.
+const cdp = await contexto.newCDPSession(pagina);
+const dedo = (tipo, x, y) =>
+  cdp.send('Input.dispatchTouchEvent', {
+    type: tipo,
+    touchPoints: tipo === 'touchEnd' ? [] : [{ x, y, id: 1 }],
+  });
+const topeTubo = () => tubo.evaluate((n) => n.getBoundingClientRect().top);
+const yAntesDelDedo = await topeTubo();
+await dedo('touchStart', xTubo, yAbajo);
+for (let i = 1; i <= 8; i += 1) {
+  await dedo('touchMove', xTubo, yAbajo + ((yArriba - yAbajo) * i) / 8);
+}
+const etiquetaConDedo = (await tubo.getAttribute('aria-label')) ?? '';
+await dedo('touchEnd', xTubo, yArriba);
+await pagina.waitForTimeout(250);
+const scfmConDedo = Number(await leerScfm());
+verificar(
+  scfmConDedo > scfmTocado && scfmConDedo === Number((etiquetaConDedo.match(/flotador en ([\d.]+)/) ?? [])[1]),
+  `Tubo: el arrastre con el dedo mueve el flotador (${scfmTocado} -> ${scfmConDedo})`
+);
+verificar(
+  Math.abs((await topeTubo()) - yAntesDelDedo) < 1,
+  'Tubo: arrastrar el flotador NO desplaza la página bajo el dedo'
+);
+
+// ---------- Manometro: la aguja se GIRA ----------
+// Mismo problema y misma respuesta que en el tubo, pero en angulo: el
+// dedo entra donde caiga sobre la caratula y la aguja lo sigue hasta la
+// raya que marca el manometro de la barra.
+const manometro = pagina.locator('.instrumento[data-captura="true"]').nth(1);
+verificar(
+  /Manómetro/.test((await manometro.getAttribute('aria-label')) ?? ''),
+  'Manómetro: el segundo instrumento capturable de Gas es el manómetro'
+);
+await manometro.scrollIntoViewIfNeeded();
+await pagina.waitForTimeout(150);
+const cajaMan = await manometro.boundingBox();
+// El viewBox mide 200 x 212 con el centro en (100, 100).
+const cxMan = cajaMan.x + cajaMan.width * 0.5;
+const cyMan = cajaMan.y + cajaMan.height * (100 / 212);
+const rMan = cajaMan.width * 0.25; // 50 unidades: dentro de la carátula, lejos del eje
+const enAngulo = (grados) => [
+  cxMan + rMan * Math.cos((grados * Math.PI) / 180),
+  cyMan - rMan * Math.sin((grados * Math.PI) / 180),
+];
+
+// De las 9 (fracción 1/6 de la escala) a las 3 pasando por arriba.
+await pagina.mouse.move(...enAngulo(180));
+await pagina.mouse.down();
+await pagina.waitForTimeout(60);
+const agujaAlEntrar = (await manometro.getAttribute('aria-label')) ?? '';
+for (const grados of [150, 120, 90, 60, 30, 0]) {
+  await pagina.mouse.move(...enAngulo(grados), { steps: 4 });
+}
+await pagina.waitForTimeout(60);
+const agujaGirando = (await manometro.getAttribute('aria-label')) ?? '';
+verificar(
+  /aguja en \d/.test(agujaGirando) && agujaGirando !== agujaAlEntrar,
+  `Manómetro: la aguja sigue al dedo durante el giro (${agujaAlEntrar} -> ${agujaGirando})`
+);
+await pagina.mouse.up();
+await pagina.waitForTimeout(250);
+
+const campoManometro = pagina.getByRole('textbox', { name: /^Presión manométrica/ });
+const psiGirado = Number(await campoManometro.inputValue());
+const psiEnEtiqueta = Number((agujaGirando.match(/aguja en ([\d.]+)/) ?? [])[1]);
+const psiAlEntrar = Number((agujaAlEntrar.match(/aguja en ([\d.]+)/) ?? [])[1]);
+verificar(
+  Number.isFinite(psiGirado) && psiGirado === psiEnEtiqueta && psiGirado > psiAlEntrar,
+  `Manómetro: al soltar se captura lo que marcaba la aguja, y girar en sentido horario sube (${psiAlEntrar} -> ${psiGirado})`
+);
+
+// El eje no dice ángulo: tocarlo no puede capturar nada.
+await pagina.mouse.click(cxMan, cyMan);
+await pagina.waitForTimeout(250);
+verificar(
+  Number(await campoManometro.inputValue()) === psiGirado,
+  'Manómetro: tocar el eje no mueve la aguja (ahí no hay ángulo que leer)'
+);
+
 // ---------- Ayuda de seccion: el "?" del encabezado de la tarjeta ----------
 // La explicacion estable de una tarjeta ya no se imprime bajo el titulo.
 // Lo que hay que defender es lo que hacia insufrible imprimirla: que
@@ -397,6 +552,81 @@ verificar(
 verificar(
   /pesaje del cilindro/i.test(await pagina.locator('#panel').innerText()),
   'Ayuda de sección: la advertencia accionable SIGUE a la vista, no se escondió'
+);
+
+// ---------- Guia por objetivo ----------
+// La guia ORDENA las pantallas, no las sustituye: elegir un objetivo
+// pinta sus pasos con el estado de cada uno, y la hoja del final mueve
+// el resultado escribiendo en la pantalla que manda sobre ese dato.
+await pagina.goto(`${base}#/calibrar/guia`, { waitUntil: 'networkidle' });
+await pagina.waitForTimeout(300);
+const opcionGasto = pagina.locator('#receta-opcion-gasto-agua');
+verificar((await opcionGasto.count()) === 1, 'Guía: el objetivo «Ajustar el gasto de agua» está');
+await opcionGasto.click();
+await pagina.waitForTimeout(350);
+texto = await pagina.locator('#panel').innerText();
+verificar(
+  (await opcionGasto.getAttribute('aria-pressed')) === 'true',
+  'Guía: el objetivo elegido se señala por atributo, no cambiando de variante'
+);
+verificar(
+  (await pagina.locator('.paso-receta').count()) === 3,
+  `Guía: la receta pinta sus 3 pasos (se obtuvo ${await pagina.locator('.paso-receta').count()})`
+);
+verificar(/listo/i.test(texto), 'Guía: un paso con dato queda marcado como listo');
+verificar(
+  /de la marcha|reporte de campo|Avance/i.test(texto),
+  'Guía: el paso listo dice de dónde salió su número'
+);
+
+// La hoja de resultado recalcula en vivo al mover la perilla.
+const cifraPerilla = pagina.locator('.perilla__valor').first();
+const volumenHoja = pagina.locator('.resultado--principal').first();
+const presionAntes = await cifraPerilla.innerText();
+const volumenAntes = await volumenHoja.innerText();
+await pagina.getByRole('button', { name: 'Subir Presión en la boquilla' }).click();
+await pagina.waitForTimeout(250);
+verificar(
+  (await cifraPerilla.innerText()) !== presionAntes,
+  `Guía: la perilla mueve la presión (${presionAntes.replace(/\n/g, ' ')} → ${(await cifraPerilla.innerText()).replace(/\n/g, ' ')})`
+);
+verificar(
+  (await volumenHoja.innerText()) !== volumenAntes,
+  'Guía: el volumen de aplicación se recalcula en vivo con la perilla'
+);
+
+// Y lo que movió no es un estado propio de la guía: quedó capturado en
+// Gasto de agua, que es la pantalla que manda sobre la presión.
+await pagina.goto(`${base}#/calibrar/gasto`, { waitUntil: 'networkidle' });
+await pagina.waitForTimeout(350);
+verificar(
+  /^3[.,]1$/.test(await entradaPresion.inputValue()),
+  `Guía: la perilla escribió en Gasto de agua (se obtuvo ${await entradaPresion.inputValue()})`
+);
+
+// La tira de avance solo aparece en las pantallas que SON paso de la
+// receta activa: en una ajena diría en qué paso vas y estaría mintiendo.
+await pagina.goto(`${base}#/calibrar/avance`, { waitUntil: 'networkidle' });
+await pagina.waitForTimeout(300);
+verificar(
+  /Paso 1 de 3/.test(await pagina.locator('.tira-receta').innerText()),
+  'Guía: la tira dice en qué paso de la receta vas'
+);
+await pagina.goto(`${base}#/sistema/configuracion`, { waitUntil: 'networkidle' });
+await pagina.waitForTimeout(300);
+verificar(
+  (await pagina.locator('.tira-receta').count()) === 0,
+  'Guía: en una pantalla ajena a la receta no se pinta la tira'
+);
+
+// Salir de la guía es volver a pulsar el objetivo: nada queda encerrado.
+await pagina.goto(`${base}#/calibrar/guia`, { waitUntil: 'networkidle' });
+await pagina.waitForTimeout(300);
+await pagina.locator('#receta-opcion-gasto-agua').click();
+await pagina.waitForTimeout(350);
+verificar(
+  (await pagina.locator('.paso-receta').count()) === 0,
+  'Guía: se sale de la receta con el mismo botón con el que se entró'
 );
 
 // ---------- Metodologia ----------

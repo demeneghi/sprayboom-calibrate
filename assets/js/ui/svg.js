@@ -62,3 +62,37 @@ export function puntoEnSvg(svg, evento, anchoViewBox) {
   const factor = anchoViewBox / caja.width;
   return { x: (evento.clientX - caja.left) * factor, y: (evento.clientY - caja.top) * factor };
 }
+
+// ---------------------------------------------------------------------
+// Iconos de trazo
+//
+// Las flechas y los signos + y − van DIBUJADOS, no como caracter: el
+// subconjunto latino de las fuentes autohospedadas no los trae, asi que
+// un caracter caeria en la fuente del sistema —o en un recuadro vacio— y
+// cambiaria de tamano entre telefonos. Es la misma razon por la que el
+// boton de unidades dibuja sus dos flechas.
+// ---------------------------------------------------------------------
+const CAMINOS_ICONO = {
+  'flecha-izquierda': ['M15 5l-7 7 7 7'],
+  'flecha-derecha': ['M9 5l7 7-7 7'],
+  menos: ['M6 12h12'],
+  mas: ['M6 12h12', 'M12 6v12'],
+};
+
+export function iconoSvg(nombre, { tamano = 18 } = {}) {
+  const caminos = CAMINOS_ICONO[nombre];
+  if (!caminos) throw new Error(`Icono desconocido: ${nombre}`);
+  const svg = nodoSvg('svg', {
+    viewBox: '0 0 24 24',
+    width: tamano,
+    height: tamano,
+    fill: 'none',
+    stroke: 'currentColor',
+    'stroke-width': 2,
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
+    'aria-hidden': 'true',
+  });
+  for (const d of caminos) svg.append(nodoSvg('path', { d }));
+  return svg;
+}

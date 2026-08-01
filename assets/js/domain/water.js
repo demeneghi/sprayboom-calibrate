@@ -5,7 +5,7 @@
 import { FACTOR_LHA, PORCIENTO } from './constants.js';
 import { aviso, requierePositivo } from './validate.js';
 import { paso, redondeoLegible } from './speed.js';
-import { presionParaCaudal, caudalAPresion } from './nozzles.js';
+import { presionParaCaudal, caudalAPresion, caudalConDensidad } from './nozzles.js';
 import {
   lhaRutaSI,
   compararRutas,
@@ -333,5 +333,58 @@ export function presionRequerida({ lhaObjetivo, velocidadKmh, espaciamientoM, bo
     ],
     avisos,
     verificacion: { idaVuelta, redundante: caudal.verificacion.redundante },
+  };
+}
+
+// ---------------------------------------------------------------------
+// De la ficha de la boquilla al L/ha, en un solo paso
+//
+// Es la cadena que ya arma la pantalla de Gasto de agua —caudal a la
+// presion de trabajo, correccion por densidad del caldo y los dos
+// metodos— pero sin desglose y sin DOM, para que la HOJA DE RESULTADO de
+// la guia pueda recalcular en vivo mientras se mueve la perilla de
+// presion o de velocidad.
+//
+// Vive aqui, y no repetida en la hoja, por el motivo de siempre en este
+// repositorio: dos implementaciones del mismo numero terminan
+// divergiendo, y en esta aplicacion divergir significa aplicar mal. Las
+// pruebas fijan que este atajo y la cadena larga dan el MISMO L/ha.
+// ---------------------------------------------------------------------
+export function volumenConBoquilla({
+  boquilla,
+  presionBar,
+  velocidadKmh,
+  espaciamientoM,
+  anchoBarraM,
+  numBoquillas,
+  densidadRelativa = 1,
+  umbralDiscrepanciaPct,
+}) {
+  if (!boquilla) throw new Error('Falta la boquilla');
+  const caudalAguaLmin = caudalAPresion({
+    caudalRef: boquilla.caudalRefLmin,
+    presionRef: boquilla.presionRefBar,
+    presion: presionBar,
+    exponente: boquilla.exponente,
+  });
+  const caudalCaldoLmin =
+    densidadRelativa === 1
+      ? caudalAguaLmin
+      : caudalConDensidad({ caudalAguaLmin, densidadRelativa });
+
+  const ambos = ambosMetodos({
+    caudalBoquillaLmin: caudalCaldoLmin,
+    numBoquillas,
+    velocidadKmh,
+    espaciamientoM,
+    anchoBarraM,
+    umbralDiscrepanciaPct,
+  });
+
+  return {
+    valores: { caudalAguaLmin, caudalCaldoLmin, ...ambos.valores },
+    desglose: ambos.desglose,
+    avisos: ambos.avisos,
+    verificacion: ambos.verificacion,
   };
 }

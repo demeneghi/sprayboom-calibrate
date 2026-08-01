@@ -47,6 +47,13 @@ const G = {
   pastillaAncho: 68,
   flotadorSemi: 13,
   flotadorAlto: 22,
+  // Franja donde se agarra el flotador para arrastrarlo: el tubo y su
+  // escala grabada, no el dibujo entero. Fuera de ella el toque sigue
+  // capturando de un tap y el dedo puede desplazar la pagina.
+  agarreX: 62,
+  agarreX2: 152,
+  agarreY: 50,
+  agarreY2: 310,
 };
 
 // Semiancho del tubo a una altura dada (el cono interpola linealmente).
@@ -132,7 +139,8 @@ function piezasTubo() {
 //   capturable           false en el modo que DESPEJA la lectura: ahi el
 //                        tubo es un resultado y no se toca
 //   presionEstandarPsia  para el grabado lateral de calibracion
-//   alCapturar(valor)    toque sobre el tubo, ya pegado al escalon
+//   alCapturar(valor)    toque o arrastre sobre el tubo, ya pegado al
+//                        escalon; se llama al SOLTAR, no en cada paso
 export function nodosTubo({
   rotametro,
   lectura,
@@ -175,30 +183,25 @@ export function nodosTubo({
   // La escala ocupa el tramo grabado del tubo, no el tubo entero.
   const yDe = (v) => G.escalaInf - ((v - min) / amplitud) * (G.escalaInf - G.escalaSup);
 
-  const etiquetaAria =
-    lectura === null
+  const etiquetaDe = (valor) =>
+    valor === null
       ? `Tubo del rotámetro ${rotametro.modelo}: sin lectura`
-      : `Tubo del rotámetro ${rotametro.modelo}: flotador en ${formatear(lectura, 2)} SCFM` +
-        (fueraDeEscala ? ', fuera de escala' : '');
+      : `Tubo del rotámetro ${rotametro.modelo}: flotador en ${formatear(valor, 2)} SCFM` +
+        (valor < min || valor > max ? ', fuera de escala' : '');
   const svg = nodoSvg('svg', {
     class: 'instrumento',
     viewBox: `0 0 ${G.ancho} ${G.alto}`,
     role: 'img',
-    'aria-label': etiquetaAria,
+    'aria-label': etiquetaDe(lectura),
     'data-fuera': fueraDeEscala ? 'true' : 'false',
   });
 
-  // Captura por toque: solo cuando la lectura se captura.
   const pasoTubo = rotametro.resolucion > 0 ? rotametro.resolucion : amplitud / 100;
-  if (capturable) {
-    svg.setAttribute('data-captura', 'true');
-    svg.addEventListener('click', (evento) => {
-      const punto = puntoEnSvg(svg, evento, G.ancho);
-      if (!punto) return;
-      const fraccion = (G.escalaInf - punto.y) / (G.escalaInf - G.escalaSup);
-      alCapturar(ajustar(min + fraccion * amplitud, pasoTubo, min, max));
-    });
-  }
+  // Altura del toque -> valor de la escala, ya pegado al escalon.
+  const valorEn = (punto) => {
+    const fraccion = (G.escalaInf - punto.y) / (G.escalaInf - G.escalaSup);
+    return ajustar(min + fraccion * amplitud, pasoTubo, min, max);
+  };
 
   svg.append(...piezasChasis(), ...piezasTubo());
 
@@ -255,13 +258,24 @@ export function nodosTubo({
   // recortado. El borde superior del flotador es la linea de lectura,
   // como en el instrumento (se lee al diametro mayor), y de ahi salen la
   // guia y la pastilla con la cifra.
-  if (lectura !== null) {
-    const lecturaDibujo = Math.min(Math.max(lectura, min), max);
-    const y = yDe(lecturaDibujo);
+  //
+  // Va en un grupo aparte porque durante el arrastre se vuelve a pintar
+  // SOLO el, decenas de veces por segundo: rehacer la pestana en cada
+  // paso del dedo destruiria el propio SVG que esta recibiendo el gesto.
+  const capaFlotador = nodoSvg('g', { class: 'instrumento__movil' });
+  svg.append(capaFlotador);
+
+  function pintarFlotador(valor) {
+    capaFlotador.replaceChildren();
+    const fuera = valor !== null && (valor < min || valor > max);
+    svg.setAttribute('data-fuera', fuera ? 'true' : 'false');
+    svg.setAttribute('aria-label', etiquetaDe(valor));
+    if (valor === null) return;
+    const y = yDe(Math.min(Math.max(valor, min), max));
     const semi = G.flotadorSemi;
     const anchoColumna = semiAncho(y) - 2;
     const anchoFondo = semiAncho(G.tuboInf) - 2;
-    svg.append(
+    capaFlotador.append(
       poligonoSvg('instrumento__columna', [
         [G.cx - anchoColumna, y],
         [G.cx + anchoColumna, y],
@@ -286,11 +300,92 @@ export function nodosTubo({
         height: 22,
         rx: 7,
       }),
-      textoSvg(G.pastillaX + G.pastillaAncho / 2, y + 4, `${formatear(lectura, 2)} SCFM`, {
+      textoSvg(G.pastillaX + G.pastillaAncho / 2, y + 4, `${formatear(valor, 2)} SCFM`, {
         clase: 'instrumento__lectura',
         anclaje: 'middle',
       })
     );
+  }
+  pintarFlotador(lectura);
+
+  // Captura por gesto: solo cuando la lectura se captura.
+  //
+  // El flotador se arrastra, no solo se pica. Picarle es acertar de un
+  // toque a un renglon de la escala con guantes y el telefono a la
+  // distancia del brazo; arrastrando, el dedo entra donde caiga y el
+  // numero se ajusta viendo la pastilla moverse. El tap sigue vivo: es
+  // el mismo gesto con recorrido cero.
+  if (capturable) {
+    svg.setAttribute('data-captura', 'true');
+    // El agarre es un rectangulo transparente sobre el tubo y su escala,
+    // el ultimo hijo del SVG para que sea SIEMPRE el destino del toque
+    // en esa franja. Solo ahi empieza el arrastre: sobre el chasis y los
+    // margenes el dedo tiene que poder desplazar la pagina.
+    const agarre = nodoSvg('rect', {
+      class: 'instrumento__agarre',
+      x: G.agarreX,
+      y: G.agarreY,
+      width: G.agarreX2 - G.agarreX,
+      height: G.agarreY2 - G.agarreY,
+    });
+    svg.append(agarre);
+
+    let puntero = null; // id del dedo que trae el gesto, o null
+    let valorGesto = null;
+
+    const seguir = (evento) => {
+      const punto = puntoEnSvg(svg, evento, G.ancho);
+      if (!punto) return;
+      valorGesto = valorEn(punto);
+      pintarFlotador(valorGesto);
+    };
+
+    agarre.addEventListener('pointerdown', (evento) => {
+      if (puntero !== null) return; // un segundo dedo no manda
+      puntero = evento.pointerId;
+      // Con el puntero capturado el gesto sobrevive aunque el dedo se
+      // salga del tubo: nadie sigue una franja de 4 mm en linea recta
+      // parado en el lote.
+      if (svg.setPointerCapture) svg.setPointerCapture(evento.pointerId);
+      seguir(evento);
+    });
+
+    svg.addEventListener('pointermove', (evento) => {
+      if (evento.pointerId !== puntero) return;
+      seguir(evento);
+    });
+
+    // iOS Safari no respeta `touch-action` declarado sobre un hijo del
+    // SVG: sin este preventDefault, el arrastre se lo lleva el scroll de
+    // la pagina y el flotador no se mueve. Va no pasivo a proposito.
+    svg.addEventListener(
+      'touchmove',
+      (evento) => {
+        if (puntero !== null) evento.preventDefault();
+      },
+      { passive: false }
+    );
+
+    const soltar = (evento) => {
+      if (evento.pointerId !== puntero) return;
+      puntero = null;
+      // El valor se entrega UNA vez, al soltar: durante el gesto la
+      // pastilla ya iba mostrando a donde va, y recalcular en cada paso
+      // volveria a montar la pestana bajo el dedo.
+      if (valorGesto !== null) alCapturar(valorGesto);
+    };
+    svg.addEventListener('pointerup', soltar);
+    svg.addEventListener('pointercancel', soltar);
+
+    // Toque fuera de la franja del tubo (chasis, tuerca, pastilla): sigue
+    // capturando de un tap, como antes. El de adentro ya lo resolvio el
+    // gesto, asi que aqui se ignora para no capturar dos veces.
+    svg.addEventListener('click', (evento) => {
+      if (evento.target === agarre) return;
+      const punto = puntoEnSvg(svg, evento, G.ancho);
+      if (!punto) return;
+      alCapturar(valorEn(punto));
+    });
   }
   nodos.push(svg);
 
@@ -309,7 +404,7 @@ export function nodosTubo({
       el(
         'p',
         { clase: 'texto-suave' },
-        'Toca el tubo donde flota la bola, o usa los botones, para capturar la lectura.'
+        'Arrastra el flotador hasta donde flota la bola —o toca ahí de una vez—, o usa los botones, para capturar la lectura.'
       )
     );
   }

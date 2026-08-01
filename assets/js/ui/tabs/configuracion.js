@@ -179,9 +179,12 @@ export function render(panel, ctx) {
           el('span', { clase: 'resultado__valor', estilo: { fontSize: 'var(--text-lg)' } },
             `${formatear(valor, decimales)} ${unidadTexto}`)
         );
+      // No se imprime el área en m2: es la MISMA cifra que la superficie
+      // en hectáreas dividida entre 10000, y la aplicación dosifica por
+      // hectárea. Dos renglones para un solo dato obligan a leer los dos
+      // para darse cuenta de que dicen lo mismo.
       reemplazar(
         zonaDerivados,
-        fila('Área por tabla', aSistema('areaChica', g.valores.areaM2, sistema), unidad('areaChica', sistema), 2),
         fila('Superficie por tabla', aSistema('superficie', g.valores.hectareasPorTabla, sistema), unidad('superficie', sistema), 6),
         fila('Tramos por tabla', g.valores.tramosPorTabla, '', 2),
         fila('Espaciamiento derivado', aSistema('distanciaCorta', g.valores.espaciamientoDerivado, sistema), unidad('distanciaCorta', sistema), 4)

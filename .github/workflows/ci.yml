@@ -89,7 +89,7 @@ jobs:
           node-version: 22
       - name: Instalar la libreria de playwright (sin descargar navegadores)
         run: PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --no-save playwright
-      - name: Humo (10 rutas x 2 viewports) e interaccion completa con recarga sin conexion
+      - name: Humo (11 rutas x 2 viewports) e interaccion completa con recarga sin conexion
         run: |
           export CHROMIUM_PATH="$(command -v google-chrome || command -v chromium-browser || command -v chromium)"
           echo "Navegador: $CHROMIUM_PATH"
