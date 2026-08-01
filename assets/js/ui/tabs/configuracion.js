@@ -130,7 +130,7 @@ export function render(panel, ctx) {
       { valor: 'auto', texto: 'Automático (según el sistema)' },
     ],
     valorInicial: estado0.preferencias.tema,
-    ayuda: 'A pleno sol en campo el tema claro puede ser más legible; el oscuro es el default.',
+    ayuda: 'A pleno sol el claro se lee mejor. De fábrica viene el oscuro.',
     alCambiar: (valor) =>
       almacen.actualizar((estado) => {
         estado.preferencias.tema = valor;
@@ -143,7 +143,7 @@ export function render(panel, ctx) {
       { valor: 'imperial', texto: 'Imperial (GPA, mph, psi)' },
     ],
     valorInicial: estado0.preferencias.unidades,
-    ayuda: 'Se elige aquí y aplica a toda la aplicación. El cálculo interno siempre es métrico; la conversión ocurre solo al mostrar y capturar.',
+    ayuda: 'Aplica a toda la aplicación. Por dentro siempre se calcula en métrico.',
     alCambiar: (valor) =>
       almacen.actualizar((estado) => {
         estado.preferencias.unidades = valor;
@@ -210,7 +210,7 @@ export function render(panel, ctx) {
           'p',
           { clase: 'ayuda' },
           atmosfera.valores.anulado
-            ? 'Anulada a mano: los metros de altitud no se están usando. Vacía el campo de la presión para que vuelva a derivarse.'
+            ? 'Anulada a mano: la altitud no se está usando. Vacía el campo para que vuelva a salir de ella.'
             : `Derivada de ${formatear(sitio.altitudM, 0)} m de altitud con la atmósfera estándar internacional.`
         ),
         // Los avisos de tipo info ya los dice la línea de arriba con las
@@ -302,7 +302,7 @@ export function render(panel, ctx) {
         etiqueta: defCampo.etiqueta,
         unidad: defCampo.unidad,
         valorInicial: ctx.estado().parametros[nombreGrupo][nombreCampo],
-        ayuda: `${defCampo.origen} Cotas: ${defCampo.min} a ${defCampo.max}${defCampo.unidad ? ` ${defCampo.unidad}` : ''}. Default: ${defCampo.valor === null ? 'pendiente de capturar' : defCampo.valor}.`,
+        ayuda: `${defCampo.origen} De ${defCampo.min} a ${defCampo.max}${defCampo.unidad ? ` ${defCampo.unidad}` : ''}. De fábrica: ${defCampo.valor === null ? 'pendiente de capturar' : defCampo.valor}.`,
         alCambiar: (valor, texto) => {
           if (texto.trim() === '' && defCampo.opcional) {
             campo.fijarError(null);
@@ -419,7 +419,7 @@ export function render(panel, ctx) {
         etiqueta: cota.etiqueta,
         unidad: cota.unidad,
         valorInicial: tractor[campo],
-        ayuda: `Cotas: ${cota.min} a ${cota.max}${cota.unidad ? ` ${cota.unidad}` : ''}. Se aplica al salir del campo.`,
+        ayuda: `De ${cota.min} a ${cota.max}${cota.unidad ? ` ${cota.unidad}` : ''}. Se guarda al salir del campo.`,
         alCambiar: (valor) => {
           const veredicto = validarValor(cota, valor);
           entrada.fijarError(veredicto.ok ? null : veredicto.mensaje);
@@ -535,7 +535,7 @@ export function render(panel, ctx) {
     nodos.push(
       el('h3', { clase: 'etiqueta' }, 'Velocidades por marcha (km/h al régimen nominal)'),
       el('p', { clase: 'ayuda' },
-        'Los defaults son las tablas del fabricante: el 5715 a 2400 rpm con llanta 16.9-30 y el 6603 a 2100 rpm con llanta 18.4-38. Si la unidad trae otra llanta, la tabla cambia y hay que capturarla. Ninguna incluye patinaje. La bandera distingue estimación, capturado y calibrado; el botón de calibrar está en la pestaña Avance.'),
+        'Vienen las tablas del fabricante: el 5715 a 2400 rpm con llanta 16.9-30 y el 6603 a 2100 rpm con llanta 18.4-38. Con otra llanta hay que capturarlas. Ninguna incluye patinaje: eso se calibra en Avance.'),
       el('div', { clase: 'scroll-x' },
         el('table', { clase: 'tabla' },
           el('thead', {}, el('tr', {}, el('th', {}, 'Marcha'), el('th', {}, 'km/h nominal'), el('th', {}, 'Origen'))),
@@ -605,7 +605,7 @@ export function render(panel, ctx) {
       etiqueta: 'Barra a editar',
       opciones: estado.equipos.map((e) => ({ valor: e.id, texto: e.nombre })),
       valorInicial: equipo.id,
-      ayuda: 'Es la misma barra que elige el selector del encabezado: lo que edites aquí es lo que calculan todas las pantallas.',
+      ayuda: 'Es la misma barra del selector de arriba. Lo que edites aquí lo usan todas las pantallas.',
       alCambiar: (valor) =>
         almacen.actualizar((e) => {
           e.equipoActivoId = valor;
@@ -631,7 +631,7 @@ export function render(panel, ctx) {
         unidad: cota.unidad,
         ayuda:
           cota.ayuda ??
-          `Cotas: ${cota.min} a ${cota.max} ${cota.unidad}.${cota.opcional ? ' Opcional: vacio significa por capturar.' : ''}`,
+          `De ${cota.min} a ${cota.max} ${cota.unidad}.${cota.opcional ? ' Opcional: vacío es por capturar.' : ''}`,
         valorInicial: equipo[campo],
         alCambiar: (valor, texto) => {
           if (texto.trim() === '' && cota.opcional) {
@@ -670,7 +670,7 @@ export function render(panel, ctx) {
         etiqueta: 'Tipo de bomba',
         opciones: TIPOS_BOMBA.map((t) => ({ valor: t, texto: ETIQUETAS_BOMBA[t] })),
         valorInicial: equipo.tipoBomba,
-        ayuda: 'Positiva con regulador sostiene presión al bajar régimen (el volumen por hectárea SUBE); centrífuga sin regulacion se autocompensa. Hasta 40 puntos de dosis de diferencia.',
+        ayuda: 'Con positiva y regulador, al bajar el régimen el volumen por hectárea SUBE; la centrífuga se compensa sola. Son hasta 40 puntos de diferencia en la dosis.',
         alCambiar: (valor) =>
           almacen.actualizar((e) => {
             e.equipos.find((x) => x.id === equipo.id).tipoBomba = valor;
@@ -709,7 +709,7 @@ export function render(panel, ctx) {
         etiqueta: 'Boquilla instalada',
         opciones: opcionesBoquilla,
         valorInicial: equipo.boquillaId ?? '',
-        ayuda: 'La pestaña de gasto de agua la precarga como boquilla de esta barra.',
+        ayuda: 'Gasto de agua la usará como boquilla de esta barra.',
         alCambiar: (valor) =>
           almacen.actualizar((e) => {
             e.equipos.find((x) => x.id === equipo.id).boquillaId = valor || null;
@@ -798,8 +798,8 @@ export function render(panel, ctx) {
         valorInicial: gas[campo],
         ayuda:
           campo === 'gPorScfManual'
-            ? 'Cuando está llena gana sobre el valor derivado; al vaciarla vuelve a derivarse del peso molecular.'
-            : `Cotas: ${cota.min} a ${cota.max} ${cota.unidad}. La presión estándar es la de la escala del tubo; la atmosférica local va en el grupo Sitio.`,
+            ? 'Si la llenas, manda tu número. Si la vacías, vuelve a salir del peso molecular.'
+            : `De ${cota.min} a ${cota.max} ${cota.unidad}. La estándar es la de la escala del tubo; la local va en el grupo Sitio.`,
         alCambiar: (valor, texto) => {
           if (texto.trim() === '' && cota.opcional) {
             entrada.fijarError(null);
@@ -849,7 +849,7 @@ export function render(panel, ctx) {
         etiqueta: cota.etiqueta,
         unidad: cota.unidad,
         valorInicial: rotametro[campo],
-        ayuda: 'La escala solo alimenta advertencias y el dibujo del tubo; nunca recorta un cálculo.',
+        ayuda: 'La escala solo sirve para los avisos y el dibujo del tubo. Nunca recorta un cálculo.',
         alCambiar: (valor) => {
           const veredicto = validarValor(cota, valor);
           if (!veredicto.ok) {
@@ -1011,7 +1011,7 @@ export function render(panel, ctx) {
     const campoExponente = crearCampoNumerico({
       etiqueta: 'Exponente presión-caudal',
       valorInicial: b.exponente,
-      ayuda: '0.5 para boquillas hidráulicas convencionales; inducción de aire y patron regulable pueden desviarse.',
+      ayuda: '0.5 en las boquillas hidráulicas de siempre. Las de inducción de aire o patrón regulable se desvían.',
     });
     const campoMaterial = crearCampoSelect({
       etiqueta: 'Material',
@@ -1024,7 +1024,7 @@ export function render(panel, ctx) {
         EDICIONES_S572.map((e) => ({ valor: e, texto: e }))
       ),
       valorInicial: b.edicionEstandar ?? '',
-      ayuda: 'No se comparan clases entre ediciones distintas: S572.3 subio umbrales e invirtio los colores C/VC.',
+      ayuda: 'No compares clases de ediciones distintas: la S572.3 subió los umbrales e invirtió los colores de C y VC.',
     });
     const campoNotas = el('input', { clase: 'entrada', id: 'boquilla-notas', value: b.notas ?? '' });
 
@@ -1179,7 +1179,7 @@ export function render(panel, ctx) {
     reemplazar(
       zonaCatalogo,
       el('p', { clase: 'ayuda' },
-        `${estado.catalogo.length} boquillas. El caudal de catálogo es el de boquilla NUEVA: el desgaste solo se detecta con prueba de captura. Al capturar, si el caudal se desvia del tamaño ISO declarado más allá de la tolerancia, la aplicación lo advierte sin bloquear.`),
+        `${estado.catalogo.length} boquillas. El caudal de catálogo es el de boquilla NUEVA: el desgaste solo sale con la prueba de captura. Si al capturar se aleja del tamaño ISO más de la tolerancia, te avisamos sin bloquear.`),
       el('div', { clase: 'scroll-x' },
         el('table', { clase: 'tabla' },
           el('thead', {}, el('tr', {},
@@ -1386,7 +1386,7 @@ export function render(panel, ctx) {
       el(
         'p',
         { clase: 'ayuda' },
-        'Si acaban de publicar el cambio, el servidor puede tardar unos minutos en entregarlo. Si dice que ya estás al día y aun así falta el cambio, espera y vuelve a intentar antes de reinstalar.'
+        'Un cambio recién publicado puede tardar unos minutos en llegar. Si dice que estás al día y aun así falta, espera y vuelve a intentar antes de reinstalar.'
       )
     ),
     seccion(

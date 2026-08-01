@@ -81,7 +81,7 @@ export const PARAMETROS = {
         min: -500,
         max: 5000,
         origen:
-          'Metros sobre el nivel del mar del lote. De aquí sale la presión atmosférica que corrige el rotámetro: la presión baja 1 psi cada 574 m, así que un valor aproximado ya es mucho mejor que suponer el nivel del mar. Se puede rellenar con el GPS del teléfono.',
+          'Metros sobre el nivel del mar del lote; los puedes sacar del GPS del teléfono. De aquí sale la presión que corrige el rotámetro, y baja 1 psi cada 574 m: aun aproximada es mejor que suponer nivel del mar.',
       },
       presionAtmosfericaLocal: {
         valor: null,
@@ -92,7 +92,7 @@ export const PARAMETROS = {
         max: 16,
         opcional: true,
         origen:
-          'Vacío significa derivada de la altitud, que es lo normal. Captúrala solo si tienes una lectura barométrica del día para este lote: entonces gana sobre la derivada. El despeje de presión resta esta atmosférica LOCAL, no la estándar de calibración del rotámetro.',
+          'Vacío significa que sale de la altitud, que es lo normal. Llénala solo si hoy tienes una lectura del barómetro en este lote: entonces manda la tuya.',
       },
     },
   },
@@ -154,7 +154,7 @@ export const PARAMETROS = {
         min: 0,
         max: 20000,
         origen:
-          'Decision del rancho tras calibrar por pesaje del cilindro. El pesaje tiene prioridad sobre cualquier cálculo teórico.',
+          'La decidió el rancho tras calibrar pesando el cilindro. El pesaje manda sobre cualquier cálculo.',
       },
       volumenAguaObjetivo: {
         valor: null,
@@ -191,7 +191,7 @@ export const PARAMETROS = {
         min: 1,
         max: 50,
         origen:
-          'Criterio de la literatura de extensión: desviación respecto a la media de la barra a partir de la cual se recomienda reemplazo.',
+          'Cuánto se puede alejar una boquilla de la media de la barra antes de cambiarla. Criterio de la literatura de extensión.',
       },
       umbralDesviacionVelocidad: {
         valor: 8,
@@ -273,7 +273,7 @@ export const COTAS_BARRA = {
     max: 100,
     unidad: 'm',
     etiqueta: 'Ancho de barra de aplicación',
-    ayuda: 'Ancho efectivo de esta barra de aspersión. Cada barra tiene el suyo: es lo que divide al volumen por hectárea.',
+    ayuda: 'El ancho que moja esta barra. Con él se reparte el volumen por hectárea.',
   },
   numBoquillas: {
     min: 1,
@@ -281,7 +281,7 @@ export const COTAS_BARRA = {
     unidad: '',
     entero: true,
     etiqueta: 'Número de boquillas instaladas',
-    ayuda: 'Cuéntalas en la barra antes de darlo por bueno; el valor de siembra es una estimación.',
+    ayuda: 'Cuéntalas en la barra: el número que viene puesto es solo un estimado.',
   },
   espaciamientoCapturado: {
     min: 0.01,
@@ -290,7 +290,7 @@ export const COTAS_BARRA = {
     opcional: true,
     etiqueta: 'Espaciamiento entre boquillas (capturado)',
     ayuda:
-      'Opcional: vacío significa derivado del ancho entre el número de boquillas. Captúralo solo si las boquillas de esta barra no están repartidas por igual. Si difiere del derivado, la aplicación lo advierte en vez de elegir uno en silencio.',
+      'Déjalo vacío si las boquillas están parejas: sale del ancho entre el número de boquillas. Captúralo solo si no lo están; si no cuadra, te avisamos.',
   },
 };
 

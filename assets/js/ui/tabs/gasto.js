@@ -182,8 +182,8 @@ export function render(panel, ctx) {
     // teclear un numero que la aplicacion ya conoce.
     valorInicial: precarga('presion', borrador.presionBar ?? equipo?.presionCalibracion ?? null),
     ayuda:
-      'La presión leída en el manómetro durante el trabajo. Se precarga la de la última ' +
-      'calibración registrada para esta barra; cámbiala por la que marque hoy el manómetro.',
+      'La que marca el manómetro trabajando. Viene la de la última calibración de esta barra; ' +
+      'cámbiala por la de hoy.',
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { presionBar: deSistema('presion', valor, sistema) });
       recalcular();
@@ -204,7 +204,7 @@ export function render(panel, ctx) {
     etiqueta: 'Ancho de la barra',
     unidad: unidadDistancia,
     valorInicial: precarga('distancia', borrador.anchoBarraM ?? equipo?.anchoBarra),
-    ayuda: `Precargado de la barra «${equipo?.nombre ?? 'sin barra'}»; ajústalo aquí como captura de trabajo sin tocar la configuración.`,
+    ayuda: `Viene de la barra «${equipo?.nombre ?? 'sin barra'}». Cambiarlo aquí no toca la configuración.`,
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { anchoBarraM: deSistema('distancia', valor, sistema) });
       recalcular();
@@ -214,7 +214,7 @@ export function render(panel, ctx) {
     etiqueta: 'Número de boquillas',
     unidad: '',
     valorInicial: borrador.numBoquillas ?? equipo?.numBoquillas,
-    ayuda: 'Precargado de la barra activa; cuéntalas en la barra antes de confiar en el número.',
+    ayuda: 'Viene de la barra activa. Cuéntalas antes de confiar en el número.',
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { numBoquillas: valor });
       recalcular();
@@ -229,8 +229,8 @@ export function render(panel, ctx) {
     etiqueta: 'Espaciamiento entre boquillas',
     unidad: unidadEspaciamiento,
     ayuda:
-      'Sale de la geometría de la barra activa: el capturado si lo hay, y si no el ancho entre ' +
-      'el número de boquillas. Editarlo aquí no cambia la configuración.',
+      'Sale de la barra activa: el capturado o, si no lo hay, el ancho entre el número de ' +
+      'boquillas. Cambiarlo aquí no toca la configuración.',
     fuente: fuenteEsp.fuente,
     nombreDato: 'el espaciamiento',
     heredado: { valor: fuenteEsp.valor, etiqueta: fuenteEsp.etiqueta },
@@ -356,8 +356,8 @@ export function render(panel, ctx) {
               'p',
               { clase: 'ayuda' },
               `Densidad relativa del caldo: ${formatear(dr, 2)}. Un caldo más denso sale más despacio ` +
-                'por la misma boquilla a la misma presión: q_caldo = q_agua / raíz(dr). Los cálculos de ' +
-                'volumen usan el caudal del caldo, que es el que realmente sale.'
+                'por la misma boquilla (q_caldo = q_agua / raíz(dr)), y el volumen se calcula con ese ' +
+                'caudal, que es el que de verdad sale.'
             )
           );
         }
@@ -462,7 +462,7 @@ export function render(panel, ctx) {
             el(
               'p',
               { clase: 'ayuda' },
-              'Los dos métodos se muestran siempre juntos: si difieren más del umbral configurado, el espaciamiento por el número de boquillas no cuadra con el ancho de barra.'
+              'Si los dos métodos difieren más del umbral, el espaciamiento por número de boquillas no cuadra con el ancho de barra.'
             )
           );
           ultimoCalculo = {
@@ -552,9 +552,7 @@ export function render(panel, ctx) {
       'volumenAplicacion',
       borrador.lhaObjetivo ?? borrador.lhaObjetivoLha ?? ctx.objetivoVolumenLha()
     ),
-    ayuda:
-      'El volumen de aplicación que se quiere lograr; el despeje usa la captura de arriba. Se ' +
-      'precarga el último objetivo capturado en la aplicación.',
+    ayuda: 'El volumen que quieres aplicar. Viene el último que capturaste.',
     alCambiar: (valor) => {
       const lha = deSistema('volumenAplicacion', valor, sistema);
       ctx.guardarBorrador(id, { lhaObjetivo: lha });
@@ -600,8 +598,8 @@ export function render(panel, ctx) {
           el(
             'p',
             { clase: 'ayuda' },
-            'Sentido de calibración: si aforas con agua limpia, apunta a este equivalente. El caldo, ' +
-              'más denso, saldrá más despacio por la misma boquilla y entregará el volumen objetivo real.'
+            'Si aforas con agua limpia, apunta a este equivalente: el caldo, más denso, saldrá más ' +
+              'despacio y entregará el volumen que buscas.'
           )
         );
       }
@@ -739,8 +737,8 @@ export function render(panel, ctx) {
     etiqueta: 'Régimen de trabajo del motor',
     unidad: 'rpm',
     ayuda:
-      'Se precarga el régimen capturado en Avance. Si hoy trabajas a otro, escríbelo aquí: la ' +
-      'presión, el caudal y el volumen por hectárea cambian con él según el tipo de bomba.',
+      'Viene de Avance. Si hoy trabajas a otro, escríbelo: según el tipo de bomba cambian la ' +
+      'presión, el caudal y el volumen por hectárea.',
     fuente: 'Avance',
     nombreDato: 'el régimen',
     heredado: {

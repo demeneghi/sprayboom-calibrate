@@ -77,7 +77,7 @@ export function render(panel, ctx) {
     etiqueta: 'Tiempo de prueba',
     unidad: 's',
     valorInicial: borrador.tiempoS ?? p.umbrales.tiempoPruebaCaptura,
-    ayuda: `Se precarga el tiempo típico de aforo configurado (${p.umbrales.tiempoPruebaCaptura} s). Todas las probetas se llenan durante el mismo tiempo.`,
+    ayuda: `Todas las probetas se llenan el mismo tiempo. Viene el típico configurado (${p.umbrales.tiempoPruebaCaptura} s).`,
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { tiempoS: valor });
       if (valor !== null && valor > 0) cronometro.fijarDuracion(valor);
@@ -109,7 +109,7 @@ export function render(panel, ctx) {
     etiqueta: 'Presión de trabajo',
     unidad: unidadPresion,
     valorInicial: aCampo('presion', borrador.presionBar ?? equipo?.presionCalibracion ?? null),
-    ayuda: 'Presión manométrica durante la prueba: con ella se calcula el caudal teórico de la boquilla de referencia (el de una boquilla nueva).',
+    ayuda: 'La presión durante la prueba. Con ella se saca el caudal que daría la boquilla nueva.',
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { presionBar: deSistema('presion', valor, sistema) });
       recalcular();
@@ -131,8 +131,8 @@ export function render(panel, ctx) {
     etiqueta: 'Régimen del motor durante la prueba',
     unidad: 'rpm',
     ayuda:
-      'Con bomba de toma de fuerza el caudal cambia con el régimen: anotarlo es lo que permite ' +
-      'comparar este aforo con los anteriores. Se precarga el capturado en Avance.',
+      'Con bomba de toma de fuerza el caudal cambia con el régimen: anotarlo deja comparar ' +
+      'este aforo con los de antes. Viene de Avance.',
     fuente: 'Avance',
     nombreDato: 'el régimen',
     heredado: {
@@ -181,7 +181,7 @@ export function render(panel, ctx) {
     ayuda:
       ctx.estado().catalogo.length === 0
         ? 'El catálogo está vacío: agrega boquillas en Sistema, Configuración.'
-        : 'Se precarga la boquilla de la barra activa. El caudal de catálogo es el de una boquilla NUEVA: contra él se estima el desgaste.',
+        : 'Viene la boquilla de la barra activa. El caudal de catálogo es el de una boquilla NUEVA: contra él se mide el desgaste.',
   });
   const campoBoquilla = el(
     'div',
@@ -261,8 +261,8 @@ export function render(panel, ctx) {
     etiqueta: 'Espaciamiento entre boquillas',
     unidad: unidadEspaciamiento,
     ayuda:
-      'Sale de la geometría de la barra activa: el capturado si lo hay, y si no el ancho entre ' +
-      'el número de boquillas. Editarlo aquí no cambia la configuración.',
+      'Sale de la barra activa: el capturado o, si no lo hay, el ancho entre el número de ' +
+      'boquillas. Cambiarlo aquí no toca la configuración.',
     fuente: fuenteEsp.fuente,
     nombreDato: 'el espaciamiento',
     heredado: { valor: fuenteEsp.valor, etiqueta: fuenteEsp.etiqueta },
@@ -283,9 +283,7 @@ export function render(panel, ctx) {
     // Mismo objetivo de jornada que Boquillas y Gasto de agua; si nadie
     // lo ha capturado, el objetivo propio del rancho de Configuracion.
     valorInicial: aCampo('volumenAplicacion', borrador.lhaObjetivo ?? ctx.objetivoVolumenLha()),
-    ayuda:
-      'Opcional: si se captura, el volumen real medido se compara contra este objetivo. Se ' +
-      'precarga el último objetivo capturado en la aplicación.',
+    ayuda: 'Opcional. Si lo pones, el volumen medido se compara contra él.',
     alCambiar: (valor) => {
       const lha = deSistema('volumenAplicacion', valor, sistema);
       ctx.guardarBorrador(id, { lhaObjetivo: lha });
@@ -466,7 +464,7 @@ export function render(panel, ctx) {
             { clase: 'ayuda' },
             resultado.valores.cvPoblacionalPct === null
               ? 'Con una sola boquilla capturada no hay dispersión que medir; el CV aparece vacío.'
-              : `Se reporta el CV poblacional (DE poblacional entre la media): el aforo cubre las ${resultado.valores.n} boquillas capturadas como población completa, no como muestra. Referencia muestral (n − 1): CV ${formatearPorcentaje(resultado.valores.cvMuestralPct, 1)}.`
+              : `CV poblacional: el aforo cubre las ${resultado.valores.n} boquillas capturadas como población completa, no como muestra. Referencia muestral (n − 1): ${formatearPorcentaje(resultado.valores.cvMuestralPct, 1)}.`
           )
         );
 
@@ -500,7 +498,7 @@ export function render(panel, ctx) {
             el(
               'p',
               { clase: 'ayuda' },
-              'Desgaste implícito: cuánto más (o menos) entrega la media de la barra que la boquilla nueva de catálogo a la misma presión.'
+              'Desgaste: cuánto más (o menos) entrega la barra que una boquilla nueva a la misma presión.'
             )
           );
         } else {
@@ -674,7 +672,7 @@ export function render(panel, ctx) {
       el(
         'p',
         { clase: 'ayuda' },
-        'La prueba se guarda con una copia de los parámetros vigentes: los registros históricos muestran los números con los que se calcularon aunque la configuración cambie después.'
+        'La prueba se guarda con los parámetros de hoy: el registro conserva sus números aunque después cambies la configuración.'
       )
     )
   );

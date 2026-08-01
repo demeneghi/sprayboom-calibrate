@@ -40,8 +40,8 @@ export function crearCampoVelocidad({
     etiqueta,
     unidad: unidadVelocidad,
     ayuda:
-      'Sale de lo capturado en Avance: el reporte de campo (segundos por tramo) o la marcha con ' +
-      'su régimen. Si escribes un número aquí, manda el tuyo y la velocidad de Avance no se toca.',
+      'Viene de Avance: los segundos por tramo o la marcha con su régimen. Si escribes un ' +
+      'número aquí, manda el tuyo.',
     fuente: 'Avance',
     nombreDato: 'la velocidad',
     heredado: {
