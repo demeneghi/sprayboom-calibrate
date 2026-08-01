@@ -68,8 +68,25 @@ resultado.
 
 Reglas que sigue:
 
-- **Se entra por el primer dato que falta**, no por el paso uno: quien ya capturó la velocidad hoy
-  no vuelve a pasar por ella.
+- **Elegir un objetivo empieza de cero.** Arranca en el paso uno y borra lo capturado en la
+  calibración anterior: los datos de la jornada, lo que el asistente escribió en los borradores de
+  las pantallas y los resultados compartidos que esa captura produjo. Cambiar de tipo de
+  calibración es empezar otro trabajo, y arrastrar la velocidad o la boquilla del anterior es
+  exactamente cómo se cuela un número que ya no es el de hoy.
+
+  Antes se entraba por el primer dato que faltaba, conservando lo capturado. Se probó en campo y
+  no servía: al cambiar de objetivo, el asistente aparecía a media lista con datos de otra
+  calibración.
+
+  Como el borrado **no se puede deshacer** y alcanza a lo que capturaste en las pestañas —es el
+  mismo dato—, se pregunta antes, y solo cuando hay algo que perder: en un teléfono recién
+  estrenado se entra directo. El inventario de qué se borra sale de `rastroDeCalibracion()`, en el
+  registro, así que un dato nuevo queda cubierto sin tocar el asistente.
+
+  **Lo que no se borra:** la configuración del rancho, las barras, los tractores, el catálogo y la
+  bitácora. Ahí entra la *marcha de trabajo* del tractor, que es configuración del fierro y ya
+  tiene su propio aviso: si tras el reinicio aparece una velocidad, la pantalla dice que sale de
+  la marcha guardada del tractor y pide confirmarla.
 - **Ningún paso es obligatorio.** Se puede seguir sin capturar; el resultado sale incompleto y lo
   dice.
 - **Ningún paso guarda un estado propio ni calcula nada.** Escribe en el sitio único del dato y

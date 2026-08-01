@@ -219,12 +219,3 @@ export function progresoDeReceta(receta, instantanea) {
     siguiente,
   };
 }
-
-// El indice del paso que toca abrir al entrar o al continuar: el primero
-// sin resolver, y si no queda ninguno, el ultimo (la hoja de resultado
-// se pinta al final del recorrido).
-export function indiceDelSiguiente(receta, instantanea) {
-  const pasos = pasosDeReceta(receta).map((paso) => estadoDePaso(paso, instantanea));
-  const indice = pasos.findIndex((p) => !p.resuelto && !p.opcional);
-  return indice >= 0 ? indice : pasos.length;
-}

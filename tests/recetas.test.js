@@ -10,9 +10,14 @@ import {
   pasosDeReceta,
   estadoDePaso,
   progresoDeReceta,
-  indiceDelSiguiente,
 } from '../assets/js/domain/recetas.js';
-import { DATOS, dato, clavesDeJornada } from '../assets/js/domain/datos.js';
+import {
+  DATOS,
+  dato,
+  clavesDeJornada,
+  rastroDeCalibracion,
+  senalesDeCaptura,
+} from '../assets/js/domain/datos.js';
 import { migrarJornada } from '../assets/js/storage.js';
 import { volumenConBoquilla, ambosMetodos } from '../assets/js/domain/water.js';
 import { caudalAPresion, caudalConDensidad } from '../assets/js/domain/nozzles.js';
@@ -136,30 +141,6 @@ test('el aforo se resuelve con el volumen medido, no con un dato capturado', () 
   );
 });
 
-test('se entra por el primer dato que falta, no por el paso uno', () => {
-  const receta = recetaPorId('gasto-agua');
-  // Nada capturado: se entra por la velocidad.
-  assert.equal(indiceDelSiguiente(receta, instantanea()), 0);
-  // Con la velocidad y la barra ya vistas, se entra por la boquilla.
-  const conVelocidad = instantanea(
-    { velocidadKmh: 2.59, anchoBarraM: 15.47, numBoquillas: 24, espaciamientoM: 0.6446 },
-    { vistos: ['barra'] }
-  );
-  assert.equal(indiceDelSiguiente(receta, conVelocidad), 2);
-});
-
-test('con todo resuelto se entra directo a la hoja de resultado', () => {
-  const receta = recetaPorId('mezcla-tanque');
-  const todo = instantanea({
-    volumenAplicacionLha: 575,
-    volumenTanqueL: 2000,
-    modoDosis: 'por-ha',
-    dosisCantidad: 1.5,
-    unidadProducto: 'L',
-  });
-  assert.equal(indiceDelSiguiente(receta, todo), pasosDeReceta(receta).length);
-});
-
 test('un dato opcional no bloquea su paso', () => {
   // La superficie objetivo se rotula «(opcional)» en su propia etiqueta.
   // Si contara para resolver el paso, el objetivo de la mezcla se
@@ -182,6 +163,61 @@ test('un dato opcional no bloquea su paso', () => {
   assert.deepEqual(paso.faltantes, []);
   const avance = progresoDeReceta(recetaPorId('mezcla-tanque'), sinSuperficie);
   assert.equal(avance.completa, true, 'la mezcla se cierra sin la superficie');
+});
+
+// ---------------------------------------------------------------------
+// Empezar de cero al elegir otro objetivo
+// ---------------------------------------------------------------------
+test('el rastro de una calibracion cubre TODO lo que deja capturado', () => {
+  const rastro = rastroDeCalibracion();
+  // Los datos compartidos, con sus marcas de captura manual.
+  assert.ok(rastro.jornada.includes('presionBar'));
+  assert.ok(rastro.jornada.includes('boquillaId'));
+  assert.ok(rastro.jornada.includes('velocidadKmh'));
+  assert.ok(rastro.jornada.includes('velocidadManual'));
+  // Los borradores de los que un dato DERIVA su valor: sin borrarlos, el
+  // asistente diria «reiniciado» y seguiria trayendo la velocidad de la
+  // calibracion anterior.
+  assert.deepEqual(rastro.borradores.avance, ['modo', 'marcha', 'rpm', 'segundosPorTramo']);
+  assert.ok(rastro.borradores.captura.includes('volumenesMl'));
+  // Y los resultados que esa captura produjo.
+  assert.ok(rastro.resultados.includes('lhaMedido'));
+  assert.ok(rastro.resultados.includes('masaPorTablaG'));
+
+  // Un dato de una sola pantalla se borra donde de verdad vive.
+  for (const [id, declaracion] of Object.entries(DATOS)) {
+    if (!declaracion.guarda) continue;
+    const { tab, clave } = declaracion.guarda;
+    assert.ok(
+      rastro.borradores[tab]?.includes(clave),
+      `${id} no se borraria de ${tab}.${clave}`
+    );
+    assert.ok(!rastro.jornada.includes(id), `${id} vive en un borrador, no en la jornada`);
+  }
+});
+
+test('el rastro no toca el fierro ni el historial', () => {
+  const rastro = rastroDeCalibracion();
+  const intocables = ['parametros', 'equipos', 'tractores', 'catalogo', 'bitacora', 'gases'];
+  const alcanzados = [...rastro.jornada, ...Object.keys(rastro.borradores), ...rastro.resultados];
+  for (const clave of intocables) {
+    assert.ok(!alcanzados.includes(clave), `el reinicio alcanzaria ${clave}`);
+  }
+});
+
+test('un valor que se persiste solo NO cuenta como captura', () => {
+  const senales = senalesDeCaptura();
+  // El espaciamiento se escribe en la jornada con solo abrir Gasto de
+  // agua: solo cuenta con su marca de captura manual puesta. Si contara
+  // sin ella, el asistente preguntaria «¿borro lo capturado?» en un
+  // telefono recien estrenado.
+  const espaciamiento = senales.jornada.find((s) => s.id === 'espaciamientoM');
+  assert.equal(espaciamiento.exigeMarca, 'espaciamientoManual');
+  // La presion no se hereda: basta con que tenga valor.
+  assert.equal(senales.jornada.find((s) => s.id === 'presionBar').exigeMarca, undefined);
+  // De Avance, lo que una persona elige es la marcha o los segundos por
+  // tramo; el modo y el regimen se persisten solos al abrir la pantalla.
+  assert.deepEqual(senales.borradores.avance, ['marcha', 'segundosPorTramo']);
 });
 
 test('solo las recetas cuyo resultado ES el volumen ofrecen perillas', () => {
