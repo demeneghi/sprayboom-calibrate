@@ -21,12 +21,18 @@ import {
 import { crearCampoNumerico, crearCampoSelect } from '../campos.js';
 import { crearCampoVelocidad } from '../velocidad.js';
 import { crearCampoHeredado, fuenteEspaciamiento } from '../heredado.js';
+import { crearTrioBarra } from '../trio-barra.js';
 import { formatear } from '../formato.js';
 import { mostrarToast } from '../toast.js';
 import { crearCombobox } from '../combobox.js';
 import { estiloBadgeIso } from '../color.js';
 import { aSistema, deSistema, unidad } from '../../domain/units.js';
-import { redondeoLegible, geometria, calibrarMarcha } from '../../domain/speed.js';
+import {
+  redondeoLegible,
+  calibrarMarcha,
+  modoGeometriaDe,
+  MODOS_GEOMETRIA_BARRA,
+} from '../../domain/speed.js';
 import {
   caudalAPresionDetallado,
   caudalConDensidadDetallado,
@@ -200,61 +206,136 @@ export function render(panel, ctx) {
     alCambiar: () => recalcular(),
   });
 
-  const campoAncho = crearCampoNumerico({
-    etiqueta: 'Ancho de la barra',
-    magnitud: 'distancia',
-    sistema,
-    valorInicial: precarga('distancia', borrador.anchoBarraM ?? equipo?.anchoBarra),
-    ayuda: `Viene de la barra «${equipo?.nombre ?? 'sin barra'}». Cambiarlo aquí no toca la configuración.`,
-    alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { anchoBarraM: deSistema('distancia', valor, sistema) });
-      recalcular();
-    },
-  });
-  const campoNumBoquillas = crearCampoNumerico({
-    etiqueta: 'Número de boquillas',
-    unidad: '',
-    valorInicial: borrador.numBoquillas ?? equipo?.numBoquillas,
-    ayuda: 'Viene de la barra activa. Cuéntalas antes de confiar en el número.',
-    alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { numBoquillas: valor });
-      recalcular();
-    },
-  });
+  // ---------------- Geometria de la barra (los tres amarrados) --------
+  //
+  // Ancho, numero de boquillas y espaciamiento no son tres datos sueltos:
+  // `ancho = número * espaciamiento`. Aqui se capturan los DOS que se
+  // pueden medir parado junto a la barra y el tercero sale solo, en la
+  // direccion que elija quien captura. Antes solo bajaba el espaciamiento
+  // del ancho entre las boquillas, y las otras dos direcciones tocaba
+  // hacerlas con la calculadora del mismo telefono.
+  //
+  // Lo capturado aqui es el dato del DIA y no toca la configuracion de la
+  // barra; el chip dice cuando ya no es el de la barra y el boton lo
+  // devuelve.
   const fuenteEsp = fuenteEspaciamiento(ctx);
-  const campoEspaciamiento = crearCampoHeredado({
-    ctx,
-    tabId: id,
-    clave: 'espaciamientoM',
-    claveManual: 'espaciamientoManual',
-    etiqueta: 'Espaciamiento entre boquillas',
-    magnitud: 'distanciaCorta',
+  const geometriaBarra = {
+    anchoBarraM: Number.isFinite(equipo?.anchoBarra) ? equipo.anchoBarra : null,
+    numBoquillas: Number.isFinite(equipo?.numBoquillas) ? equipo.numBoquillas : null,
+    espaciamientoM: Number.isFinite(fuenteEsp.valor) ? fuenteEsp.valor : null,
+  };
+  const modoBarra = modoGeometriaDe(equipo);
+  // El borrador viejo marcaba el espaciamiento capturado a mano con
+  // `espaciamientoManual`: eso es capturar los tres.
+  const modoInicial = MODOS_GEOMETRIA_BARRA.includes(borrador.geometriaCalculada)
+    ? borrador.geometriaCalculada
+    : borrador.espaciamientoManual === true
+      ? 'ninguno'
+      : modoBarra;
+
+  const estadoGeometria = el('div', { clase: 'fila-control' });
+  const botonGeometriaBarra = el(
+    'button',
+    { type: 'button', clase: 'boton boton--contorno' },
+    'Volver a la geometría de la barra'
+  );
+
+  const trio = crearTrioBarra({
     sistema,
-    ayuda:
-      'Sale de la barra activa: el capturado o, si no lo hay, el ancho entre el número de ' +
-      'boquillas. Cambiarlo aquí no toca la configuración.',
-    fuente: fuenteEsp.fuente,
-    nombreDato: 'el espaciamiento',
-    heredado: { valor: fuenteEsp.valor, etiqueta: fuenteEsp.etiqueta },
-    aCampo: (m) =>
-      Number.isFinite(m) ? Number(aSistema('distanciaCorta', m, sistema).toPrecision(6)) : null,
-    deCampo: (valor) => deSistema('distanciaCorta', valor, sistema),
-    formatearValor: (valor) => `${formatear(valor, 3)} ${unidadEspaciamiento}`,
-    destino: fuenteEsp.destino,
-    textoSinDato:
-      'Captura el ancho y el número de boquillas de la barra en Sistema, Configuración, o ' +
-      'escribe aquí el espaciamiento.',
-    guardadoSinMarcaEsManual: true,
-    alCambiar: () => recalcular(),
+    valores: {
+      anchoBarraM: borrador.anchoBarraM ?? geometriaBarra.anchoBarraM,
+      numBoquillas: borrador.numBoquillas ?? geometriaBarra.numBoquillas,
+      espaciamientoM: borrador.espaciamientoM ?? geometriaBarra.espaciamientoM,
+    },
+    calcular: modoInicial,
+    umbralDiscrepanciaPct: ctx.estado().parametros.umbrales.umbralDiscrepanciaMetodos,
+    espaciamientoMinimoPlausible: ctx.estado().parametros.umbrales.espaciamientoMinimoPlausible,
+    etiquetas: {
+      anchoBarra: 'Ancho de la barra',
+      numBoquillas: 'Número de boquillas',
+      espaciamiento: 'Espaciamiento entre boquillas',
+    },
+    ayudas: {
+      anchoBarra: `Viene de la barra «${equipo?.nombre ?? 'sin barra'}». Cambiarlo aquí no toca la configuración.`,
+      numBoquillas: 'Viene de la barra activa. Cuéntalas antes de confiar en el número.',
+      espaciamiento:
+        'La distancia de centro a centro entre dos boquillas vecinas, medida con el flexómetro. ' +
+        'Cambiarla aquí no toca la configuración.',
+    },
+    alCambiar: ({ valores, calcular }) => {
+      ctx.guardarBorrador(id, {
+        anchoBarraM: valores.anchoBarraM,
+        numBoquillas: valores.numBoquillas,
+        espaciamientoM: valores.espaciamientoM,
+        geometriaCalculada: calcular,
+      });
+      pintarEstadoGeometria();
+      recalcular();
+    },
+  });
+
+  // Dos geometrias son la misma si los tres numeros coinciden hasta el
+  // redondeo de captura: comparar con `===` marcaria como capturado a
+  // mano un espaciamiento que solo perdio decimales al pintarse.
+  function mismoNumero(a, b) {
+    if (a === null || b === null) return a === b;
+    return Math.abs(a - b) <= Math.abs(b) * 1e-6 + 1e-9;
+  }
+  function esGeometriaDeLaBarra() {
+    const v = trio.obtener();
+    return (
+      mismoNumero(v.anchoBarraM, geometriaBarra.anchoBarraM) &&
+      mismoNumero(v.numBoquillas, geometriaBarra.numBoquillas) &&
+      mismoNumero(v.espaciamientoM, geometriaBarra.espaciamientoM)
+    );
+  }
+
+  function pintarEstadoGeometria() {
+    const deLaBarra = esGeometriaDeLaBarra();
+    reemplazar(
+      estadoGeometria,
+      el(
+        'span',
+        { clase: deLaBarra ? 'badge badge--secundario' : 'badge badge--contorno' },
+        deLaBarra ? 'de la barra' : 'capturado a mano'
+      ),
+      el(
+        'span',
+        { clase: 'texto-meta' },
+        deLaBarra
+          ? `Tal como está configurada la barra «${equipo?.nombre ?? 'sin barra'}».`
+          : `La barra «${equipo?.nombre ?? 'sin barra'}» tiene ` +
+            `${formatear(aSistema('distancia', geometriaBarra.anchoBarraM, sistema), 2)} ` +
+            `${unidad('distancia', sistema)} con ${formatear(geometriaBarra.numBoquillas, 0)} ` +
+            `boquillas a ${formatear(aSistema('distanciaCorta', geometriaBarra.espaciamientoM, sistema), 3)} ` +
+            `${unidadEspaciamiento}.`
+      )
+    );
+    botonGeometriaBarra.classList.toggle('oculto', deLaBarra);
+  }
+
+  botonGeometriaBarra.addEventListener('click', () => {
+    trio.fijar(geometriaBarra, modoBarra);
+    const v = trio.obtener();
+    ctx.guardarBorrador(id, {
+      anchoBarraM: v.anchoBarraM,
+      numBoquillas: v.numBoquillas,
+      espaciamientoM: v.espaciamientoM,
+      geometriaCalculada: modoBarra,
+    });
+    pintarEstadoGeometria();
+    recalcular();
+    mostrarToast('Geometría de la barra restaurada.');
   });
 
   function lecturas() {
+    const geo = trio.obtener();
     return {
       presionBar: deSistema('presion', campoPresion.obtener(), sistema),
       velocidadKmh: deSistema('velocidad', campoVelocidad.obtener(), sistema),
-      anchoBarraM: deSistema('distancia', campoAncho.obtener(), sistema),
-      numBoquillas: campoNumBoquillas.obtener(),
-      espaciamientoM: deSistema('distanciaCorta', campoEspaciamiento.obtener(), sistema),
+      anchoBarraM: geo.anchoBarraM,
+      numBoquillas: geo.numBoquillas,
+      espaciamientoM: geo.espaciamientoM,
       lhaObjetivo: deSistema('volumenAplicacion', campoObjetivo.obtener(), sistema),
       rpmTrabajo: campoRpmTrabajo.obtener(),
     };
@@ -409,16 +490,12 @@ export function render(panel, ctx) {
           )
         );
       } else {
-        // Guardas de plausibilidad del espaciamiento capturado (dominio):
-        // detecta captura en centimetros y discrepancia contra el
-        // derivado del ancho entre el numero de boquillas configurados.
-        try {
-          const g = geometria({ ...ctx.parametrosGeometria(), espaciamientoCapturado: espaciamientoM });
-          nodos.push(...pintarAvisos(g.avisos));
-        } catch {
-          // La geometria configurada no bloquea el calculo central: los
-          // dos metodos solo dependen de las capturas del dia.
-        }
+        // Las guardas de plausibilidad de la geometria —espaciamiento
+        // capturado en centimetros, ancho que no cuadra con las boquillas
+        // por su espaciamiento— las pinta el trio de la barra, con los
+        // tres numeros DEL DIA. Antes se comparaba el espaciamiento
+        // capturado aqui contra el ancho de la configuracion, que puede
+        // ser otro.
         const q = caudales(b, presionBar, dr);
         const resultado = ambosMetodos({
           caudalBoquillaLmin: q.caldo,
@@ -1046,9 +1123,9 @@ export function render(panel, ctx) {
       zonaBoquilla,
       campoPresion.elemento,
       campoVelocidad.elemento,
-      campoAncho.elemento,
-      campoNumBoquillas.elemento,
-      campoEspaciamiento.elemento
+      trio.elemento,
+      estadoGeometria,
+      botonGeometriaBarra
     ),
     tarjeta(
       {
@@ -1088,5 +1165,6 @@ export function render(panel, ctx) {
   );
 
   pintarBoquilla();
+  pintarEstadoGeometria();
   recalcular();
 }

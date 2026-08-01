@@ -13,6 +13,7 @@
 import { el, reemplazar } from '../dom.js';
 import { tarjeta, pintarAvisos } from '../render.js';
 import { crearAyuda, crearCampoNumerico, crearCampoSelect, crearInterruptor } from '../campos.js';
+import { crearTrioBarra } from '../trio-barra.js';
 import { formatear } from '../formato.js';
 import { confirmar } from '../dialog.js';
 import { mostrarToast } from '../toast.js';
@@ -39,7 +40,12 @@ import {
 } from '../../domain/defaults.js';
 import { validarValor } from '../../domain/validate.js';
 import { presionAtmosfericaEfectiva } from '../../domain/atmosphere.js';
-import { geometria, factorDeMedicion, marchasDeTractor } from '../../domain/speed.js';
+import {
+  geometria,
+  factorDeMedicion,
+  marchasDeTractor,
+  modoGeometriaDe,
+} from '../../domain/speed.js';
 import { gPorScfEfectivo } from '../../domain/gas.js';
 import { validarContraIso } from '../../domain/nozzles.js';
 import { TABLA_ISO_10625, PRESION_NOMINAL_ISO_BAR, filaIso } from '../../data/iso-colors.js';
@@ -761,9 +767,81 @@ export function render(panel, ctx) {
       return entrada.elemento;
     }
 
+    // Los tres datos de la geometria van juntos y amarrados
+    // (`ancho = número * espaciamiento`): se capturan dos y el tercero
+    // sale solo, en la direccion que se elija. Quien mide con el
+    // flexometro la distancia entre boquillas y las cuenta llega al ancho
+    // sin sacar la calculadora, que es donde se colaba el error.
+    const trioBarra = crearTrioBarra({
+      sistema: SISTEMA_PARAMETROS,
+      valores: {
+        anchoBarraM: equipo.anchoBarra ?? null,
+        numBoquillas: equipo.numBoquillas ?? null,
+        espaciamientoM: equipo.espaciamientoCapturado ?? null,
+      },
+      calcular: modoGeometriaDe(equipo),
+      umbralDiscrepanciaPct: estado.parametros.umbrales.umbralDiscrepanciaMetodos,
+      espaciamientoMinimoPlausible: estado.parametros.umbrales.espaciamientoMinimoPlausible,
+      etiquetas: {
+        anchoBarra: COTAS_BARRA.anchoBarra.etiqueta,
+        numBoquillas: COTAS_BARRA.numBoquillas.etiqueta,
+        espaciamiento: COTAS_BARRA.espaciamientoCapturado.etiqueta,
+      },
+      ayudas: {
+        anchoBarra: COTAS_BARRA.anchoBarra.ayuda,
+        numBoquillas: COTAS_BARRA.numBoquillas.ayuda,
+        espaciamiento: COTAS_BARRA.espaciamientoCapturado.ayuda,
+      },
+      alCambiar: ({ valores, calcular }) => guardarGeometriaBarra(equipo.id, valores, calcular),
+    });
+
+    // Guardar la geometria de la barra. Los tres campos se validan contra
+    // sus cotas y un valor fuera de rango NO se guarda: la barra se queda
+    // con el ultimo bueno y el campo dice por que.
+    //
+    // El espaciamiento se guarda vacio cuando es el calculado, que es lo
+    // que ese campo opcional siempre significo: vacio = sale del ancho
+    // entre el numero de boquillas. Asi sigue a la barra cuando cambie el
+    // ancho, en vez de quedarse clavado en el numero de hoy.
+    function guardarGeometriaBarra(equipoId, valores, calcular) {
+      const capturados = {
+        anchoBarra: valores.anchoBarraM,
+        numBoquillas: valores.numBoquillas,
+        espaciamientoCapturado: calcular === 'espaciamiento' ? null : valores.espaciamientoM,
+      };
+      const CLAVE_TRIO = {
+        anchoBarra: 'anchoBarra',
+        numBoquillas: 'numBoquillas',
+        espaciamientoCapturado: 'espaciamiento',
+      };
+      let ok = true;
+      for (const [campo, cota] of Object.entries(COTAS_BARRA)) {
+        const valor = capturados[campo];
+        if (valor === null && (cota.opcional || campo === 'espaciamientoCapturado')) {
+          trioBarra.fijarError(CLAVE_TRIO[campo], null);
+          continue;
+        }
+        const veredicto = validarValor(cota, valor);
+        trioBarra.fijarError(CLAVE_TRIO[campo], veredicto.ok ? null : veredicto.mensaje);
+        if (!veredicto.ok) ok = false;
+      }
+      if (!ok) return;
+      almacen.actualizar((e) => {
+        const barra = e.equipos.find((x) => x.id === equipoId);
+        if (!barra) return;
+        Object.assign(barra, capturados, { geometriaCalculada: calcular });
+      }, 'borrador');
+      pintarDerivados();
+    }
+
+    nodos.push(el('h3', { clase: 'etiqueta' }, 'Geometría de esta barra'), trioBarra.elemento);
+    for (const [campo, cota] of Object.entries(COTAS_BARRA)) {
+      if (campo === 'anchoBarra' || campo === 'numBoquillas' || campo === 'espaciamientoCapturado') {
+        continue;
+      }
+      nodos.push(campoDeBarra(campo, cota));
+    }
     nodos.push(
-      el('h3', { clase: 'etiqueta' }, 'Geometría de esta barra'),
-      ...Object.entries(COTAS_BARRA).map(([campo, cota]) => campoDeBarra(campo, cota)),
       el('h3', { clase: 'etiqueta' }, 'Valores derivados (solo lectura)'),
       zonaDerivados,
       zonaAvisosGeometria

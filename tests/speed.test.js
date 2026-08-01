@@ -11,6 +11,8 @@ import {
   velocidadDesdeReporte,
   calibrarMarcha,
   geometria,
+  completarTrioBarra,
+  modoGeometriaDe,
   factorDesviacion,
   factorDeMedicion,
   velocidadCorregida,
@@ -82,6 +84,124 @@ test('geometria: espaciamiento derivado y area por tabla', () => {
   cercano(g.valores.areaM2, 9993.62, 0.005, 'area m2');
   cercano(g.valores.hectareasPorTabla, 0.999362, 5e-7, 'hectareas');
   cercano(g.valores.tramosPorTabla, 6.46, 1e-9, 'tramos');
+});
+
+// ---------------------------------------------------------------------
+// El trio de la barra: ancho, numero de boquillas y espaciamiento
+// ---------------------------------------------------------------------
+
+test('trio de la barra: el espaciamiento sale del ancho entre las boquillas', () => {
+  const r = completarTrioBarra({
+    anchoBarraM: 15.47,
+    numBoquillas: 24,
+    calcular: 'espaciamiento',
+  });
+  assert.equal(r.valores.calculado, 'espaciamiento');
+  cercano(r.valores.espaciamientoM, 0.6446, 0.0001, 'espaciamiento');
+  cercano(r.valores.discrepanciaPct, 0, 1e-9, 'discrepancia');
+  assert.equal(r.avisos.length, 0);
+});
+
+test('trio de la barra: el ancho sale de las boquillas por su espaciamiento', () => {
+  const r = completarTrioBarra({
+    numBoquillas: 46,
+    espaciamientoM: 0.5,
+    calcular: 'anchoBarra',
+  });
+  assert.equal(r.valores.calculado, 'anchoBarra');
+  cercano(r.valores.anchoBarraM, 23, 1e-9, 'ancho');
+});
+
+test('trio de la barra: el numero de boquillas sale del ancho entre el espaciamiento', () => {
+  const r = completarTrioBarra({
+    anchoBarraM: 12,
+    espaciamientoM: 0.5,
+    calcular: 'numBoquillas',
+  });
+  assert.equal(r.valores.calculado, 'numBoquillas');
+  assert.equal(r.valores.numBoquillas, 24);
+  assert.equal(r.avisos.length, 0);
+});
+
+test('trio de la barra: las boquillas se cuentan enteras y el redondeo se dice', () => {
+  // 15.47 / 0.5 = 30.94 boquillas: no hay boquillas fraccionarias.
+  const r = completarTrioBarra({
+    anchoBarraM: 15.47,
+    espaciamientoM: 0.5,
+    calcular: 'numBoquillas',
+  });
+  assert.equal(r.valores.numBoquillas, 31);
+  assert.ok(r.avisos.some((a) => a.codigo === 'boquillas-redondeadas'));
+  // Con 31 boquillas a 0.5 m la barra mediria 15.5 m, no 15.47.
+  cercano(r.avisos.find((a) => a.codigo === 'boquillas-redondeadas').datos.anchoImplicadoM, 15.5, 1e-9, 'ancho implicado');
+});
+
+test('trio de la barra: un espaciamiento mayor que la barra no inventa boquillas', () => {
+  const r = completarTrioBarra({
+    anchoBarraM: 0.4,
+    espaciamientoM: 1,
+    calcular: 'numBoquillas',
+  });
+  assert.equal(r.valores.calculado, null);
+  assert.equal(r.valores.numBoquillas, null);
+  assert.ok(r.avisos.some((a) => a.codigo === 'espaciamiento-mayor-que-la-barra'));
+});
+
+test('trio de la barra: con los tres capturados se avisa si no cuadran', () => {
+  const r = completarTrioBarra({
+    anchoBarraM: 15.47,
+    numBoquillas: 24,
+    espaciamientoM: 0.5,
+    calcular: 'ninguno',
+    umbralDiscrepanciaPct: 5,
+  });
+  assert.equal(r.valores.calculado, null);
+  // 24 boquillas a 0.5 m dan 12 m, no 15.47: 28.9 % de discrepancia.
+  cercano(r.valores.discrepanciaPct, 28.9, 0.1, 'discrepancia');
+  assert.ok(r.avisos.some((a) => a.codigo === 'geometria-barra-discrepante'));
+});
+
+test('trio de la barra: los tres capturados que SI cuadran no molestan', () => {
+  const r = completarTrioBarra({
+    anchoBarraM: 12,
+    numBoquillas: 24,
+    espaciamientoM: 0.5,
+    calcular: 'ninguno',
+    umbralDiscrepanciaPct: 5,
+  });
+  cercano(r.valores.discrepanciaPct, 0, 1e-9, 'discrepancia');
+  assert.equal(r.avisos.length, 0);
+});
+
+test('trio de la barra: sin datos suficientes no calcula ni truena', () => {
+  const r = completarTrioBarra({ anchoBarraM: 15.47, calcular: 'espaciamiento' });
+  assert.equal(r.valores.calculado, null);
+  assert.equal(r.valores.espaciamientoM, null);
+  assert.equal(r.valores.numBoquillas, null);
+  assert.equal(r.avisos.length, 0);
+});
+
+test('trio de la barra: un espaciamiento implausible se delata, igual que en geometria', () => {
+  const r = completarTrioBarra({
+    numBoquillas: 24,
+    espaciamientoM: 0.045,
+    calcular: 'anchoBarra',
+    espaciamientoMinimoPlausible: 0.05,
+  });
+  assert.ok(r.avisos.some((a) => a.codigo === 'espaciamiento-sospechoso-cm'));
+});
+
+test('modo de geometria: la barra vieja sin marca conserva su significado', () => {
+  // Sin marca y sin espaciamiento capturado: el de siempre, derivado.
+  assert.equal(modoGeometriaDe({ espaciamientoCapturado: null }), 'espaciamiento');
+  // Sin marca pero con espaciamiento capturado: los tres a mano.
+  assert.equal(modoGeometriaDe({ espaciamientoCapturado: 0.5 }), 'ninguno');
+  // Con marca, manda la marca.
+  assert.equal(
+    modoGeometriaDe({ espaciamientoCapturado: 0.5, geometriaCalculada: 'anchoBarra' }),
+    'anchoBarra'
+  );
+  assert.equal(modoGeometriaDe(null), 'espaciamiento');
 });
 
 test('factor de desviacion medido: teorica 2.10 y medida 1.95', () => {

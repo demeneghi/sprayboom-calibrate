@@ -282,6 +282,208 @@ export function geometria({
 }
 
 // ---------------------------------------------------------------------
+// El trio de la barra: ancho, numero de boquillas y espaciamiento
+//
+// Los tres datos NO son independientes. Una barra con las boquillas
+// parejas cumple:
+//
+//     ancho = numero_de_boquillas * espaciamiento
+//
+// Asi que basta capturar DOS para que el tercero salga solo, en
+// cualquiera de las tres direcciones. Antes solo existia una: el
+// espaciamiento derivado del ancho entre el numero de boquillas. Quien
+// mide con el flexometro la distancia entre dos boquillas y las cuenta
+// —que es lo que se puede hacer parado junto a la barra— tenia que
+// multiplicar a mano para llegar al ancho, con la calculadora del mismo
+// telefono. Ahi es justo donde se cuela el error que despues nadie
+// encuentra.
+//
+// `calcular` dice CUAL de los tres se calcula, y es una eleccion
+// explicita de quien captura, no una adivinanza a partir de que campo
+// quedo vacio:
+//
+//   'anchoBarra' | 'numBoquillas' | 'espaciamiento' | 'ninguno'
+//
+// 'ninguno' captura los tres y NO se pierde la señal de diagnostico: si
+// el ancho no cuadra con el numero por el espaciamiento, se avisa. Esa
+// discrepancia es sintoma de que el ancho efectivo no es el que se cree,
+// y con un trio siempre amarrado jamas aparecerria.
+//
+// La funcion NO truena por datos faltantes: mientras se captura, dos de
+// los tres campos estan vacios. Devuelve lo que hay, con `calculado` en
+// null cuando todavia no alcanza para calcular.
+// ---------------------------------------------------------------------
+
+export const MODOS_GEOMETRIA_BARRA = [
+  'anchoBarra',
+  'numBoquillas',
+  'espaciamiento',
+  'ninguno',
+];
+
+// Cual de los tres calcula una barra guardada. Las barras viejas no
+// traen la marca: ahi el espaciamiento vacio significa —como siempre
+// significo— que se deriva del ancho entre el numero de boquillas.
+export function modoGeometriaDe(equipo) {
+  const guardado = equipo?.geometriaCalculada;
+  if (MODOS_GEOMETRIA_BARRA.includes(guardado)) return guardado;
+  return Number.isFinite(equipo?.espaciamientoCapturado) ? 'ninguno' : 'espaciamiento';
+}
+
+function positivoONulo(valor) {
+  return typeof valor === 'number' && Number.isFinite(valor) && valor > 0 ? valor : null;
+}
+
+export function completarTrioBarra({
+  anchoBarraM = null,
+  numBoquillas = null,
+  espaciamientoM = null,
+  calcular = 'espaciamiento',
+  umbralDiscrepanciaPct = null,
+  espaciamientoMinimoPlausible = null,
+} = {}) {
+  let ancho = positivoONulo(anchoBarraM);
+  let numero = positivoONulo(numBoquillas);
+  let espaciamiento = positivoONulo(espaciamientoM);
+
+  const avisos = [];
+  const desglose = [];
+  let calculado = null;
+
+  if (calcular === 'espaciamiento' && ancho !== null && numero !== null) {
+    espaciamiento = ancho / numero;
+    calculado = 'espaciamiento';
+    desglose.push(
+      paso(
+        'Espaciamiento entre boquillas',
+        'ancho_barra / num_boquillas',
+        `${redondeoLegible(ancho)} / ${redondeoLegible(numero)}`,
+        espaciamiento,
+        'm'
+      )
+    );
+  } else if (calcular === 'anchoBarra' && numero !== null && espaciamiento !== null) {
+    ancho = numero * espaciamiento;
+    calculado = 'anchoBarra';
+    desglose.push(
+      paso(
+        'Ancho de la barra',
+        'num_boquillas * espaciamiento',
+        `${redondeoLegible(numero)} * ${redondeoLegible(espaciamiento)}`,
+        ancho,
+        'm'
+      )
+    );
+  } else if (calcular === 'numBoquillas' && ancho !== null && espaciamiento !== null) {
+    const crudo = ancho / espaciamiento;
+    const entero = Math.round(crudo);
+    if (entero < 1) {
+      // El espaciamiento es mayor que la barra entera: no hay un numero
+      // de boquillas que cuadre, y devolver 1 (o 0) seria inventar un
+      // dato. Se avisa y el campo se queda sin calcular.
+      avisos.push(
+        aviso(
+          'advertencia',
+          'espaciamiento-mayor-que-la-barra',
+          `El espaciamiento (${redondeoLegible(espaciamiento)} m) es mayor que el ancho de la ` +
+            `barra (${redondeoLegible(ancho)} m): con esos dos datos no sale un número de ` +
+            `boquillas. Revisa cuál de los dos está mal capturado.`,
+          { anchoBarraM: ancho, espaciamientoM: espaciamiento }
+        )
+      );
+    } else {
+      numero = entero;
+      calculado = 'numBoquillas';
+      desglose.push(
+        paso(
+          'Número de boquillas',
+          'ancho_barra / espaciamiento',
+          `${redondeoLegible(ancho)} / ${redondeoLegible(espaciamiento)}`,
+          numero,
+          'boquillas'
+        )
+      );
+      // Las boquillas se cuentan de una en una: el cociente casi nunca
+      // cae exacto y el redondeo se dice, con el ancho que implica. Sin
+      // esto, 15.47 m entre 0.5 m se leeria como 31 boquillas justas.
+      if (Math.abs(crudo - entero) > 0.01) {
+        avisos.push(
+          aviso(
+            'info',
+            'boquillas-redondeadas',
+            `El ancho entre el espaciamiento da ${redondeoLegible(crudo)} boquillas: se tomó ` +
+              `${entero}. Con ${entero} boquillas a ${redondeoLegible(espaciamiento)} m la barra ` +
+              `mediría ${redondeoLegible(entero * espaciamiento)} m; si mide ` +
+              `${redondeoLegible(ancho)} m, uno de los dos datos viene redondeado.`,
+            { crudo, numBoquillas: entero, anchoImplicadoM: entero * espaciamiento }
+          )
+        );
+      }
+    }
+  }
+
+  // Discrepancia del trio: con los tres numeros a la vista se compara el
+  // ancho capturado contra el que implican las boquillas por su
+  // espaciamiento. Es cero por construccion cuando uno se calculo de los
+  // otros dos (salvo el redondeo del numero de boquillas), y es la señal
+  // de diagnostico cuando se capturan los tres.
+  let discrepanciaPct = null;
+  if (ancho !== null && numero !== null && espaciamiento !== null) {
+    const anchoImplicado = numero * espaciamiento;
+    discrepanciaPct = (Math.abs(ancho - anchoImplicado) / anchoImplicado) * PORCIENTO;
+    if (
+      umbralDiscrepanciaPct !== null &&
+      umbralDiscrepanciaPct !== undefined &&
+      discrepanciaPct > umbralDiscrepanciaPct
+    ) {
+      avisos.push(
+        aviso(
+          'advertencia',
+          'geometria-barra-discrepante',
+          `El ancho capturado (${redondeoLegible(ancho)} m) difiere ` +
+            `${redondeoLegible(discrepanciaPct)} % del que dan ${redondeoLegible(numero)} ` +
+            `boquillas a ${redondeoLegible(espaciamiento)} m (${redondeoLegible(anchoImplicado)} m). ` +
+            `Es síntoma de que el ancho efectivo no es el que se cree; revisa la barra en vez de ` +
+            `confiar en uno de los tres números.`,
+          { anchoBarraM: ancho, anchoImplicadoM: anchoImplicado, discrepanciaPct }
+        )
+      );
+    }
+  }
+
+  if (
+    espaciamiento !== null &&
+    espaciamientoMinimoPlausible !== null &&
+    espaciamientoMinimoPlausible !== undefined &&
+    espaciamiento < espaciamientoMinimoPlausible
+  ) {
+    avisos.push(
+      aviso(
+        'advertencia',
+        'espaciamiento-sospechoso-cm',
+        `El espaciamiento (${redondeoLegible(espaciamiento)} m) es menor que ` +
+          `${redondeoLegible(espaciamientoMinimoPlausible)} m. Parece capturado en centímetros: ` +
+          `el espaciamiento va en METROS. Un error así cambia el resultado dos órdenes de ` +
+          `magnitud.`,
+        { espaciamientoM: espaciamiento, espaciamientoMinimoPlausible }
+      )
+    );
+  }
+
+  return {
+    valores: {
+      anchoBarraM: ancho,
+      numBoquillas: numero,
+      espaciamientoM: espaciamiento,
+      calculado,
+      discrepanciaPct,
+    },
+    desglose,
+    avisos,
+  };
+}
+
+// ---------------------------------------------------------------------
 // Cuadricula de marchas y busqueda inversa
 // ---------------------------------------------------------------------
 
