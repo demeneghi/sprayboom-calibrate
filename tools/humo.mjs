@@ -113,6 +113,35 @@ for (const [ancho, alto, nombre] of [[390, 844, 'iphone'], [360, 740, 'gama-baja
     if (scrollHorizontal > 1) {
       problemas.push(`[${nombre}] ${seccion}/${tab}: scroll horizontal de ${scrollHorizontal}px`);
     }
+    // El documento puede no irse de lado y aun asi haber contenido
+    // CORTADO adentro: el panel recorta lo que se sale y la columna
+    // derecha de una rejilla desaparece contra el borde sin que nada se
+    // note desde afuera. Se mide la caja real de cada nodo contra el
+    // borde del panel; el area tactil de un boton no cuenta, porque vive
+    // en un pseudo-elemento y no en la caja.
+    //
+    // Las tablas anchas SI se desplazan a proposito, dentro de
+    // `.scroll-x`, y los globos de ayuda flotan fuera del flujo: los dos
+    // quedan fuera de la medicion.
+    const cortados = await pagina.evaluate(() => {
+      const panel = document.getElementById('panel');
+      if (!panel) return [];
+      const borde = panel.getBoundingClientRect().right;
+      return [...panel.querySelectorAll('*')]
+        .filter((nodo) => {
+          if (nodo.closest('.scroll-x') || nodo.closest('[popover]')) return false;
+          const caja = nodo.getBoundingClientRect();
+          return caja.width > 0 && caja.right > borde + 1;
+        })
+        .map((nodo) => `${nodo.tagName.toLowerCase()}.${nodo.className}`.trim().slice(0, 60));
+    });
+    if (cortados.length > 0) {
+      problemas.push(
+        `[${nombre}] ${seccion}/${tab}: contenido cortado contra el borde del panel (${cortados
+          .slice(0, 4)
+          .join(', ')})`
+      );
+    }
     if (capturas && nombre === 'iphone') {
       await pagina.screenshot({
         path: new URL(`../capturas/${seccion}-${tab}.png`, import.meta.url).pathname,

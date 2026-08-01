@@ -239,11 +239,18 @@ Son cinco, y ninguna es cosmética.
   propósito** — a los lados del botón no hay nada más que tocar, pero arriba y abajo están los
   controles de los campos vecinos y un área de 44px de alto les robaría el toque.
 
-## Botón de unidades de un campo (métrico ⇄ imperial)
+## Botón de unidades de un campo (métrico → imperial)
 
 - **Un campo con magnitud no imprime su unidad en la etiqueta: la unidad ES el botón**, y va
   pegado al número. Se lee junto a la cifra que califica y se toca donde se lee. La etiqueta queda
   con el nombre del dato y nada más.
+- **El botón dice el SENTIDO de la conversión, no solo que ahí se convierte.** Lleva dos rótulos:
+  la unidad en la que está escrito el número —que manda, y por eso conserva el peso y el color del
+  botón—, la flecha, y la unidad a la que va al pulsarlo (`bar → psi`). El destino va atenuado y un
+  escalón más chico (`--text-meta`) para que la pareja se lea «de aquí a allá» y no como dos
+  unidades compitiendo. **Prohibido** rotularlo solo con la unidad actual o con una doble flecha:
+  no había forma de saber si al pulsarlo el número pasaba a psi o si el botón avisaba que ya venía
+  en psi, y equivocarse de sentido es exactamente el error de factor que este botón vino a quitar.
 - **Para qué existe.** Quien calibra lee el dato en la unidad del fierro que tiene enfrente —el
   manómetro de la barra marca psi, la ficha de la boquilla americana viene en GPM, el tanque está
   rotulado en galones— y la aplicación trabaja en la otra. Ese número se convertía a mano, de pie
@@ -271,9 +278,18 @@ Son cinco, y ninguna es cosmética.
   ya está en `min-width: var(--touch-floor)` y el alto lo recupera un pseudo-elemento que **no
   ocupa lugar en el flujo**. Por eso `.campo__unidad` es componente propio y no una variante de
   `.boton`: así nadie parchea la altura de un botón desde el consumidor.
-- **El icono de las dos flechas va dibujado en SVG, no como carácter.** El subconjunto latino de
-  las fuentes autohospedadas no trae flechas: un `⇄` de texto caería en la fuente del sistema —o
-  en un recuadro vacío— y cambiaría de tamaño entre teléfonos.
+- **La flecha va dibujada en SVG, no como carácter, y es UNA sola apuntando al destino.** El
+  subconjunto latino de las fuentes autohospedadas no trae flechas: una flecha de texto caería en
+  la fuente del sistema —o en un recuadro vacío— y cambiaría de tamaño entre teléfonos.
+- **La fila del campo se parte, el rótulo nunca.** Donde el par de unidades no cabe al lado del
+  número —los volúmenes por boquilla van en dos columnas—, el botón baja al renglón de abajo
+  entero. La base del input son 96px y **no** `auto`: el renglón se parte comparando las bases,
+  antes de encoger a nadie, y con `auto` el input pedía sus 20 caracteres por omisión y mandaba el
+  botón abajo hasta en las tarjetas anchas. Recortar el botón dejaría un `gal/…` cortado contra el
+  borde, que es peor que ambiguo.
+- **`.campo` lleva `min-width: 0`.** Un campo dentro de una rejilla no puede empujar su columna:
+  sin eso, la columna `1fr` se estira hasta el ancho mínimo del contenido, las dos columnas suman
+  más que la tarjeta y la mitad derecha de la pantalla queda cortada contra el borde.
 - **Accesibilidad por atributo:** el nombre accesible del botón contiene el texto visible y dice
   qué pasa al pulsarlo (`Presión de trabajo en bar. Convertir a psi.`), y el input apunta al botón
   con `aria-describedby` porque la unidad ya no está en su etiqueta.
@@ -363,6 +379,8 @@ suelto. Lo mismo con cada color ISO sembrado.
   fila del input con su botón: la produce `campos.js` a partir de `magnitud` y `sistema`.
 - Convertir el campo y **no** decir que quedó en la otra unidad: sin el acento, un 43.5 en un
   campo que se lee como bar es una calibración mal hecha.
+- Rotular el botón de unidades sin el sentido de la conversión (`bar` a secas, o una doble flecha):
+  no se sabe si convierte a psi o avisa que el número ya viene en psi.
 - Devolver el globo de ayuda al flujo (o anclarlo con `position: absolute` dentro del campo): abrir
   una ayuda volvería a empujar los campos de abajo, y dentro de una tarjeta el globo se recorta.
 - Sumar relleno a una tarjeta desde su contenido.

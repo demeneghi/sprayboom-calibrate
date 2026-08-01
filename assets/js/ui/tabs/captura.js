@@ -653,7 +653,14 @@ export function render(panel, ctx) {
           'Un renglón por boquilla, todos con el mismo tiempo de prueba. Los renglones vacíos se ignoran al calcular.',
       },
       cuadriculaRenglones,
-      el('div', { estilo: { display: 'flex', gap: '0.5rem' } }, botonAgregar, botonQuitar)
+      // Envuelve: en un telefono de 360px «Quitar último renglón» se
+      // salia de la tarjeta y quedaba cortado contra el borde.
+      el(
+        'div',
+        { estilo: { display: 'flex', gap: '0.5rem', flexWrap: 'wrap' } },
+        botonAgregar,
+        botonQuitar
+      )
     ),
     tarjeta(
       {
