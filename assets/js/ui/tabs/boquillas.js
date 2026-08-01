@@ -388,6 +388,11 @@ export function render(panel, ctx) {
               valor: aSistema('volumenAplicacion', objetivoEnAgua, sistema),
               unidad: unidadVolumen,
               decimales: 1,
+              ayuda:
+                'Las fichas de las boquillas están medidas con agua. Este es el volumen que ' +
+                'habría que buscar SI se aplicara agua para que el caldo, más denso y más ' +
+                'lento, entregue en campo el objetivo real. Contra este número se eligen las ' +
+                'candidatas.',
             }),
             el(
               'p',
@@ -404,6 +409,10 @@ export function render(panel, ctx) {
               etiqueta: 'Caudal requerido por boquilla',
               valor: aSistema('caudal', resultado.valores.caudalRequeridoLmin, sistema),
               unidad: unidadCaudal,
+              ayuda:
+                'Lo que tiene que salir por CADA boquilla para lograr el volumen objetivo a esta ' +
+                'velocidad y con este espaciamiento. Es el número contra el que se busca en el ' +
+                'catálogo: la boquilla sirve si lo alcanza dentro de su rango de presión.',
               decimales: 3,
               principal: true,
             })

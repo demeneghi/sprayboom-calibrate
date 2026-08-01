@@ -371,10 +371,11 @@
       <section class="card">
         <div class="card__encabezado"><h2 class="card__titulo">Resultados y desglose</h2></div>
         <div class="card__contenido">
-          <div class="resultado resultado--principal">
-            <span class="resultado__etiqueta">Volumen de aplicación</span>
-            <span class="resultado__valor">575.02 <span class="resultado__unidad">L/ha</span></span>
-          </div>
+          <div id="zona-resultado-ayuda"></div>
+          <p class="ayuda">La cifra se ve sin pedir nada; lo que explica qué es esa cifra vive en el
+          <code class="mono">?</code> de su etiqueta (<code class="mono">pintarResultado({ ayuda })</code>).
+          Ahí va lo estable —qué significa el número, de dónde sale, con qué compararlo—, nunca el
+          aviso accionable ni el resultado mismo.</p>
           <details class="desglose">
             <summary>Desglose paso a paso</summary>
             <div class="desglose__cuerpo">
@@ -473,7 +474,7 @@
     import { confirmar } from './assets/js/ui/dialog.js';
     import { crearCombobox } from './assets/js/ui/combobox.js';
     import { crearCampoNumerico, crearCampoSelect, crearInterruptor } from './assets/js/ui/campos.js';
-    import { tarjeta } from './assets/js/ui/render.js';
+    import { tarjeta, pintarResultado } from './assets/js/ui/render.js';
     import { CATALOGO_SIEMBRA } from './assets/js/data/nozzle-catalog.js';
     import { filaIso } from './assets/js/data/iso-colors.js';
 
@@ -548,6 +549,22 @@
       campoObjetivoDemo.elemento
     );
 
+    // El resultado con su "?": la cifra a la vista, la explicacion de que
+    // ES esa cifra a un toque.
+    document.getElementById('zona-resultado-ayuda').append(
+      pintarResultado({
+        etiqueta: 'Volumen de aplicación',
+        valor: 575.02,
+        unidad: 'L/ha',
+        decimales: 2,
+        principal: true,
+        ayuda:
+          'Los litros de caldo que la barra deja en una hectárea con esta velocidad, este ' +
+          'espaciamiento y este caudal por boquilla. Es la cifra que se compara contra el ' +
+          'objetivo agronómico.',
+      })
+    );
+
     // La misma ayuda, un escalon arriba: la explicacion de la SECCION
     // cuelga del "?" del encabezado en vez de imprimirse bajo las cifras.
     document.getElementById('zona-ayuda-seccion').append(
@@ -562,18 +579,26 @@
         el(
           'div',
           { estilo: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' } },
-          el(
-            'div',
-            { clase: 'resultado' },
-            el('span', { clase: 'resultado__etiqueta' }, 'Referencia de la literatura'),
-            el('span', { clase: 'resultado__valor' }, '2,272', el('span', { clase: 'resultado__unidad' }, ' g/ha'))
-          ),
-          el(
-            'div',
-            { clase: 'resultado resultado--principal' },
-            el('span', { clase: 'resultado__etiqueta' }, 'Objetivo propia del rancho'),
-            el('span', { clase: 'resultado__valor' }, '2,090', el('span', { clase: 'resultado__unidad' }, ' g/ha'))
-          )
+          pintarResultado({
+            etiqueta: 'Referencia de la literatura',
+            valor: 2272,
+            unidad: 'g/ha',
+            decimales: 0,
+            ayuda:
+              'La dosis que reporta la literatura para forzar piña. No es la que se aplica: ' +
+              'es la cota contra la que la aplicación avisa si el objetivo propio se aleja ' +
+              'demasiado.',
+          }),
+          pintarResultado({
+            etiqueta: 'Objetivo propia del rancho',
+            valor: 2090,
+            unidad: 'g/ha',
+            decimales: 0,
+            principal: true,
+            ayuda:
+              'La dosis que este rancho decidió aplicar, y la que usa el cálculo. Se edita en ' +
+              'Sistema, Configuración.',
+          })
         )
       )
     );

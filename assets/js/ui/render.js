@@ -93,17 +93,50 @@ export function resultadoConfiable(resultado) {
   return true;
 }
 
-export function pintarResultado({ etiqueta, valor, unidad = '', decimales = 2, principal = false }) {
+let consecutivoResultado = 0;
+
+/* Resultado de pantalla: la etiqueta, la cifra y —si se pasa `ayuda`— el
+   mismo boton "?" que ya usan los campos y las tarjetas, montado a la
+   derecha de la etiqueta.
+
+   Una cifra sin nombre completo no se entiende sola: "CV de la barra",
+   "factor requerido" o "método por barra" dicen poco a quien calibra de
+   pie en el lote, y el desglose paso a paso responde COMO se calculo,
+   no QUE significa ni que hacer con el numero. Eso es lo que entra al
+   globo.
+
+   La frontera es la de siempre: al globo va lo ESTABLE —que es la cifra,
+   de donde sale, con que compararla—, y se sigue imprimiendo lo que
+   cambia con el calculo: la cifra misma, el aviso accionable y el estado
+   de lo capturado. Sin `ayuda` el resultado se pinta igual que antes,
+   con la etiqueta pelada y sin envoltorio de mas. */
+export function pintarResultado({
+  etiqueta,
+  valor,
+  unidad = '',
+  decimales = 2,
+  principal = false,
+  ayuda = null,
+}) {
+  consecutivoResultado += 1;
+  const idResultado = `resultado-${consecutivoResultado}`;
+  const rotulo = el('span', { clase: 'resultado__etiqueta', id: idResultado }, etiqueta);
+  const ayudaResultado = ayuda
+    ? crearAyuda({ idCampo: idResultado, etiqueta, texto: ayuda })
+    : null;
   return el(
     'div',
     { clase: `resultado${principal ? ' resultado--principal' : ''}` },
-    el('span', { clase: 'resultado__etiqueta' }, etiqueta),
+    ayudaResultado
+      ? el('div', { clase: 'resultado__cabecera' }, rotulo, ayudaResultado.boton)
+      : rotulo,
     el(
       'span',
       { clase: 'resultado__valor' },
       formatear(valor, decimales),
       unidad ? el('span', { clase: 'resultado__unidad' }, ` ${unidad}`) : null
-    )
+    ),
+    ayudaResultado ? ayudaResultado.globo : null
   );
 }
 

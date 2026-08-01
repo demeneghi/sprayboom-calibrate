@@ -320,6 +320,10 @@ export function render(panel, ctx) {
               unidad: 'g/SCF',
               decimales: 3,
               principal: true,
+              ayuda:
+                'Cuántos gramos de gas pesa un pie cúbico en las condiciones para las que se ' +
+                'calibró el rotámetro. Es lo que convierte lo que marca el flotador —volumen— ' +
+                'en gramos aplicados, así que entra en todos los cálculos de esta pantalla.',
             }),
             pintarVerificacion(efectivo.verificacion),
             pintarDesglose(efectivo.desglose)
@@ -334,12 +338,19 @@ export function render(panel, ctx) {
               valor: gas.presionEstandarPsia,
               unidad: 'psia',
               decimales: 2,
+              ayuda:
+                'La presión para la que el fabricante grabó la escala del rotámetro. Es un dato ' +
+                'del aparato, no del lote, y se edita en Sistema, Configuración.',
             }),
             pintarResultado({
               etiqueta: 'Presión atmosférica local',
               valor: ctx.atmosferaSitio().valores.presionPsia,
               unidad: 'psia',
               decimales: 2,
+              ayuda:
+                'La presión del aire en el rancho, calculada desde su altura sobre el nivel del ' +
+                'mar. Se suma a lo que marca el manómetro para llegar a la presión absoluta ' +
+                'con la que trabaja la corrección.',
             })
           )
         );
@@ -438,12 +449,21 @@ export function render(panel, ctx) {
                     unidad: unidadMasa,
                     decimales: decMasa,
                     principal: true,
+                    ayuda:
+                      'El gas que salió del cilindro con esa lectura, esa presión y ese tiempo. ' +
+                      'Es gas INYECTADO al tanque, no el que se queda disuelto en el agua: para ' +
+                      'saber lo que de verdad se fue, pesa el cilindro.',
                   }),
                   pintarResultado({
                     etiqueta: 'Factor de corrección por presión',
                     valor: resultado.valores.factor,
                     unidad: '',
                     decimales: 4,
+                    ayuda:
+                      'La escala del rotámetro está grabada para una presión de referencia. Si ' +
+                      'el gas entra más comprimido va más denso y el flotador se queda corto: ' +
+                      'este número corrige esa diferencia. Arriba de 1 pasa más gas del que ' +
+                      'marca la escala.',
                   })
                 ),
                 pintarVerificacion(resultado.verificacion),
@@ -488,12 +508,20 @@ export function render(panel, ctx) {
                     unidad: 'psi',
                     decimales: 2,
                     principal: true,
+                    ayuda:
+                      'A cuánto hay que dejar el regulador para inyectar la masa objetivo con ' +
+                      'esa lectura de flotador y ese tiempo. Es lectura de manómetro: lo que ' +
+                      'marca la carátula en el lote, sin sumarle la presión del aire.',
                   }),
                   pintarResultado({
                     etiqueta: 'Factor requerido',
                     valor: resultado.valores.factorRequerido,
                     unidad: '',
                     decimales: 4,
+                    ayuda:
+                      'La corrección por presión que haría falta para lograr el objetivo. De ' +
+                      'aquí se despeja la presión de arriba: cuanto más lejos de 1, más presión ' +
+                      'pide.',
                   })
                 ),
                 pintarVerificacion(resultado.verificacion),
@@ -537,12 +565,21 @@ export function render(panel, ctx) {
                     unidad: 's',
                     decimales: 0,
                     principal: true,
+                    ayuda:
+                      'Cuánto hay que tener abierta la válvula para inyectar la masa objetivo ' +
+                      'con esa lectura y esa presión. Si sale más largo que el pase de la tabla, ' +
+                      'no cabe: sube la lectura del flotador o la presión.',
                   }),
                   pintarResultado({
                     etiqueta: 'Factor de corrección por presión',
                     valor: resultado.valores.factor,
                     unidad: '',
                     decimales: 4,
+                    ayuda:
+                      'La escala del rotámetro está grabada para una presión de referencia. Si ' +
+                      'el gas entra más comprimido va más denso y el flotador se queda corto: ' +
+                      'este número corrige esa diferencia. Arriba de 1 pasa más gas del que ' +
+                      'marca la escala.',
                   })
                 ),
                 pintarVerificacion(resultado.verificacion),
@@ -593,12 +630,21 @@ export function render(panel, ctx) {
                     unidad: 'SCFM',
                     decimales: 2,
                     principal: true,
+                    ayuda:
+                      'Dónde hay que dejar el flotador del rotámetro para inyectar la masa ' +
+                      'objetivo en ese tiempo y a esa presión. Si el número cae fuera de la ' +
+                      'escala del aparato, ajusta presión o tiempo hasta que entre.',
                   }),
                   pintarResultado({
                     etiqueta: 'Factor de corrección por presión',
                     valor: resultado.valores.factor,
                     unidad: '',
                     decimales: 4,
+                    ayuda:
+                      'La escala del rotámetro está grabada para una presión de referencia. Si ' +
+                      'el gas entra más comprimido va más denso y el flotador se queda corto: ' +
+                      'este número corrige esa diferencia. Arriba de 1 pasa más gas del que ' +
+                      'marca la escala.',
                   })
                 ),
                 pintarVerificacion(resultado.verificacion),

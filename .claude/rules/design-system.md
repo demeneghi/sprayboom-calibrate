@@ -239,6 +239,37 @@ Son cinco, y ninguna es cosmética.
   propósito** — a los lados del botón no hay nada más que tocar, pero arriba y abajo están los
   controles de los campos vecinos y un área de 44px de alto les robaría el toque.
 
+## Ayuda de un resultado (el `?` de la cifra)
+
+- **Cada cifra que se pinta lleva su explicación detrás de un `?`.** `pintarResultado()` recibe
+  `ayuda` y monta el mismo botón de los campos y las tarjetas, a la derecha de la etiqueta, dentro
+  de `.resultado__cabecera`.
+- **Para qué existe.** Una etiqueta no alcanza a decir qué es la cifra. «CV de la barra», «factor
+  requerido», «método por barra» o «masa por pie cúbico estándar» son nombres correctos y opacos: quien
+  calibra de pie en el lote no deduce de ahí qué significa el número, con qué compararlo ni qué
+  hacer si sale alto. **El desglose paso a paso no lo resuelve**: contesta *cómo* se calculó —la
+  fórmula con los números sustituidos—, que es otra pregunta.
+- **La frontera es la de siempre**, la misma que separa el `?` de una tarjeta de su `.ayuda`:
+
+  | Va al `?` del resultado | Se sigue imprimiendo |
+  | --- | --- |
+  | Qué ES esa cifra, en una frase | La cifra |
+  | De dónde sale y de qué depende | El aviso accionable del dominio |
+  | Con qué compararla («arriba de 10 % toca reponer») | El estado de lo capturado hoy |
+  | Que es un modelo y no una medición | La nota que cambia con el cálculo |
+
+- **Nunca se manda al `?` un aviso de seguridad ni un resultado.** La advertencia de solubilidad
+  del etileno se queda a la vista; lo que va al globo del resultado es que la masa inyectada **no
+  es** masa retenida.
+- **El `?` no aparece si no se pasa `ayuda`:** sin ella el resultado se pinta como siempre, con la
+  etiqueta pelada y sin fila envolvente.
+- **Una superficie que no puede usar `pintarResultado` monta el botón con `crearAyuda`**, igual que
+  hace `tarjeta()`. Es el caso de las cifras derivadas de Configuración, que van un escalón de
+  texto más chicas porque comparten pantalla con decenas de campos. **Prohibido** copiar el
+  `.resultado` a mano sin su ayuda.
+- Vale todo lo dicho para el globo del campo: uno abierto a la vez en la pantalla, flotando en la
+  capa superior, posición calculada por `campos.js`, y `Escape` o un toque fuera lo cierran.
+
 ## Botón de unidades de un campo (métrico → imperial)
 
 - **Un campo con magnitud no imprime su unidad en la etiqueta: la unidad ES el botón**, y va
@@ -407,6 +438,10 @@ suelto. Lo mismo con cada color ISO sembrado.
 - Imprimir la explicación estable de una tarjeta como párrafo bajo sus cifras: va en el `?` del
   encabezado (`tarjeta({ ayuda })`). Lo que se imprime es lo que cambia con el cálculo.
 - Mandar al `?` un aviso accionable o un resultado: la ayuda se consulta, el resultado se ve.
+- Pintar una cifra sin decir qué es: todo `pintarResultado` lleva su `ayuda`, y una etiqueta como
+  «CV de la barra» o «factor requerido» no se explica sola.
+- Armar a mano un `.resultado` en una pantalla en vez de llamar a `pintarResultado`: se queda sin
+  el `?` y sin la fila de la etiqueta.
 - Repetir la unidad en la etiqueta de un campo que ya tiene botón de unidades, o armar a mano la
   fila del input con su botón: la produce `campos.js` a partir de `magnitud` y `sistema`.
 - Convertir el campo y **no** decir que quedó en la otra unidad: sin el acento, un 43.5 en un

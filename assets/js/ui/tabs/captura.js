@@ -442,6 +442,10 @@ export function render(panel, ctx) {
               unidad: unidadCaudal,
               decimales: 3,
               principal: true,
+              ayuda:
+                'El promedio de lo que entregaron las boquillas que capturaste. Es el caudal ' +
+                'real de la barra hoy, con sus boquillas como están, y de él sale el volumen ' +
+                'por hectárea medido.',
             }),
             pintarResultado({
               etiqueta: 'CV de la barra',
@@ -449,6 +453,10 @@ export function render(panel, ctx) {
               unidad: '%',
               decimales: 1,
               principal: true,
+              ayuda:
+                'Qué tan parejas van las boquillas entre sí, en porcentaje de la media. Es la ' +
+                'cifra que dice si la barra aplica pareja: por norma se busca 5 % o menos, y ' +
+                'arriba de 10 % hay boquillas que reponer.',
             })
           ),
           el(
@@ -479,12 +487,19 @@ export function render(panel, ctx) {
                 valor: aSistema('caudal', caudalTeoricoLmin, sistema),
                 unidad: unidadCaudal,
                 decimales: 3,
+                ayuda:
+                  'Lo que entregaría una boquilla NUEVA de este modelo a la presión capturada, ' +
+                  'según su ficha. Es la vara contra la que se mide lo que hoy da la barra.',
               }),
               pintarResultado({
                 etiqueta: 'Desgaste implícito',
                 valor: resultado.valores.desgastePct,
                 unidad: '%',
                 decimales: 1,
+                ayuda:
+                  'Cuánto se separó la media de la barra del caudal de catálogo. En positivo la ' +
+                  'boquilla se abrió con el uso y entrega de más; en negativo hay tapado o la ' +
+                  'presión no es la que marca el manómetro. Arriba de 10 % toca reponer.',
               })
             ),
             el(
@@ -524,6 +539,10 @@ export function render(panel, ctx) {
                   unidad: unidadVolumen,
                   decimales: decimalesVolumenAplicacion,
                   principal: true,
+                  ayuda:
+                    'Lo que de verdad está dejando la barra por hectárea: sale de lo que se ' +
+                    'juntó en las probetas, no de la ficha de una boquilla nueva. Manda sobre ' +
+                    'el calculado, y Mezcla y Forzamiento lo heredan.',
                 }),
                 resultado.valores.comparacionObjetivoPct !== null
                   ? pintarResultado({
@@ -531,6 +550,10 @@ export function render(panel, ctx) {
                       valor: resultado.valores.comparacionObjetivoPct,
                       unidad: '%',
                       decimales: 1,
+                      ayuda:
+                        'Qué tanto se aparta el volumen medido del objetivo que capturaste. En ' +
+                        'positivo estás aplicando de más y en negativo de menos; se corrige con ' +
+                        'presión, con velocidad o cambiando de boquilla.',
                     })
                   : null
               )

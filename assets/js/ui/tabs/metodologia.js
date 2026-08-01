@@ -341,6 +341,10 @@ export function render(panel, ctx) {
                   valor: aSistema('caudal', ce.resultado.valores.caudalLmin, sistema),
                   unidad: unidadCaudal,
                   decimales: 3,
+                  ayuda:
+                    'Lo que tendría que salir por cada boquilla para dejar el volumen objetivo ' +
+                    'con esta velocidad y este espaciamiento. Aquí es un ejemplo con los datos ' +
+                    'del equipo activo: sirve para ver la fórmula maestra trabajando.',
                 }),
                 pintarVerificacion(ce.resultado.verificacion),
                 pintarDesglose(ce.resultado.desglose)
@@ -374,6 +378,9 @@ export function render(panel, ctx) {
                     unidad: unidadVolumen,
                     decimales: 1,
                     principal: true,
+                    ayuda:
+                      'Los litros por hectárea calculados con UNA boquilla y la distancia entre ' +
+                      'boquillas: la franja que moja una sola.',
                   }),
                   pintarResultado({
                     etiqueta: 'Método por barra',
@@ -381,6 +388,9 @@ export function render(panel, ctx) {
                     unidad: unidadVolumen,
                     decimales: 1,
                     principal: true,
+                    ayuda:
+                      'Los mismos litros por hectárea con el caudal de TODA la barra y su ancho ' +
+                      'completo. Dos caminos al mismo número: por eso se muestran juntos.',
                   })
                 ),
                 el(
@@ -391,12 +401,19 @@ export function render(panel, ctx) {
                     valor: ambos.valores.discrepanciaPct,
                     unidad: '%',
                     decimales: 2,
+                    ayuda:
+                      'Qué tanto se separan los dos métodos. Cerca de cero es lo normal; si se ' +
+                      'abre, el espaciamiento por el número de boquillas no da el ancho de barra ' +
+                      'configurado.',
                   }),
                   pintarResultado({
                     etiqueta: 'Caudal total de la barra',
                     valor: aSistema('caudal', ambos.valores.caudalTotalLmin, sistema),
                     unidad: unidadCaudal,
                     decimales: 2,
+                    ayuda:
+                      'Todo lo que sale por la barra junta: el caudal de una boquilla por el ' +
+                      'número de boquillas.',
                   })
                 ),
                 pintarVerificacion(ambos.verificacion),
@@ -645,12 +662,19 @@ export function render(panel, ctx) {
               valor: reconciliacion.valores.caudalLmin,
               unidad: 'L/min',
               decimales: 3,
+              ayuda:
+                'El caudal que anuncia la nomenclatura norteamericana, llevado con la curva de ' +
+                `la boquilla hasta los ${PRESION_NOMINAL_ISO_BAR} bar en que trabaja la tabla ` +
+                'ISO. Así los dos números se pueden comparar.',
             }),
             pintarResultado({
               etiqueta: `Tabla ISO (tamaño ${filaUs.tamano})`,
               valor: filaUs.caudalLmin,
               unidad: 'L/min',
               decimales: 2,
+              ayuda:
+                'El caudal que la norma ISO 10625 asigna a ese tamaño y a ese color. Es el dato ' +
+                'sembrado en la aplicación.',
             })
           ),
           pintarResultado({
@@ -659,6 +683,10 @@ export function render(panel, ctx) {
             unidad: '%',
             decimales: 1,
             principal: true,
+            ayuda:
+              'Cuánto se separan las dos formas de nombrar la misma boquilla. Una diferencia ' +
+              'chica es el redondeo de cada tabla, no un error: el código de color y el número ' +
+              'americano describen la misma pieza.',
           }),
           pintarDesglose(reconciliacion.desglose),
           el(
@@ -785,18 +813,47 @@ export function render(panel, ctx) {
         el(
           'div',
           { estilo: GRID_2 },
-          pintarResultado({ etiqueta: 'R_GAS (constante del gas)', valor: R_GAS, unidad: 'psi*ft3/(lbmol*R)', decimales: 4 }),
-          pintarResultado({ etiqueta: 'Grados F a Rankine (offset)', valor: OFFSET_RANKINE, unidad: 'R', decimales: 2 })
+          pintarResultado({
+            etiqueta: 'R_GAS (constante del gas)',
+            valor: R_GAS,
+            unidad: 'psi*ft3/(lbmol*R)',
+            decimales: 4,
+            ayuda:
+              'La constante de los gases ideales escrita en unidades imperiales. Es un valor ' +
+              'físico fijo, igual para cualquier gas: relaciona presión, volumen y temperatura.',
+          }),
+          pintarResultado({
+            etiqueta: 'Grados F a Rankine (offset)',
+            valor: OFFSET_RANKINE,
+            unidad: 'R',
+            decimales: 2,
+            ayuda:
+              'Lo que se le suma a los grados Fahrenheit para llegar a la escala Rankine, que ' +
+              'arranca en el cero absoluto. La ley del gas ideal solo funciona con temperatura ' +
+              'absoluta.',
+          })
         ),
         el(
           'div',
           { estilo: GRID_2 },
-          pintarResultado({ etiqueta: 'Moles por libra-mol', valor: LBMOL_A_MOL, unidad: 'mol/lbmol', decimales: 3 }),
+          pintarResultado({
+            etiqueta: 'Moles por libra-mol',
+            valor: LBMOL_A_MOL,
+            unidad: 'mol/lbmol',
+            decimales: 3,
+            ayuda:
+              'El puente entre las dos formas de contar moléculas. R_GAS trabaja en libras-mol ' +
+              'y el peso molecular en moles: sin este factor el resultado sale mil veces más ' +
+              'chico.',
+          }),
           pintarResultado({
             etiqueta: `Peso molecular (${gas.nombre})`,
             valor: gas.pesoMolecular,
             unidad: 'g/mol',
             decimales: 2,
+            ayuda:
+              'Lo que pesa un mol de este gas. Es lo único de la fórmula que cambia de un gas a ' +
+              'otro, y se edita en Sistema, Configuración.',
           })
         ),
         pintarAviso({
@@ -818,6 +875,10 @@ export function render(panel, ctx) {
               unidad: 'g/SCF',
               decimales: 3,
               principal: true,
+              ayuda:
+                'El valor de tabla del proveedor que alguien capturó a mano. Mientras esté ' +
+                'lleno, gana sobre el derivado y es el que usan todos los cálculos de gas. Se ' +
+                'vacía en Sistema, Configuración para volver al derivado.',
             }),
             el(
               'p',
@@ -845,6 +906,10 @@ export function render(panel, ctx) {
               unidad: 'g/SCF',
               decimales: 3,
               principal: true,
+              ayuda:
+                'Cuántos gramos pesa un pie cúbico de este gas en las condiciones estándar del ' +
+                'rotámetro, sacado del gas ideal. Es lo que convierte volumen de gas en gramos ' +
+                'aplicados en toda la aplicación.',
             })
           );
         } else {
@@ -922,12 +987,18 @@ export function render(panel, ctx) {
             valor: gas?.presionEstandarPsia ?? null,
             unidad: 'psia',
             decimales: 2,
+            ayuda:
+              'La presión para la que el fabricante grabó la escala del rotámetro. Es un dato ' +
+              'del aparato y del gas, no del lote.',
           }),
           pintarResultado({
             etiqueta: 'Presión atmosférica local (sitio)',
             valor: ctx.presionAtmosfericaLocal(),
             unidad: 'psia',
             decimales: 2,
+            ayuda:
+              'La presión del aire en el rancho, derivada de su altitud. Se suma a lo que marca ' +
+              'el manómetro para llegar a la presión absoluta del gas.',
           })
         ),
         el(
@@ -951,6 +1022,10 @@ export function render(panel, ctx) {
             valor: factor,
             unidad: '',
             decimales: 4,
+            ayuda:
+              'La corrección por presión calculada con lo que hay capturado ahora mismo en la ' +
+              'pestaña Gas etileno. Arriba de 1 significa que pasa más gas del que marca la ' +
+              'escala del rotámetro.',
           })
         );
       } else {

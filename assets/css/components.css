@@ -1165,6 +1165,23 @@ dialog.dialogo::backdrop {
   color: hsl(var(--muted-foreground));
 }
 
+/* Fila de la etiqueta cuando el resultado lleva ayuda. El "?" va al
+   extremo derecho, igual que en un campo: asi cae en el mismo eje
+   vertical de toda la columna de resultados y se encuentra sin leer. La
+   etiqueta puede partir en varios renglones sin empujarlo fuera. */
+.resultado__cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* El "?" no se estira ni se encoge con la etiqueta: sigue siendo el
+   circulo de `--ayuda-boton-tam`. */
+.resultado__cabecera > .ayuda-boton {
+  margin-top: 0.1rem;
+}
+
 /* La cifra es lo que la persona vino a leer, muchas veces de pie y
    sin acercarse el telefono: es el escalon mas grande de la escala
    que cabe en el ancho de la tarjeta. */

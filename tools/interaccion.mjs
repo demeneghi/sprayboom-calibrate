@@ -245,7 +245,9 @@ verificar(
 // Toda la mezcla depende de este número y antes había que copiarlo a
 // mano de una pantalla a otra: la ayuda pedía traerlo de aquí sin que
 // hubiera forma de hacerlo.
-const lhaCalculado = (texto.match(/Método por boquilla\s+([\d.,]+)/) ?? [])[1] ?? null;
+// Entre la etiqueta y la cifra va el boton "?" de la ayuda del
+// resultado, que en el texto plano sale como un renglon con un signo.
+const lhaCalculado = (texto.match(/Método por boquilla\s+(?:\?\s+)?([\d.,]+)/) ?? [])[1] ?? null;
 verificar(lhaCalculado !== null, 'Gasto: el método por boquilla da un número');
 await pagina.goto(`${base}#/calibrar/mezcla`, { waitUntil: 'networkidle' });
 await pagina.waitForTimeout(250);

@@ -142,6 +142,9 @@ export function render(panel, ctx) {
           valor: p.agronomicos.dosisEtilenoReferencia,
           unidad: 'g/ha',
           decimales: 0,
+          ayuda:
+            'La dosis de etileno que reporta la literatura para forzar. No es la que se ' +
+            'aplica: es la cota contra la que la aplicación avisa si el ajuste se aleja mucho.',
         }),
         pintarResultado({
           etiqueta: 'Objetivo propia del rancho',
@@ -149,6 +152,9 @@ export function render(panel, ctx) {
           unidad: 'g/ha',
           decimales: 0,
           principal: true,
+          ayuda:
+            'La dosis que este rancho decidió aplicar y la que usa el cálculo. Se edita en ' +
+            'Sistema, Configuración.',
         })
       )
     );
@@ -311,6 +317,10 @@ export function render(panel, ctx) {
         unidad: 'SCFM',
         decimales: 2,
         principal: true,
+        ayuda:
+          'Dónde dejar el flotador del rotámetro para que la tabla reciba su masa de etileno en ' +
+          'el tiempo que dura el pase, con la presión capturada. Es la cifra que se lleva al ' +
+          'lote.',
       });
     }
     if (v.modoDespeje === 'psi') {
@@ -320,6 +330,9 @@ export function render(panel, ctx) {
         unidad: 'psi',
         decimales: 1,
         principal: true,
+        ayuda:
+          'A cuánto dejar el regulador para que la tabla reciba su masa de etileno con la ' +
+          'lectura de flotador capturada. Es lectura de manómetro, la de la carátula.',
       });
     }
     return pintarResultado({
@@ -328,6 +341,10 @@ export function render(panel, ctx) {
       unidad: 's',
       decimales: 0,
       principal: true,
+      ayuda:
+        'Cuánto hay que tener abierta la válvula para que la tabla reciba su masa de etileno ' +
+        'con la lectura y la presión capturadas. Compáralo con lo que dura el pase: si no cabe, ' +
+        'sube la lectura o la presión.',
     });
   }
 
@@ -343,6 +360,10 @@ export function render(panel, ctx) {
           valor: aSistema('superficie', ha, sistema),
           unidad: unidadSuperficie,
           decimales: 4,
+          ayuda:
+            'Las hectáreas que cubre un pase de la tabla, tomadas de la geometría configurada. ' +
+            'Multiplican a la dosis por hectárea para saber cuántos gramos lleva la tabla; se ' +
+            'edita en Sistema, Configuración.',
         })
       );
     } catch (error) {
@@ -421,24 +442,38 @@ export function render(panel, ctx) {
                   valor: aSistema('masa', v.masaPorTablaG, sistema),
                   unidad: unidadMasa,
                   decimales: decMasa,
+                  ayuda:
+                    'Los gramos de etileno que le tocan a una tabla: la dosis por hectárea por ' +
+                    'las hectáreas de la tabla. De aquí sale el ajuste del rotámetro.',
                 }),
                 pintarResultado({
                   etiqueta: 'Agua por tabla',
                   valor: aSistema('volumen', v.volumenAguaPorTablaL, sistema),
                   unidad: unidadVolumen,
                   decimales: 0,
+                  ayuda:
+                    'El agua en la que va disuelto ese etileno: el volumen de aplicación por las ' +
+                    'hectáreas de la tabla.',
                 }),
                 pintarResultado({
                   etiqueta: 'Concentración en tanque',
                   valor: v.concentracionGL,
                   unidad: 'g/L',
                   decimales: 3,
+                  ayuda:
+                    'Cuántos gramos de etileno lleva cada litro de agua. Sirve para saber si la ' +
+                    'solución está muy cargada: el etileno se disuelve poco, y arriba de cierto ' +
+                    'punto el gas de más se escapa en vez de quedarse.',
                 }),
                 pintarResultado({
                   etiqueta: 'Desviación contra la referencia',
                   valor: v.desviacionContraReferenciaPct,
                   unidad: '%',
                   decimales: 1,
+                  ayuda:
+                    'Qué tan lejos queda la dosis objetivo del rancho respecto a la referencia ' +
+                    'de la literatura. No es un error: es la distancia que hay entre lo que dice ' +
+                    'el libro y lo que este rancho decidió aplicar.',
                 })
               ),
               pintarAjusteDespejado(v),
@@ -605,6 +640,10 @@ export function render(panel, ctx) {
                 unidad: 'g/ha',
                 decimales: 0,
                 principal: true,
+                ayuda:
+                  'Los gramos de etileno por hectárea que deja el ajuste que capturaste. Es el ' +
+                  'camino de regreso: en vez de decirte cómo poner el rotámetro, te dice qué ' +
+                  'dosis estás aplicando con el que ya traes puesto.',
               }),
               el(
                 'div',
@@ -614,12 +653,19 @@ export function render(panel, ctx) {
                   valor: aSistema('masa', v.masaPorTablaG, sistema),
                   unidad: unidadMasa,
                   decimales: decMasa,
+                  ayuda:
+                    'Los gramos de etileno que salieron del cilindro en un pase con el ajuste ' +
+                    'capturado. Es gas inyectado al tanque, no gas retenido en el agua.',
                 }),
                 pintarResultado({
                   etiqueta: 'Concentración en tanque',
                   valor: v.concentracionGL,
                   unidad: 'g/L',
                   decimales: 3,
+                  ayuda:
+                    'Cuántos gramos de etileno lleva cada litro de agua con este ajuste. El ' +
+                    'etileno se disuelve poco: si sube mucho, el gas de más se escapa en vez de ' +
+                    'quedarse en la solución.',
                 })
               )
             );

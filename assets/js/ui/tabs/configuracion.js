@@ -12,7 +12,7 @@
 
 import { el, reemplazar } from '../dom.js';
 import { tarjeta, pintarAvisos } from '../render.js';
-import { crearCampoNumerico, crearCampoSelect, crearInterruptor } from '../campos.js';
+import { crearAyuda, crearCampoNumerico, crearCampoSelect, crearInterruptor } from '../campos.js';
 import { formatear } from '../formato.js';
 import { confirmar } from '../dialog.js';
 import { mostrarToast } from '../toast.js';
@@ -66,6 +66,28 @@ export const id = 'configuracion';
 // convertida. El sistema que aqui se declara es el de SALIDA del campo,
 // no el de captura.
 const SISTEMA_PARAMETROS = 'metrico';
+
+let consecutivoDerivado = 0;
+
+/* Cifra derivada de esta pantalla —lo que sale solo de lo capturado
+   arriba— con su boton "?", igual que un resultado de calculadora.
+   Aquí no se usa `pintarResultado` porque en Configuración la cifra va
+   un escalón más chica: son decenas de campos apilados y no el número
+   que se lee a distancia de brazo, y el consumidor no puede pedirle ese
+   tamaño. La estructura y la ayuda sí son las mismas. */
+function cifraDerivada({ etiqueta, texto, ayuda, tamano = 'var(--text-lg)' }) {
+  consecutivoDerivado += 1;
+  const idCifra = `derivado-${consecutivoDerivado}`;
+  const rotulo = el('span', { clase: 'resultado__etiqueta', id: idCifra }, etiqueta);
+  const ayudaCifra = crearAyuda({ idCampo: idCifra, etiqueta, texto: ayuda });
+  return el(
+    'div',
+    { clase: 'resultado' },
+    el('div', { clase: 'resultado__cabecera' }, rotulo, ayudaCifra.boton),
+    el('span', { clase: 'resultado__valor', estilo: { fontSize: tamano } }, texto),
+    ayudaCifra.globo
+  );
+}
 
 // Respuesta en palabras de cada estado de la busqueda de version nueva.
 // Quien lee esto esta de pie en el lote: cada mensaje dice que paso y
@@ -171,23 +193,44 @@ export function render(panel, ctx) {
     try {
       const g = geometria(ctx.parametrosGeometria());
       const sistema = ctx.sistema();
-      const fila = (etiqueta, valor, unidadTexto, decimales) =>
-        el(
-          'div',
-          { clase: 'resultado' },
-          el('span', { clase: 'resultado__etiqueta' }, etiqueta),
-          el('span', { clase: 'resultado__valor', estilo: { fontSize: 'var(--text-lg)' } },
-            `${formatear(valor, decimales)} ${unidadTexto}`)
-        );
+      const fila = (etiqueta, valor, unidadTexto, decimales, ayuda) =>
+        cifraDerivada({
+          etiqueta,
+          texto: `${formatear(valor, decimales)} ${unidadTexto}`,
+          ayuda,
+        });
       // No se imprime el área en m2: es la MISMA cifra que la superficie
       // en hectáreas dividida entre 10000, y la aplicación dosifica por
       // hectárea. Dos renglones para un solo dato obligan a leer los dos
       // para darse cuenta de que dicen lo mismo.
       reemplazar(
         zonaDerivados,
-        fila('Superficie por tabla', aSistema('superficie', g.valores.hectareasPorTabla, sistema), unidad('superficie', sistema), 6),
-        fila('Tramos por tabla', g.valores.tramosPorTabla, '', 2),
-        fila('Espaciamiento derivado', aSistema('distanciaCorta', g.valores.espaciamientoDerivado, sistema), unidad('distanciaCorta', sistema), 4)
+        fila(
+          'Superficie por tabla',
+          aSistema('superficie', g.valores.hectareasPorTabla, sistema),
+          unidad('superficie', sistema),
+          6,
+          'Las hectáreas que cubre un pase de la tabla: su largo por el ancho de la barra. ' +
+            'Multiplica a la dosis por hectárea para saber cuánto producto o cuánto gas lleva ' +
+            'una tabla.'
+        ),
+        fila(
+          'Tramos por tabla',
+          g.valores.tramosPorTabla,
+          '',
+          2,
+          'Cuántos tramos de referencia caben en el largo de la tabla. El tramo es la ' +
+            'distancia que se cronometra en campo para medir la velocidad.'
+        ),
+        fila(
+          'Espaciamiento derivado',
+          aSistema('distanciaCorta', g.valores.espaciamientoDerivado, sistema),
+          unidad('distanciaCorta', sistema),
+          4,
+          'La distancia entre boquillas que sale del ancho de barra entre el número de ' +
+            'boquillas. Si mides otra cosa con el flexómetro, captúrala: la capturada gana ' +
+            'sobre esta.'
+        )
       );
       reemplazar(zonaAvisosGeometria, ...pintarAvisos(g.avisos));
     } catch (error) {
@@ -213,13 +256,14 @@ export function render(panel, ctx) {
       const atmosfera = presionAtmosfericaEfectiva({ sitio });
       reemplazar(
         zonaAtmosfera,
-        el(
-          'div',
-          { clase: 'resultado' },
-          el('span', { clase: 'resultado__etiqueta' }, 'Presión atmosférica local en uso'),
-          el('span', { clase: 'resultado__valor', estilo: { fontSize: 'var(--text-lg)' } },
-            `${formatear(atmosfera.valores.presionPsia, 2)} psia`)
-        ),
+        cifraDerivada({
+          etiqueta: 'Presión atmosférica local en uso',
+          texto: `${formatear(atmosfera.valores.presionPsia, 2)} psia`,
+          ayuda:
+            'La presión del aire en el rancho. Se suma a lo que marca el manómetro del gas ' +
+            'para llegar a la presión absoluta con la que se corrige el rotámetro: en el ' +
+            'altiplano el aire pesa menos y el mismo manómetro significa otro flujo.',
+        }),
         el(
           'p',
           { clase: 'ayuda' },
@@ -799,11 +843,15 @@ export function render(panel, ctx) {
         const efectivo = gPorScfEfectivo({ gas: gasVigente });
         reemplazar(
           zonaDerivado,
-          el('div', { clase: 'resultado' },
-            el('span', { clase: 'resultado__etiqueta' },
-              `Masa por pie cúbico estándar (${efectivo.valores.anulado ? 'ANULADA manualmente' : 'derivada'})`),
-            el('span', { clase: 'resultado__valor', estilo: { fontSize: 'var(--text-xl)' } },
-              `${formatear(efectivo.valores.gPorScf, 4)} g/SCF`)),
+          cifraDerivada({
+            etiqueta: `Masa por pie cúbico estándar (${efectivo.valores.anulado ? 'ANULADA manualmente' : 'derivada'})`,
+            texto: `${formatear(efectivo.valores.gPorScf, 4)} g/SCF`,
+            tamano: 'var(--text-xl)',
+            ayuda:
+              'Cuántos gramos pesa un pie cúbico de este gas en las condiciones estándar del ' +
+              'rotámetro. Es lo que convierte lo que marca el flotador —volumen— en gramos ' +
+              'aplicados, así que entra en todo el cálculo de forzamiento.',
+          }),
           ...pintarAvisos(efectivo.avisos)
         );
       } catch (error) {
