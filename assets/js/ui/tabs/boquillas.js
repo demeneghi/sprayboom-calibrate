@@ -74,7 +74,8 @@ export function render(panel, ctx) {
   // ---------------- Captura del objetivo ----------------
   const campoVolumen = crearCampoNumerico({
     etiqueta: 'Volumen de aplicación objetivo',
-    unidad: unidadVolumen,
+    magnitud: 'volumenAplicacion',
+    sistema,
     // El objetivo de la jornada es UNO: se precarga lo ultimo capturado
     // en cualquiera de las tres pantallas que lo piden (aqui, Gasto de
     // agua y Prueba de captura) y, si no hay, el objetivo propio del
@@ -107,7 +108,8 @@ export function render(panel, ctx) {
     clave: 'espaciamientoM',
     claveManual: 'espaciamientoManual',
     etiqueta: 'Espaciamiento entre boquillas',
-    unidad: unidadEspaciamiento,
+    magnitud: 'distanciaCorta',
+    sistema,
     ayuda:
       'Sale de la geometría de la barra activa: el capturado si lo hay, y si no el ancho entre ' +
       'el número de boquillas. Editarlo aquí no cambia la configuración.',

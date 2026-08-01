@@ -187,7 +187,8 @@ export function render(panel, ctx) {
     clave: 'volumenAguaLha',
     claveManual: 'volumenAguaManual',
     etiqueta: 'Volumen de agua',
-    unidad: unidadVolAplicacion,
+    magnitud: 'volumenAplicacion',
+    sistema,
     ayuda:
       'El agua que realmente entrega la barra: de ella depende la concentración del tanque. Se ' +
       'precarga la medida en la prueba de captura y, si no la hay, la calculada en Gasto de ' +

@@ -7,6 +7,9 @@ import {
   aMetrico,
   aSistema,
   deSistema,
+  entreSistemas,
+  esConvertible,
+  otroSistema,
   unidad,
   barAKpa,
   kpaABar,
@@ -64,4 +67,55 @@ test('los valores nulos pasan sin tocarse (campos vacios)', () => {
 
 test('magnitud desconocida truena con mensaje claro', () => {
   assert.throws(() => aImperial('inexistente', 1), /Magnitud desconocida/);
+});
+
+// ---------------------------------------------------------------------
+// Boton de unidades de un campo: lo que usa ui/campos.js para convertir
+// lo capturado sin tocar el sistema de la aplicacion.
+// ---------------------------------------------------------------------
+
+test('otroSistema devuelve siempre el contrario', () => {
+  assert.equal(otroSistema('metrico'), 'imperial');
+  assert.equal(otroSistema('imperial'), 'metrico');
+});
+
+test('toda magnitud declarada es convertible; lo que no existe no lo es', () => {
+  for (const magnitud of Object.keys(MAGNITUDES)) {
+    assert.ok(esConvertible(magnitud), `${magnitud} deberia ser convertible`);
+  }
+  // Un campo sin magnitud —segundos, rpm, por ciento— no lleva boton.
+  assert.equal(esConvertible(null), false);
+  assert.equal(esConvertible('inexistente'), false);
+});
+
+test('entreSistemas convierte por la base metrica y la vuelta no deriva', () => {
+  const gen = generadorDeterminista(20260801);
+  for (const magnitud of Object.keys(MAGNITUDES)) {
+    for (let i = 0; i < 20; i += 1) {
+      const valor = uniforme(gen, 0.001, 10000);
+      const ida = entreSistemas(magnitud, valor, 'metrico', 'imperial');
+      cercanoRel(ida, aImperial(magnitud, valor), 1e-12, `magnitud ${magnitud}`);
+      const vuelta = entreSistemas(magnitud, ida, 'imperial', 'metrico');
+      cercanoRel(vuelta, valor, 1e-12, `magnitud ${magnitud} (vuelta)`);
+    }
+  }
+});
+
+test('entreSistemas con el mismo sistema no toca el valor', () => {
+  assert.equal(entreSistemas('presion', 3, 'metrico', 'metrico'), 3);
+  assert.equal(entreSistemas('presion', 40, 'imperial', 'imperial'), 40);
+});
+
+test('entreSistemas deja pasar el campo vacio', () => {
+  assert.equal(entreSistemas('presion', null, 'metrico', 'imperial'), null);
+  assert.equal(entreSistemas('presion', undefined, 'metrico', 'imperial'), undefined);
+});
+
+test('valores de control del boton, tal como los ve quien calibra', () => {
+  // 3 bar en el manometro de la barra son 43.5 psi.
+  cercano(entreSistemas('presion', 3, 'metrico', 'imperial'), 43.5113, 1e-4);
+  // Un tanque de 600 L rotulado en galones.
+  cercano(entreSistemas('volumen', 600, 'metrico', 'imperial'), 158.503, 1e-3);
+  // La ficha americana de una boquilla: 0.4 GPM en L/min.
+  cercano(entreSistemas('caudal', 0.4, 'imperial', 'metrico'), 1.51416, 1e-5);
 });

@@ -74,7 +74,8 @@ export function render(panel, ctx) {
   // ---------------- Captura ----------------
   const campoTanque = crearCampoNumerico({
     etiqueta: 'Volumen del tanque',
-    unidad: unidadVolumen,
+    magnitud: 'volumen',
+    sistema,
     valorInicial: precarga('volumen', borrador.volumenTanqueL ?? equipo?.volumenTanque ?? null),
     ayuda: equipo
       ? `Precargado del tanque de la barra activa (${equipo.nombre}); ajústalo si hoy cargas distinto.`
@@ -97,7 +98,8 @@ export function render(panel, ctx) {
     clave: 'lhaAplicacionLha',
     claveManual: 'lhaAplicacionManual',
     etiqueta: 'Volumen de aplicación',
-    unidad: unidadAplicacion,
+    magnitud: 'volumenAplicacion',
+    sistema,
     ayuda:
       'El L/ha REAL con el que va a salir la barra, no un valor supuesto: toda la mezcla depende ' +
       'de este número. Se precarga el medido en la prueba de captura y, si no lo hay, el ' +
@@ -162,7 +164,8 @@ export function render(panel, ctx) {
 
   const campoSuperficie = crearCampoNumerico({
     etiqueta: 'Superficie objetivo (opcional)',
-    unidad: unidadSuperficie,
+    magnitud: 'superficie',
+    sistema,
     valorInicial: precarga('superficie', borrador.superficieObjetivoHa ?? null),
     ayuda: 'Si la capturas, se arma el plan de cargas con la carga parcial del último tanque.',
     alCambiar: (valor) => {

@@ -80,6 +80,12 @@ export function crearCampoHeredado({
   claveManual,
   etiqueta,
   unidad = '',
+  // Magnitud de units.js y sistema activo. Con los dos, el campo lleva
+  // el boton de conversion metrico-imperial y la unidad la pone el; el
+  // valor sigue entrando y saliendo por `aCampo` / `deCampo` como
+  // siempre, porque el boton no cambia el sistema de la aplicacion.
+  magnitud = null,
+  sistema = null,
   ayuda = null,
   // Nombre de la pantalla de la que sale el valor, tal como se dice en
   // la interfaz ('Avance', 'la prueba de captura', 'la configuración').
@@ -129,6 +135,8 @@ export function crearCampoHeredado({
   const campo = crearCampoNumerico({
     etiqueta,
     unidad,
+    magnitud,
+    sistema,
     valorInicial: aCampo(inicial),
     ayuda,
     alCambiar: (valor) => {
