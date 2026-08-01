@@ -449,6 +449,12 @@ export const TRACTORES_SIEMBRA = [
     numRangos: 3,
     marchasPorRango: 3,
     etiquetasRango: ['A', 'B', 'C'],
+    // Marcha de trabajo: { rango, marcha }. Nace VACIA a proposito. Con
+    // que marcha se aplica es del rancho y no de la ficha del
+    // fabricante, asi que no se inventa: la escribe Avance en cuanto se
+    // elige una marcha, y desde ahi el tiempo por tabla llega solo a Gas
+    // etileno y a Forzamiento sin volver a pasar por Avance.
+    marchaHabitual: null,
     // Tabla del fabricante a 2400 rpm con neumatico trasero 16.9-30
     // (transmision Top Shaft Synchronized, 9 adelante y 3 atras).
     // Reversa declarada por el fabricante: AR 3.5, BR 8.4, CR 23.0 km/h.
@@ -475,6 +481,7 @@ export const TRACTORES_SIEMBRA = [
     numRangos: 3,
     marchasPorRango: 3,
     etiquetasRango: ['A', 'B', 'C'],
+    marchaHabitual: null, // la escribe Avance; ver el JD 5715
     // Tabla del fabricante a 2100 rpm con neumatico trasero 18.4-38
     // (transmision Top Shaft Synchronized, 9 adelante y 3 atras).
     // Reversa declarada por el fabricante: AR 5.0, BR 11.3, CR 29.3 km/h.

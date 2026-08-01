@@ -21,6 +21,7 @@ import {
 } from '../render.js';
 import { crearCampoNumerico, crearCampoSelect } from '../campos.js';
 import { crearCampoHeredado, fuenteVolumenAplicacion } from '../heredado.js';
+import { nodosAvanceParaTiempo } from '../marchas.js';
 import { formatear, formatearPorcentaje, formatearTiempo } from '../formato.js';
 import { mostrarToast } from '../toast.js';
 import { aSistema, deSistema, unidad } from '../../domain/units.js';
@@ -253,8 +254,9 @@ export function render(panel, ctx) {
     formatearValor: (valor) => formatearTiempo(valor),
     destino: { seccion: 'calibrar', tab: 'avance' },
     textoSinDato:
-      'Captura en Avance los segundos por tramo o una marcha con régimen, o escribe aquí el ' +
-      'tiempo por tabla.',
+      'Elige en Avance la marcha con la que vas —queda guardada como marcha de trabajo del ' +
+      'tractor— o captura los segundos por tramo; también puedes escribir aquí el tiempo por ' +
+      'tabla.',
     guardadoSinMarcaEsManual: true,
     alCambiar: () => recalcularObjetivo(),
   });
@@ -478,7 +480,15 @@ export function render(panel, ctx) {
               ),
               pintarAjusteDespejado(v),
               pintarVerificacion(resultado.verificacion),
-              pintarDesglose(resultado.desglose)
+              pintarDesglose(resultado.desglose),
+              // Cuando lo que se despeja es el TIEMPO, el numero solo se
+              // cumple si la barra cruza la tabla en ese mismo rato: se
+              // dice a que velocidad y con que marchas se logra. En los
+              // otros dos despejes el tiempo es un dato de entrada que
+              // ya viene de Avance, y no hay nada que devolver.
+              ...(v.modoDespeje === 'tiempo'
+                ? nodosAvanceParaTiempo({ ctx, sistema, tiempoTotalS: v.ajuste.tiempoS })
+                : [])
             );
             ultimoObjetivo = {
               sentido: 'objetivo-a-ajuste',

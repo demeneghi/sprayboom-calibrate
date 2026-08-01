@@ -15,9 +15,11 @@ import {
   factorDeMedicion,
   velocidadCorregida,
   marchasDeTractor,
+  marchaHabitualDe,
   marchasParaVelocidad,
   validarRegimen,
   velocidadDeAvance,
+  velocidadParaTiempoPorTabla,
 } from '../assets/js/domain/speed.js';
 import { cercano } from './helpers.js';
 
@@ -352,4 +354,115 @@ test('velocidad heredada: la marcha de otro tractor no se hereda', () => {
     rpm: 2400,
   });
   cercano(propio.velocidadKmh, 2.4, 1e-9, 'la del tractor activo si se hereda');
+});
+
+// -----------------------------------------------------------------
+// Marcha de trabajo del tractor (ultimo respaldo de la velocidad)
+// -----------------------------------------------------------------
+
+const conMarchaHabitual = (marchaHabitual) => ({ ...TRACTOR_HERENCIA, marchaHabitual });
+
+test('marcha de trabajo: se resuelve a la fila completa del tractor', () => {
+  const fila = marchaHabitualDe(conMarchaHabitual({ rango: 0, marcha: 1 }));
+  assert.equal(fila.etiqueta, 'A1');
+  assert.equal(fila.kmhNominal, 2.4);
+});
+
+test('marcha de trabajo: sin guardar, apuntando fuera o a una marcha pendiente da null', () => {
+  assert.equal(marchaHabitualDe(TRACTOR_HERENCIA), null, 'sin marcha guardada');
+  assert.equal(marchaHabitualDe(conMarchaHabitual(null)), null, 'guardada en null');
+  assert.equal(
+    marchaHabitualDe(conMarchaHabitual({ rango: 3, marcha: 9 })),
+    null,
+    'posicion que ya no existe tras encoger la transmision'
+  );
+  assert.equal(
+    marchaHabitualDe(conMarchaHabitual({ rango: 0, marcha: 2 })),
+    null,
+    'marcha sin velocidad nominal capturada'
+  );
+});
+
+// Sin este respaldo, abrir Gas etileno o Forzamiento sin haber pasado
+// antes por Avance dejaba el tiempo de inyeccion en blanco, y el mismo
+// dato habia que volver a darlo cada vez.
+test('velocidad heredada: sin nada capturado se usa la marcha de trabajo del tractor', () => {
+  const r = heredar({}, {
+    tractor: conMarchaHabitual({ rango: 0, marcha: 1 }),
+    rpmRespaldo: TRACTOR_HERENCIA.regimenHabitual,
+  });
+  cercano(r.velocidadKmh, 1.8, 1e-9, '2.4 km/h nominales a 1800 de 2400 rpm');
+  assert.equal(r.origen, 'marcha-teorica');
+  assert.ok(
+    r.avisos.some((a) => a.codigo === 'marcha-de-trabajo-del-tractor'),
+    'y dice que no salio de una captura de hoy'
+  );
+});
+
+test('velocidad heredada: la marcha de trabajo es el ULTIMO respaldo, nunca gana', () => {
+  const tractor = conMarchaHabitual({ rango: 0, marcha: 1 });
+  const conReporte = heredar({ modo: 'reporte', segundosPorTramo: 139 }, { tractor });
+  cercano(conReporte.velocidadKmh, 2.59, 0.005, 'manda el reporte de campo de hoy');
+  assert.equal(conReporte.origen, 'reporte');
+
+  const conMarchaDeHoy = heredar(
+    { modo: 'marcha', marcha: { rango: 0, marcha: 1 }, rpm: 2400 },
+    { tractor }
+  );
+  cercano(conMarchaDeHoy.velocidadKmh, 2.4, 1e-9, 'manda la marcha elegida con su regimen');
+  assert.ok(
+    !conMarchaDeHoy.avisos.some((a) => a.codigo === 'marcha-de-trabajo-del-tractor'),
+    'sin aviso cuando la marcha SI es la de hoy'
+  );
+});
+
+test('velocidad heredada: la marcha de trabajo tampoco inventa velocidad sin regimen', () => {
+  const r = heredar({}, { tractor: conMarchaHabitual({ rango: 0, marcha: 1 }) });
+  assert.equal(r.velocidadKmh, null, 'sin rpm ni regimen habitual no hay de donde');
+});
+
+// -----------------------------------------------------------------
+// Del tiempo por tabla a la velocidad (sentido inverso del avance)
+// -----------------------------------------------------------------
+
+test('velocidad para un tiempo por tabla: es el inverso exacto de avance()', () => {
+  const ida = avance({ velocidadKmh: 2.59, distanciaReferencia: 100, largoTabla: 646 });
+  const vuelta = velocidadParaTiempoPorTabla({
+    tiempoTotalS: ida.valores.tiempoTotalS,
+    largoTabla: 646,
+    distanciaReferencia: 100,
+  });
+  cercano(vuelta.valores.velocidadKmh, 2.59, 1e-9, 'vuelve a la misma velocidad');
+  cercano(
+    vuelta.valores.segundosPorTramo,
+    ida.valores.segundosPorTramo,
+    1e-9,
+    'y a los mismos segundos por tramo'
+  );
+  cercano(vuelta.valores.tramosPorTabla, 6.46, 1e-9);
+});
+
+test('velocidad para un tiempo por tabla: 646 m en 1477 s dan 1.575 km/h', () => {
+  const r = velocidadParaTiempoPorTabla({
+    tiempoTotalS: 1477,
+    largoTabla: 646,
+    distanciaReferencia: 100,
+  });
+  cercano(r.valores.velocidadKmh, 1.5745, 0.001, '646 * 3.6 / 1477');
+  assert.equal(r.desglose.length, 3, 'el desglose auditable sale completo');
+});
+
+test('velocidad para un tiempo por tabla: un tiempo no positivo es error de dominio', () => {
+  assert.throws(
+    () => velocidadParaTiempoPorTabla({ tiempoTotalS: 0, largoTabla: 646, distanciaReferencia: 100 }),
+    /tiempo por tabla/
+  );
+});
+
+test('velocidad heredada: la etiqueta distingue la marcha de trabajo de la de hoy', () => {
+  const tractor = conMarchaHabitual({ rango: 0, marcha: 1 });
+  const deHoy = heredar({ modo: 'marcha', marcha: { rango: 0, marcha: 1 }, rpm: 2400 }, { tractor });
+  assert.match(deHoy.etiqueta, /^de la marcha A1/);
+  const respaldo = heredar({}, { tractor, rpmRespaldo: 1800 });
+  assert.match(respaldo.etiqueta, /^de la marcha de trabajo A1/);
 });

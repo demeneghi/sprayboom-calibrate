@@ -55,8 +55,8 @@ export function crearCampoVelocidad({
     formatearValor: (valor) => `${formatear(valor, 2)} ${unidadVelocidad}`,
     destino: { seccion: 'calibrar', tab: 'avance' },
     textoSinDato:
-      'Captura en Avance los segundos por tramo o una marcha con régimen, o escribe la ' +
-      'velocidad aquí.',
+      'Elige en Avance la marcha con la que vas —queda guardada como marcha de trabajo del ' +
+      'tractor— o captura los segundos por tramo; también puedes escribir la velocidad aquí.',
     alCambiar,
   });
 

@@ -27,6 +27,7 @@ import { mostrarToast } from '../toast.js';
 import { aSistema, unidad } from '../../domain/units.js';
 import {
   marchasDeTractor,
+  marchaHabitualDe,
   marchasParaVelocidad,
   velocidadEfectiva,
   avance,
@@ -68,6 +69,17 @@ export function render(panel, ctx) {
     (borrador.marcha.tractorId === undefined || borrador.marcha.tractorId === tractor.id)
       ? borrador.marcha
       : null; // {rango, marcha, tractorId}
+  // Sin marcha de hoy se arranca en la MARCHA DE TRABAJO del tractor, la
+  // que se eligio la vez pasada. El borrador solo recuerda una marcha a
+  // la vez —es de la pantalla, no del tractor—, asi que cambiar de
+  // tractor y volver dejaba la cuadricula en blanco y, con ella, sin
+  // tiempo por tabla a las pantallas que lo heredan.
+  if (!marchaSeleccionada) {
+    const habitual = marchaHabitualDe(tractor);
+    if (habitual) {
+      marchaSeleccionada = { rango: habitual.rango, marcha: habitual.marcha, tractorId: tractor.id };
+    }
+  }
   const sistema = ctx.sistema();
   const unidadVelocidad = unidad('velocidad', sistema);
   // Longitud del tramo, en las unidades elegidas. Se arma una vez y se
@@ -125,12 +137,30 @@ export function render(panel, ctx) {
     boton.addEventListener('click', () => {
       marchaSeleccionada = { rango: fila.rango, marcha: fila.marcha, tractorId: tractor.id };
       ctx.guardarBorrador(id, { marcha: marchaSeleccionada });
+      // La marcha elegida queda como marcha de TRABAJO del tractor, no
+      // solo en el borrador de esta pantalla: es un dato del tractor y
+      // es lo que deja llegar el tiempo por tabla a Gas etileno y a
+      // Forzamiento sin tener que volver a pasar por aqui.
+      recordarMarchaDeTrabajo(fila.rango, fila.marcha);
       pintarSeleccion();
       recalcular();
     });
     botonesMarcha.set(clave, boton);
     cuadricula.append(boton);
   }
+  // Se guarda como 'datos' y no como 'contexto' a proposito: en esta
+  // pantalla no cambia nada a la vista —la cuadricula ya se repinto
+  // sola— y un re-render completo por cada toque a una marcha remontaria
+  // el cronometro y el resto de la pestana.
+  function recordarMarchaDeTrabajo(rango, marcha) {
+    const guardada = ctx.tractorActivo()?.marchaHabitual;
+    if (guardada && guardada.rango === rango && guardada.marcha === marcha) return;
+    ctx.almacen.actualizar((e) => {
+      const t = e.tractores.find((x) => x.id === tractor.id);
+      if (t) t.marchaHabitual = { rango, marcha };
+    }, 'datos');
+  }
+
   function filaSeleccionada() {
     if (!marchaSeleccionada) return null;
     return (

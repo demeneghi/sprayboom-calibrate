@@ -39,7 +39,7 @@ import {
 } from '../../domain/defaults.js';
 import { validarValor } from '../../domain/validate.js';
 import { presionAtmosfericaEfectiva } from '../../domain/atmosphere.js';
-import { geometria, factorDeMedicion } from '../../domain/speed.js';
+import { geometria, factorDeMedicion, marchasDeTractor } from '../../domain/speed.js';
 import { gPorScfEfectivo } from '../../domain/gas.js';
 import { validarContraIso } from '../../domain/nozzles.js';
 import { TABLA_ISO_10625, PRESION_NOMINAL_ISO_BAR, filaIso } from '../../data/iso-colors.js';
@@ -534,11 +534,51 @@ export function render(panel, ctx) {
             t.velocidades = t.velocidades.filter(
               (v) => v.rango < rangos && v.marcha <= marchas
             );
+            // La marcha de trabajo apunta a una POSICION: si la
+            // transmision se encogio por debajo de ella, deja de existir
+            // y se olvida en vez de quedar apuntando a otra marcha.
+            if (
+              t.marchaHabitual &&
+              !(t.marchaHabitual.rango < rangos && t.marchaHabitual.marcha <= marchas)
+            ) {
+              t.marchaHabitual = null;
+            }
           }
         }, 'contexto');
       });
       nodos.push(entrada.elemento);
     }
+
+    // Marcha de trabajo: con cual se aplica normalmente. Avance la
+    // escribe sola en cuanto se elige una marcha, y aqui se puede fijar
+    // o corregir sin pasar por ahi. De ella cuelga que el tiempo por
+    // tabla llegue calculado a Gas etileno y a Forzamiento la primera
+    // vez que se abren.
+    const marchasConVelocidad = marchasDeTractor(tractor).filter((f) => f.kmhNominal !== null);
+    const claveMarcha = (f) => `${f.rango}-${f.marcha}`;
+    const selectMarchaTrabajo = crearCampoSelect({
+      etiqueta: 'Marcha de trabajo',
+      opciones: [
+        { valor: '', texto: 'Sin definir' },
+        ...marchasConVelocidad.map((f) => ({
+          valor: claveMarcha(f),
+          texto: `${f.etiqueta} — ${formatear(f.kmhNominal, 1)} km/h nominales`,
+        })),
+      ],
+      valorInicial: tractor.marchaHabitual ? claveMarcha(tractor.marchaHabitual) : '',
+      ayuda:
+        'Con la que se aplica normalmente. Es el último respaldo de la velocidad: sin nada ' +
+        'capturado en Avance, de aquí sale el tiempo por tabla que heredan Gas etileno y ' +
+        'Forzamiento. Elegir una marcha en Avance la actualiza sola.',
+      alCambiar: (valor) => {
+        const elegida = marchasConVelocidad.find((f) => claveMarcha(f) === valor) ?? null;
+        almacen.actualizar((e) => {
+          const t = e.tractores.find((x) => x.id === tractor.id);
+          t.marchaHabitual = elegida ? { rango: elegida.rango, marcha: elegida.marcha } : null;
+        }, 'datos');
+      },
+    });
+    nodos.push(selectMarchaTrabajo.elemento);
 
     // Tabla de velocidades por marcha con bandera de origen
     const filasTabla = [];

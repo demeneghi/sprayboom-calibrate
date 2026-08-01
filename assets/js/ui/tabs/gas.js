@@ -31,6 +31,7 @@ import {
 } from '../render.js';
 import { crearCampoNumerico } from '../campos.js';
 import { crearCampoHeredado } from '../heredado.js';
+import { nodosAvanceParaTiempo } from '../marchas.js';
 import { formatear, formatearTiempo } from '../formato.js';
 import { nodosTubo } from './gas/tubo.js';
 import { nodosManometro } from './gas/manometro.js';
@@ -190,8 +191,9 @@ export function render(panel, ctx) {
     formatearValor: (valor) => formatearTiempo(valor),
     destino: { seccion: 'calibrar', tab: 'avance' },
     textoSinDato:
-      'Captura en Avance los segundos por tramo o una marcha con régimen, o escribe aquí el ' +
-      'tiempo de inyección.',
+      'Elige en Avance la marcha con la que vas —queda guardada como marcha de trabajo del ' +
+      'tractor— o captura los segundos por tramo; también puedes escribir aquí el tiempo de ' +
+      'inyección.',
     guardadoSinMarcaEsManual: true,
     alCambiar: () => recalcular(),
   });
@@ -583,7 +585,16 @@ export function render(panel, ctx) {
                   })
                 ),
                 pintarVerificacion(resultado.verificacion),
-                pintarDesglose(resultado.desglose)
+                pintarDesglose(resultado.desglose),
+                // El tiempo requerido solo se cumple si la barra cruza
+                // la tabla en ese mismo rato: aqui se dice a que
+                // velocidad y con que marchas se logra, en vez de dejar
+                // el numero suelto y mandar a tantear en Avance.
+                ...nodosAvanceParaTiempo({
+                  ctx,
+                  sistema,
+                  tiempoTotalS: resultado.valores.tiempoS,
+                })
               );
               ultimoCalculo = {
                 ...comunes,
