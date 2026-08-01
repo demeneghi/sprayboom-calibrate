@@ -458,12 +458,7 @@ export function render(panel, ctx) {
               })
             ),
             pintarVerificacion(resultado.verificacion),
-            pintarDesglose(resultado.desglose),
-            el(
-              'p',
-              { clase: 'ayuda' },
-              'Si los dos métodos difieren más del umbral, el espaciamiento por número de boquillas no cuadra con el ancho de barra.'
-            )
+            pintarDesglose(resultado.desglose)
           );
           ultimoCalculo = {
             boquillaId: b.id,
@@ -998,6 +993,9 @@ export function render(panel, ctx) {
       {
         titulo: 'Volumen de aplicación',
         descripcion: 'Los dos métodos siempre lado a lado: por boquilla y por barra completa.',
+        ayuda:
+          'Si los dos métodos difieren más del umbral, el espaciamiento por número de ' +
+          'boquillas no cuadra con el ancho de barra.',
       },
       zonaCentral,
       botonBitacora

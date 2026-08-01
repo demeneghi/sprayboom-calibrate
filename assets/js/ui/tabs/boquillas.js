@@ -480,11 +480,6 @@ export function render(panel, ctx) {
   const guiaGota = el(
     'div',
     { estilo: { display: 'flex', flexDirection: 'column', gap: '0.6rem' } },
-    el(
-      'p',
-      { clase: 'texto-suave' },
-      'La gota fina mejora la cobertura y la retención pero deriva más; la gruesa reduce la deriva y puede comprometer la cobertura en aplicaciones de contacto.'
-    ),
     Object.entries(GUIA_USO_GOTA).map(([simbolo, texto]) =>
       el(
         'div',
@@ -515,19 +510,20 @@ export function render(panel, ctx) {
         titulo: 'Boquillas candidatas',
         descripcion:
           'Ordenadas por cercanía al centro de su rango de presión: a media presión el gasto y el tamaño de gota son más estables.',
+        ayuda:
+          'Cambiar el tamaño de boquilla es mejor palanca que forzar la presión: para duplicar ' +
+          'el caudal hay que cuadruplicar la presión.',
       },
-      zonaCandidatas,
-      el(
-        'p',
-        { clase: 'ayuda' },
-        'Cambiar el tamaño de boquilla es mejor palanca que forzar la presión: para duplicar el caudal hay que cuadruplicar la presión.'
-      )
+      zonaCandidatas
     ),
     tarjeta(
       {
         titulo: 'Guía de tamaño de gota',
         descripcion:
           'Informativa, sin recomendación automática: la decisión depende del producto y de las condiciones del día, que la aplicación no conoce.',
+        ayuda:
+          'La gota fina cubre y se retiene mejor, pero deriva más. La gruesa deriva menos y ' +
+          'puede quedarse corta de cobertura en productos de contacto.',
       },
       guiaGota
     )

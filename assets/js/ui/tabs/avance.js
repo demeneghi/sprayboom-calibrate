@@ -249,14 +249,7 @@ export function render(panel, ctx) {
       recalcular();
     },
   });
-  zonaCronometro.append(
-    el(
-      'p',
-      { clase: 'ayuda' },
-      `Cronómetro: arranca al entrar al tramo de ${tramoTexto} y para al salir.`
-    ),
-    cronometro.elemento
-  );
+  zonaCronometro.append(cronometro.elemento);
   const zonaMarchasQueReproducen = el('div', {});
   const zonaReporte = el(
     'div',
@@ -618,12 +611,7 @@ export function render(panel, ctx) {
           decimales: 4,
         })
       ),
-      ...pintarAvisos(g.avisos),
-      el(
-        'p',
-        { clase: 'ayuda' },
-        'Derivados de la geometría configurada; se editan en Sistema, Configuración.'
-      )
+      ...pintarAvisos(g.avisos)
     );
   }
 
@@ -741,6 +729,7 @@ export function render(panel, ctx) {
       {
         titulo: 'Avance',
         descripcion: `Velocidad y tiempo por tabla del ${tractor.nombre}.`,
+        ayuda: `El cronómetro arranca al entrar al tramo de ${tramoTexto} y para al salir.`,
       },
       el('div', { clase: 'grupo-modo' }, botonMarcha, botonReporte),
       zonaMarcha,
@@ -754,7 +743,13 @@ export function render(panel, ctx) {
       },
       zonaTdf
     ),
-    tarjeta({ titulo: 'Geometría derivada' }, zonaGeometria)
+    tarjeta(
+      {
+        titulo: 'Geometría derivada',
+        ayuda: 'Sale de la geometría configurada; se edita en Sistema, Configuración.',
+      },
+      zonaGeometria
+    )
   );
 
   pintarModo();

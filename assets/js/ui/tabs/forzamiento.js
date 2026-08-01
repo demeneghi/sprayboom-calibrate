@@ -107,13 +107,17 @@ export function render(panel, ctx) {
     return geometria(ctx.parametrosGeometria()).valores.hectareasPorTabla;
   }
 
-  // Linea de contexto del circuito de gas: que numeros se estan usando.
-  function contextoGas(efectivo) {
+  /* Que numeros se estan usando en el circuito de gas. Es rastro de
+     auditoria, no explicacion: se consulta cuando un resultado
+     sorprende, no en cada calibracion, asi que va al globo del "?" de
+     la tarjeta y no impreso bajo cada resultado. Todo lo que lee sale
+     de la configuracion —el gas activo, el rotametro, la altitud del
+     sitio—, que no cambia sin salir de esta pestana: calcularlo al
+     montar da el mismo texto que calcularlo en cada repintado. */
+  function textoContextoGas(efectivo) {
     const p = ctx.estado().parametros;
     const atmosfera = ctx.atmosferaSitio();
-    return el(
-      'p',
-      { clase: 'ayuda' },
+    return (
       `Gas ${gas.nombre}: ${formatear(efectivo.valores.gPorScf, 2)} g/SCF ` +
         `${efectivo.valores.anulado ? '(anulación manual)' : '(derivado del peso molecular)'}. ` +
         `Rotámetro ${rotametro.modelo}, escala de ${formatear(rotametro.escalaMin, 1)} a ` +
@@ -128,8 +132,6 @@ export function render(panel, ctx) {
   const zonaDosis = el('div', { estilo: columna });
   function pintarDosis() {
     const p = ctx.estado().parametros;
-    const defReferencia = defCampo('agronomicos', 'dosisEtilenoReferencia');
-    const defObjetivo = defCampo('agronomicos', 'dosisEtilenoObjetivo');
     reemplazar(
       zonaDosis,
       el(
@@ -148,16 +150,17 @@ export function render(panel, ctx) {
           decimales: 0,
           principal: true,
         })
-      ),
-      el('p', { clase: 'ayuda' }, `Referencia: ${defReferencia.origen}`),
-      el('p', { clase: 'ayuda' }, `Objetivo: ${defObjetivo.origen}`),
-      el(
-        'p',
-        { clase: 'ayuda' },
-        'Ambas se editan en Sistema, Configuración. El cálculo usa la objetivo; la referencia es la cota de sanidad contra la que se alerta.'
       )
     );
   }
+
+  // La procedencia de las dos dosis explica la tarjeta entera, asi que
+  // vive en su "?" y no en tres parrafos bajo las cifras.
+  const ayudaDosis =
+    `El cálculo usa la objetivo; la referencia es la cota contra la que se alerta. ` +
+    `Referencia: ${defCampo('agronomicos', 'dosisEtilenoReferencia').origen} ` +
+    `Objetivo: ${defCampo('agronomicos', 'dosisEtilenoObjetivo').origen} ` +
+    `Ambas se editan en Sistema, Configuración.`;
 
   // ---------------- Capturas del sentido objetivo -> ajuste ----------------
   const campoDosis = crearCampoNumerico({
@@ -339,12 +342,7 @@ export function render(panel, ctx) {
           valor: aSistema('superficie', ha, sistema),
           unidad: unidadSuperficie,
           decimales: 4,
-        }),
-        el(
-          'p',
-          { clase: 'ayuda' },
-          'Derivada de la geometría configurada (largo de tabla por ancho de barra), que se edita en Sistema, Configuración.'
-        )
+        })
       );
     } catch (error) {
       reemplazar(zonaHectareas, alertaDestructiva(error));
@@ -444,8 +442,7 @@ export function render(panel, ctx) {
               ),
               pintarAjusteDespejado(v),
               pintarVerificacion(resultado.verificacion),
-              pintarDesglose(resultado.desglose),
-              contextoGas(efectivo)
+              pintarDesglose(resultado.desglose)
             );
             ultimoObjetivo = {
               sentido: 'objetivo-a-ajuste',
@@ -642,8 +639,7 @@ export function render(panel, ctx) {
             }
             nodos.push(
               pintarVerificacion(resultado.verificacion),
-              pintarDesglose(resultado.desglose),
-              contextoGas(efectivo)
+              pintarDesglose(resultado.desglose)
             );
             ultimoAjuste = {
               sentido: 'ajuste-a-dosis',
@@ -727,11 +723,19 @@ export function render(panel, ctx) {
   }
 
   // ---------------- Montaje ----------------
+  // El contexto del circuito solo depende del gas activo, que no cambia
+  // sin salir de la pestana: se arma una vez para los "?" de las dos
+  // tarjetas de resultado.
+  const ayudaContexto = textoContextoGas(gPorScfEfectivo({ gas }));
+
   panel.append(
     tarjeta(
       {
         titulo: 'Advertencia de solubilidad',
-        descripcion: 'Léela antes de confiar en cualquier número de esta pantalla.',
+        ayuda:
+          'El rotámetro mide el gas que entra, no el que se queda disuelto: buena parte se ' +
+          'escapa por la superficie del tanque. Cuánto se retiene depende del difusor, de la ' +
+          'temperatura del agua y del tiempo entre la carga y la aplicación.',
       },
       pintarAvisos([AVISO_SOLUBILIDAD])
     ),
@@ -739,6 +743,7 @@ export function render(panel, ctx) {
       {
         titulo: 'Las dos dosis',
         descripcion: 'La referencia de la literatura y la objetivo propia, siempre juntas.',
+        ayuda: ayudaDosis,
       },
       zonaDosis
     ),
@@ -746,6 +751,9 @@ export function render(panel, ctx) {
       {
         titulo: 'De la dosis objetivo al ajuste',
         descripcion: 'Qué marcar en el rotámetro para aplicar la dosis objetivo en cada tabla.',
+        ayuda:
+          'La superficie por tabla sale de la geometría configurada (largo de tabla por ancho ' +
+          'de barra) y se edita en Sistema, Configuración.',
       },
       el(
         'div',
@@ -759,11 +767,16 @@ export function render(panel, ctx) {
         zonaPsiDado
       )
     ),
-    tarjeta({ titulo: 'Ajuste del rotámetro' }, zonaResultadoObjetivo, botonBitacoraObjetivo),
+    tarjeta(
+      { titulo: 'Ajuste del rotámetro', ayuda: ayudaContexto },
+      zonaResultadoObjetivo,
+      botonBitacoraObjetivo
+    ),
     tarjeta(
       {
         titulo: 'Del ajuste real a la dosis',
         descripcion: 'Con el rotámetro como quedó: qué dosis se está inyectando en realidad.',
+        ayuda: ayudaContexto,
       },
       el(
         'div',

@@ -18,11 +18,8 @@ import { despejeScfm, despejePresion, despejeTiempo, masaGas } from './flowmeter
 export const AVISO_SOLUBILIDAD = aviso(
   'info',
   'solubilidad-etileno',
-  'El etileno es poco soluble en agua. El rotámetro mide gas inyectado, no gas retenido ' +
-    'en solución, y buena parte se escapa por la superficie del tanque. La relación entre ' +
-    'lo inyectado y lo aplicado depende del difusor, de la temperatura del agua y del ' +
-    'tiempo entre la carga y la aplicación. El pesaje del cilindro y la respuesta ' +
-    'agronómica observada tienen prioridad sobre cualquier número calculado aquí.',
+  'El etileno se escapa del tanque: lo que marca el rotámetro no es lo que recibe la ' +
+    'planta. Manda el pesaje del cilindro y lo que veas en campo, no este cálculo.',
   null
 );
 

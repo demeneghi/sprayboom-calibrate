@@ -95,14 +95,7 @@ export function render(panel, ctx) {
       mostrarToast('Tiempo de prueba cumplido: cierra el paso y retira las probetas.');
     },
   });
-  zonaCronometro.append(
-    el(
-      'p',
-      { clase: 'ayuda' },
-      'Cuenta regresiva del tiempo de prueba: arranca al abrir la barra y avisa cuando se cumple.'
-    ),
-    cronometro.elemento
-  );
+  zonaCronometro.append(cronometro.elemento);
 
   // ---------------- Presion de trabajo ----------------
   const campoPresion = crearCampoNumerico({
@@ -639,6 +632,9 @@ export function render(panel, ctx) {
         titulo: 'Prueba de captura',
         descripcion:
           'Aforo boquilla por boquilla: detecta el desgaste, la causa más común de sobreaplicación.',
+        ayuda:
+          'El cronómetro cuenta hacia atrás el tiempo de prueba: arranca al abrir la barra y ' +
+          'avisa cuando se cumple.',
       },
       campoTiempo.elemento,
       zonaCronometro,
@@ -666,14 +662,14 @@ export function render(panel, ctx) {
       campoObjetivo.elemento
     ),
     tarjeta(
-      { titulo: 'Resultado' },
+      {
+        titulo: 'Resultado',
+        ayuda:
+          'La prueba se guarda con los parámetros de hoy: el registro conserva sus números ' +
+          'aunque después cambies la configuración.',
+      },
       zonaResultados,
-      botonGuardar,
-      el(
-        'p',
-        { clase: 'ayuda' },
-        'La prueba se guarda con los parámetros de hoy: el registro conserva sus números aunque después cambies la configuración.'
-      )
+      botonGuardar
     )
   );
 

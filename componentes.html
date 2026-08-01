@@ -207,6 +207,13 @@
         </div>
       </section>
 
+      <div id="zona-ayuda-seccion"></div>
+      <p class="ayuda">Arriba, el mismo patrón un escalón más alto: la explicación estable de una
+      sección vive en el <code class="mono">?</code> de su encabezado
+      (<code class="mono">tarjeta({ ayuda })</code>), no impresa bajo las cifras. Lo que se sigue
+      imprimiendo es lo que cambia con el cálculo: el resultado, el aviso accionable y el estado de
+      lo capturado.</p>
+
       <section class="card">
         <div class="card__encabezado"><h2 class="card__titulo">Tabs</h2></div>
         <div class="card__contenido">
@@ -387,6 +394,7 @@
     import { confirmar } from './assets/js/ui/dialog.js';
     import { crearCombobox } from './assets/js/ui/combobox.js';
     import { crearCampoNumerico, crearCampoSelect, crearInterruptor } from './assets/js/ui/campos.js';
+    import { tarjeta } from './assets/js/ui/render.js';
     import { CATALOGO_SIEMBRA } from './assets/js/data/nozzle-catalog.js';
     import { filaIso } from './assets/js/data/iso-colors.js';
 
@@ -432,6 +440,36 @@
       campoVolumen.elemento,
       campoClase.elemento,
       interruptorUnidades.elemento
+    );
+
+    // La misma ayuda, un escalon arriba: la explicacion de la SECCION
+    // cuelga del "?" del encabezado en vez de imprimirse bajo las cifras.
+    document.getElementById('zona-ayuda-seccion').append(
+      tarjeta(
+        {
+          titulo: 'Las dos dosis',
+          descripcion: 'La referencia de la literatura y la objetivo propia, siempre juntas.',
+          ayuda:
+            'El cálculo usa la objetivo; la referencia es la cota contra la que se alerta. ' +
+            'Ambas se editan en Sistema, Configuración.',
+        },
+        el(
+          'div',
+          { estilo: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' } },
+          el(
+            'div',
+            { clase: 'resultado' },
+            el('span', { clase: 'resultado__etiqueta' }, 'Referencia de la literatura'),
+            el('span', { clase: 'resultado__valor' }, '2,272', el('span', { clase: 'resultado__unidad' }, ' g/ha'))
+          ),
+          el(
+            'div',
+            { clase: 'resultado resultado--principal' },
+            el('span', { clase: 'resultado__etiqueta' }, 'Objetivo propia del rancho'),
+            el('span', { clase: 'resultado__valor' }, '2,090', el('span', { clase: 'resultado__unidad' }, ' g/ha'))
+          )
+        )
+      )
     );
 
     // Dialogo y toast

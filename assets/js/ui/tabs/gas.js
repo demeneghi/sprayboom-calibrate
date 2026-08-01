@@ -340,15 +340,6 @@ export function render(panel, ctx) {
               unidad: 'psia',
               decimales: 2,
             })
-          ),
-          el(
-            'p',
-            { clase: 'ayuda' },
-            'Son dos cosas distintas: la estándar es con la que el fabricante calibró el tubo; la local es la del sitio. El despeje resta la LOCAL. ' +
-              (ctx.atmosferaSitio().valores.anulado
-                ? 'La local está anulada a mano.'
-                : `La local sale de los ${formatear(p.sitio.altitudM, 0)} m de altitud del sitio.`) +
-              ' Ambas se editan en Sistema, Configuración.'
           )
         );
       } catch (error) {
@@ -803,6 +794,15 @@ export function render(panel, ctx) {
       {
         titulo: 'Masa por pie cúbico estándar',
         descripcion: 'El valor efectivo del gas activo que usan todos los modos.',
+        // Las dos presiones se confunden seguido, pero la aclaracion se
+        // lee una vez y estorba en todas las demas: va en el "?".
+        ayuda:
+          'Son dos cosas distintas: la estándar es con la que el fabricante calibró el tubo; ' +
+          'la local es la del sitio, y es la que resta el despeje. ' +
+          (ctx.atmosferaSitio().valores.anulado
+            ? 'La local está anulada a mano.'
+            : `La local sale de los ${formatear(ctx.estado().parametros.sitio.altitudM, 0)} m de altitud del sitio.`) +
+          ' Ambas se editan en Sistema, Configuración.',
       },
       zonaGscf
     ),

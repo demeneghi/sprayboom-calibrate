@@ -4,6 +4,7 @@
 // NO se pinta el numero; se pinta el estado de error.
 import { el } from './dom.js';
 import { formatear } from './formato.js';
+import { crearAyuda } from './campos.js';
 
 export function pintarAviso(aviso) {
   const clase =
@@ -119,16 +120,39 @@ export function pintarResultadoNoVerificado(etiqueta) {
   );
 }
 
-// Tarjeta estandar de pantalla.
-export function tarjeta({ titulo, descripcion = null }, ...contenido) {
+let consecutivoTarjeta = 0;
+
+/* Tarjeta estandar de pantalla.
+
+   `ayuda` es la explicacion ESTABLE de la tarjeta —el porque del
+   calculo, la advertencia que siempre aplica— y NO se imprime: vive en
+   el globo del boton "?" del encabezado, el mismo patron que ya usan
+   los campos. Medido en un telefono de 390px, esa prosa era entre un
+   tercio y la mitad de todo lo que habia en las pantallas de campo, y
+   se leia como un muro con los datos perdidos entre parrafos.
+
+   Lo que SI se sigue imprimiendo es el `.ayuda` que habla de ESTE
+   calculo y cambia con el ("se calcularon 3 de 5 renglones", "2
+   boquillas logran el caudal"): eso es resultado, no explicacion, y
+   esconderlo tras un boton seria esconder lo que se vino a ver. */
+export function tarjeta({ titulo, descripcion = null, ayuda = null }, ...contenido) {
+  consecutivoTarjeta += 1;
+  const idTarjeta = `tarjeta-${consecutivoTarjeta}`;
+  const rotulo = el('h2', { clase: 'card__titulo', id: idTarjeta }, titulo);
+  const ayudaTarjeta = ayuda
+    ? crearAyuda({ idCampo: idTarjeta, etiqueta: titulo, texto: ayuda })
+    : null;
   return el(
     'section',
     { clase: 'card' },
     el(
       'div',
       { clase: 'card__encabezado' },
-      el('h2', { clase: 'card__titulo' }, titulo),
-      descripcion ? el('p', { clase: 'card__descripcion' }, descripcion) : null
+      ayudaTarjeta
+        ? el('div', { clase: 'card__titulo-fila' }, rotulo, ayudaTarjeta.boton)
+        : rotulo,
+      descripcion ? el('p', { clase: 'card__descripcion' }, descripcion) : null,
+      ayudaTarjeta ? ayudaTarjeta.globo : null
     ),
     el('div', { clase: 'card__contenido' }, ...contenido)
   );
