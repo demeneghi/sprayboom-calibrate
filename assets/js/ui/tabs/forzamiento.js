@@ -190,7 +190,8 @@ export function render(panel, ctx) {
     clave: 'volumenAguaLha',
     claveManual: 'volumenAguaManual',
     etiqueta: 'Volumen de agua',
-    unidad: unidadVolAplicacion,
+    magnitud: 'volumenAplicacion',
+    sistema,
     ayuda:
       'El agua que de verdad sale por la barra; de ella depende la concentración del tanque. ' +
       'Viene del aforo y, si no lo hay, de Gasto de agua o de Configuración.',

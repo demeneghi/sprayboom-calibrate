@@ -215,6 +215,23 @@
       lo capturado.</p>
 
       <section class="card">
+        <div class="card__encabezado">
+          <h2 class="card__titulo">Botón de unidades del campo</h2>
+          <p class="card__descripcion">Cuando el campo tiene magnitud, la unidad deja de
+          imprimirse en la etiqueta y pasa a ser el <strong>botón pegado al número</strong>:
+          convierte lo capturado de métrico a imperial y de regreso, para no sacar la calculadora
+          cuando el manómetro marca psi y la aplicación trabaja en bar. No cambia el sistema de la
+          aplicación —eso sigue en Configuración—; solo la unidad en que se escribe este campo.
+          Mientras está en la otra unidad, el botón se pinta con el acento del módulo.</p>
+        </div>
+        <div class="card__contenido">
+          <div class="pila-campos" id="zona-unidades"></div>
+          <p class="ayuda">La vuelta devuelve el número tal como se escribió: convertir y
+          desconvertir no lo mueve en el último dígito.</p>
+        </div>
+      </section>
+
+      <section class="card">
         <div class="card__encabezado"><h2 class="card__titulo">Tabs</h2></div>
         <div class="card__contenido">
           <div class="tabs__lista" role="tablist" aria-label="Demo de tabs">
@@ -440,6 +457,33 @@
       campoVolumen.elemento,
       campoClase.elemento,
       interruptorUnidades.elemento
+    );
+
+    // Campos con boton de conversion: magnitud de units.js y el sistema
+    // en el que la pantalla espera recibir el valor.
+    const campoPresionDemo = crearCampoNumerico({
+      etiqueta: 'Presión de trabajo',
+      magnitud: 'presion',
+      sistema: 'metrico',
+      valorInicial: 3,
+      ayuda: 'El manómetro de la barra suele venir rotulado en psi: el botón convierte la lectura sin sacar la calculadora.',
+    });
+    const campoTanqueDemo = crearCampoNumerico({
+      etiqueta: 'Volumen del tanque',
+      magnitud: 'volumen',
+      sistema: 'metrico',
+      valorInicial: 600,
+    });
+    const campoObjetivoDemo = crearCampoNumerico({
+      etiqueta: 'Volumen de aplicación objetivo',
+      magnitud: 'volumenAplicacion',
+      sistema: 'metrico',
+      valorInicial: 575,
+    });
+    document.getElementById('zona-unidades').append(
+      campoPresionDemo.elemento,
+      campoTanqueDemo.elemento,
+      campoObjetivoDemo.elemento
     );
 
     // La misma ayuda, un escalon arriba: la explicacion de la SECCION

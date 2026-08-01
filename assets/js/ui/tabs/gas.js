@@ -114,7 +114,8 @@ export function render(panel, ctx) {
     clave: 'masaObjetivoG',
     claveManual: 'masaObjetivoManual',
     etiqueta: 'Masa de gas objetivo',
-    unidad: unidadMasa,
+    magnitud: 'masa',
+    sistema,
     ayuda:
       'El etileno que quieres inyectar en la corrida. Viene la masa por tabla que calculó ' +
       'Forzamiento; si inyectas otra cantidad, escríbela aquí.',

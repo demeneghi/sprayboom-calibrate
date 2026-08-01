@@ -202,6 +202,37 @@ verificar(/por boquilla/i.test(texto) && /por barra/i.test(texto), 'Gasto: ambos
 verificar(/Verificado por dos rutas|verificación/i.test(texto), 'Gasto: verificación redundante visible');
 verificar(/desglose/i.test(texto), 'Gasto: desglose paso a paso disponible');
 
+// ---------- Boton de unidades: convierte el CAMPO, no la aplicacion ----------
+// El manometro de la barra viene rotulado en psi y la aplicacion trabaja
+// en bar: antes ese numero se convertia a mano, de pie en el lote.
+const botonAPsi = pagina.getByRole('button', { name: /^Presión en la boquilla en bar\./ });
+verificar((await botonAPsi.count()) === 1, 'Unidades: el campo de presión trae su botón');
+const entradaPresion = pagina.getByRole('textbox', { name: 'Presión en la boquilla' });
+await botonAPsi.click();
+verificar(
+  (await entradaPresion.inputValue()) === '43.5113',
+  `Unidades: 3 bar se escriben como 43.5113 psi (se obtuvo ${await entradaPresion.inputValue()})`
+);
+verificar(
+  (await pagina.locator('.campo__unidad[data-convertido="true"]').count()) === 1,
+  'Unidades: el campo convertido queda marcado con el acento'
+);
+// El sistema de la aplicacion NO se movio: el resultado sigue en metrico.
+verificar(
+  /L\/ha/.test(await pagina.locator('#panel').innerText()),
+  'Unidades: convertir un campo no cambia el sistema de la pantalla'
+);
+const botonABar = pagina.getByRole('button', { name: /^Presión en la boquilla en psi\./ });
+await botonABar.click();
+verificar(
+  (await entradaPresion.inputValue()) === '3',
+  `Unidades: la vuelta devuelve el 3 original, no el reconvertido (se obtuvo ${await entradaPresion.inputValue()})`
+);
+verificar(
+  (await pagina.locator('.campo__unidad[data-convertido="true"]').count()) === 0,
+  'Unidades: de vuelta en las unidades de la aplicación, sin marca'
+);
+
 // ---------- El volumen de aplicación llega solo a Mezcla ----------
 // Toda la mezcla depende de este número y antes había que copiarlo a
 // mano de una pantalla a otra: la ayuda pedía traerlo de aquí sin que
