@@ -135,6 +135,56 @@ test('clasificarGota funciona con las fichas del catalogo', () => {
   assert.equal(clasificarGota({ boquilla: xr04, presionBar: 8 }), null, 'fuera de rango');
 });
 
+test('catalogo: hay boquillas de varias marcas y para los tamanos ISO grandes', () => {
+  const marcas = new Set(CATALOGO_SIEMBRA.map((b) => b.fabricante));
+  for (const marca of ['TeeJet', 'Lechler', 'Hypro', 'Albuz']) {
+    assert.ok(marcas.has(marca), `falta la marca ${marca}`);
+  }
+  // Los tamanos altos son los que se usan en volumenes grandes y en
+  // fertilizante liquido: si se pierden, la seleccion se queda sin
+  // candidatas justo en las aplicaciones mas gastadoras.
+  for (const tamano of ['08', '10', '15', '20']) {
+    assert.ok(
+      CATALOGO_SIEMBRA.some((b) => b.tamanoIso === tamano),
+      `ninguna boquilla del tamaño ISO ${tamano}`
+    );
+  }
+});
+
+test('la tabla de Lechler ID-120-10 se reproduce con exponente 0.5', () => {
+  const id10 = CATALOGO_SIEMBRA.find((b) => b.id === 'id120-10');
+  // Tabla Lechler 2025: 3.22 a 2 bar y 6.43 a 8 bar.
+  const en = (presion) =>
+    caudalAPresion({
+      caudalRef: id10.caudalRefLmin,
+      presionRef: id10.presionRefBar,
+      presion,
+      exponente: id10.exponente,
+    });
+  cercanoRel(en(2), 3.22, 0.01, 'ID-120-10 a 2 bar');
+  cercanoRel(en(8), 6.43, 0.01, 'ID-120-10 a 8 bar');
+  // Clase de gota publicada: extremadamente gruesa a 3 bar, muy gruesa a 6.
+  assert.equal(clasificarGota({ boquilla: id10, presionBar: 3 }), 'XC');
+  assert.equal(clasificarGota({ boquilla: id10, presionBar: 6 }), 'VC');
+});
+
+test('la tabla de Hypro ULD120-08 se reproduce con exponente 0.5', () => {
+  const uld08 = CATALOGO_SIEMBRA.find((b) => b.id === 'uld120-08');
+  // Guia Hypro: 2.613 a 2 bar y 4.131 a 5 bar.
+  const en = (presion) =>
+    caudalAPresion({
+      caudalRef: uld08.caudalRefLmin,
+      presionRef: uld08.presionRefBar,
+      presion,
+      exponente: uld08.exponente,
+    });
+  cercanoRel(en(2), 2.613, 0.01, 'ULD120-08 a 2 bar');
+  cercanoRel(en(5), 4.131, 0.01, 'ULD120-08 a 5 bar');
+  // El fabricante no publica clase por presion: la ficha no la inventa.
+  assert.equal(uld08.edicionEstandar, null);
+  assert.equal(clasificarGota({ boquilla: uld08, presionBar: 3 }), null);
+});
+
 test('la tabla del ATR 80 del fabricante se reproduce con su exponente ajustado', () => {
   const rojo = CATALOGO_SIEMBRA.find((b) => b.id === 'atr80-rojo');
   // Tabla Albuz: 1.38 a 5 bar y 2.67 a 20 bar.

@@ -104,6 +104,71 @@ export function adoptarVelocidadesDeFabrica(tractoresGuardados, tractoresSemilla
 }
 
 // ---------------------------------------------------------------------
+// Adopcion de las boquillas de fabrica
+//
+// Mismo problema que con las tablas de velocidad: un telefono que ya uso
+// la aplicacion tiene SU catalogo guardado, y sin esto una boquilla
+// nueva de la siembra no le llegaria nunca —quedaria calibrando sin la
+// candidata que necesita—. Se agregan solo las fichas de fabrica cuyo id
+// no esta en lo guardado; ninguna ficha existente se toca, porque el
+// usuario pudo haberla editado o pudo ser suya desde el principio.
+//
+// Si el usuario borro a proposito una boquilla de fabrica, vuelve a
+// aparecer y tendra que borrarla otra vez. Es el precio de que las
+// nuevas lleguen, y es el lado seguro: sobra una boquilla en la lista,
+// no falta la que hace falta.
+// ---------------------------------------------------------------------
+export function adoptarBoquillasDeFabrica(catalogoGuardado, catalogoSemilla) {
+  if (!Array.isArray(catalogoGuardado) || !Array.isArray(catalogoSemilla)) {
+    return catalogoGuardado;
+  }
+  const conocidas = new Set(catalogoGuardado.map((b) => b?.id));
+  const faltantes = catalogoSemilla.filter((b) => !conocidas.has(b.id));
+  return faltantes.length === 0 ? catalogoGuardado : [...catalogoGuardado, ...clonar(faltantes)];
+}
+
+// ---------------------------------------------------------------------
+// Correccion de fichas de fabrica ya sembradas
+//
+// Cuando una ficha de la siembra sale con un dato equivocado respecto a
+// la tabla del fabricante, agregar la version buena no basta: el
+// telefono ya tiene la mala guardada. Aqui se declara, ficha por ficha,
+// el valor ANTERIOR y el corregido, y solo se reemplaza cuando lo
+// guardado coincide exactamente con el anterior: asi la correccion llega
+// a quien nunca toco esa ficha y no pisa a quien la edito.
+//
+// Cada entrada se puede borrar cuando ya no haya telefonos con la
+// version vieja; mientras tanto, documenta que se corrigio y contra que.
+// ---------------------------------------------------------------------
+const claseGota = (tramos) =>
+  tramos.map(([presionMinBar, presionMaxBar, clase]) => ({ presionMinBar, presionMaxBar, clase }));
+
+export const CORRECCIONES_CATALOGO = [
+  // Clase de gota tomada de la columna de 80 grados en vez de la de 110.
+  // Catalogo TeeJet 51A-M, tabla de la serie AI.
+  {
+    id: 'ai110025',
+    antes: claseGota([[2, 2.5, 'UC'], [2.5, 4.5, 'XC'], [4.5, 7.5, 'VC'], [7.5, 8, 'C']]),
+    despues: claseGota([[2, 2.5, 'UC'], [2.5, 4.5, 'XC'], [4.5, 6.5, 'VC'], [6.5, 8, 'C']]),
+  },
+  {
+    id: 'ai11006',
+    antes: claseGota([[2, 3.5, 'UC'], [3.5, 5.5, 'XC'], [5.5, 7.5, 'VC'], [7.5, 8, 'C']]),
+    despues: claseGota([[2, 2.5, 'UC'], [2.5, 5.5, 'XC'], [5.5, 7.5, 'VC'], [7.5, 8, 'C']]),
+  },
+];
+
+export function corregirBoquillasDeFabrica(catalogoGuardado, correcciones = CORRECCIONES_CATALOGO) {
+  if (!Array.isArray(catalogoGuardado)) return catalogoGuardado;
+  return catalogoGuardado.map((boquilla) => {
+    const correccion = correcciones.find((c) => c.id === boquilla?.id);
+    if (!correccion) return boquilla;
+    if (JSON.stringify(boquilla.clasesGota) !== JSON.stringify(correccion.antes)) return boquilla;
+    return { ...boquilla, clasesGota: clonar(correccion.despues) };
+  });
+}
+
+// ---------------------------------------------------------------------
 // Migracion: la geometria de la barra pasa de global a cada barra
 //
 // El ancho de barra, el numero de boquillas y el espaciamiento vivian en
@@ -223,6 +288,9 @@ export function crearAlmacen({ backend = null, alFallarEscritura = null } = {}) 
               cargado.equipos ?? semilla.equipos,
               cargado.parametros?.geometria,
               semilla.equipos[0]
+            ),
+            catalogo: corregirBoquillasDeFabrica(
+              adoptarBoquillasDeFabrica(cargado.catalogo ?? semilla.catalogo, semilla.catalogo)
             ),
           };
         } else {
