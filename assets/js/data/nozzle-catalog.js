@@ -9,9 +9,12 @@
 //      https://www.teejet.com/-/media/dam/agricultural/usa/sales-material/catalog/cat51a_metric.pdf
 //      Caudales en L/min por presion en bar y clase de gota por presion
 //      tomados de las tablas de cada serie (paginas 7-15 y 40-41 del
-//      PDF). Las clases de gota del catalogo TeeJet estan clasificadas
-//      conforme a ASABE S572.1. Para las series de dos angulos se
-//      tomo la columna del angulo indicado en cada ficha.
+//      PDF; la FullJet en la 30 y las StreamJet en la 49 y la 50). Las
+//      clases de gota del catalogo TeeJet estan clasificadas conforme a
+//      ASABE S572.1. Para las series de dos angulos se tomo la columna
+//      del angulo indicado en cada ficha. El angulo del cono de la
+//      FullJet sale de la tabla de alturas de la pagina 140, que lo
+//      declara en 120 grados.
 //
 // [LE] Lechler, Agricultural Spray Nozzles and Accessories, catalogo
 //      2025 (edicion en ingles),
@@ -93,6 +96,17 @@
 // cercano a 3 (3.1 bar = 45 lbf/pol2, o 3.4 bar = 50, o 2.7 = 40) y el
 // caudal que le corresponde, sin interpolar nada.
 //
+// ANGULOS: una boquilla de 80 grados NO es la de 110 con otro nombre.
+// Manda la altura de barra y el traslape, y a la misma presion da una
+// gota mas gruesa —el catalogo TeeJet publica una columna de clase por
+// angulo—. Por eso cada angulo tiene su propia ficha, con el mismo
+// caudal (el orificio no sabe de angulo) y su clase.
+//
+// Quedan fuera los angulos de las series que no estan sembradas de por
+// si (TP, DG y XRC en 80 grados), y los 90 grados de Lechler y los 140
+// de la ST-IA de Magnojet, que son el mismo caso pero de otro angulo:
+// se pueden sembrar igual el dia que hagan falta.
+//
 // Pendiente declarado (no sembrado por falta de fuente verificable
 // durante la construccion): ARAG. El usuario puede capturarlo en el
 // editor del catalogo citando su ficha tecnica.
@@ -152,6 +166,43 @@ export const CATALOGO_SIEMBRA = [
   tj('xr11015', 'XR', 'XR11015', '15', 110, 'abanico-plano', 'inox', 5.92, 1, 4,
     rangos([1, 2.25, 'VC'], [2.25, 4, 'C']),
     'Solo en acero inoxidable. Es el tamaño más grande de la serie XR.'),
+
+  // ----- XR TeeJet 80 (el mismo caudal, otro angulo y otra gota) -----
+  // El angulo NO es cosmetico: manda la altura de barra y el traslape, y
+  // cambia la clase de gota a la misma presion. El catalogo publica una
+  // columna por angulo y aqui va la de 80 grados; el caudal, que solo
+  // depende del orificio, es el mismo de la ficha de 110.
+  //
+  // Toda la serie en 80 grados es de acero inoxidable o ceramica: la
+  // version de polimero del catalogo es de 110 grados nada mas.
+  tj('xr8001', 'XR', 'XR8001', '01', 80, 'abanico-plano', 'inox', 0.39, 1, 4,
+    rangos([1, 4, 'F'])),
+  tj('xr80015', 'XR', 'XR80015', '015', 80, 'abanico-plano', 'inox', 0.59, 1, 4,
+    rangos([1, 1.25, 'M'], [1.25, 4, 'F'])),
+  tj('xr8002', 'XR', 'XR8002', '02', 80, 'abanico-plano', 'inox', 0.79, 1, 4,
+    rangos([1, 1.25, 'M'], [1.25, 4, 'F'])),
+  tj('xr80025', 'XR', 'XR80025', '025', 80, 'abanico-plano', 'inox', 0.99, 1, 4,
+    rangos([1, 1.75, 'M'], [1.75, 4, 'F'])),
+  tj('xr8003', 'XR', 'XR8003', '03', 80, 'abanico-plano', 'inox', 1.18, 1, 4,
+    rangos([1, 1.75, 'M'], [1.75, 4, 'F'])),
+  // El tamaño 035 solo existe en 80 grados: no tiene par en la serie de 110.
+  tj('xr80035', 'XR', 'XR80035', '035', 80, 'abanico-plano', 'inox', 1.38, 1, 4,
+    rangos([1, 2.75, 'M'], [2.75, 4, 'F']),
+    'Este tamaño solo existe en 80 grados.'),
+  tj('xr8004', 'XR', 'XR8004', '04', 80, 'abanico-plano', 'inox', 1.58, 1, 4,
+    rangos([1, 1.25, 'C'], [1.25, 3.5, 'M'], [3.5, 4, 'F'])),
+  tj('xr8005', 'XR', 'XR8005', '05', 80, 'abanico-plano', 'inox', 1.97, 1, 4,
+    rangos([1, 1.75, 'C'], [1.75, 3.5, 'M'], [3.5, 4, 'F'])),
+  tj('xr8006', 'XR', 'XR8006', '06', 80, 'abanico-plano', 'inox', 2.37, 1, 4,
+    rangos([1, 1.75, 'C'], [1.75, 4, 'M'])),
+  tj('xr8008', 'XR', 'XR8008', '08', 80, 'abanico-plano', 'inox', 3.16, 1, 4,
+    rangos([1, 2.25, 'VC'], [2.25, 2.75, 'C'], [2.75, 4, 'M'])),
+  tj('xr8010', 'XR', 'XR8010', '10', 80, 'abanico-plano', 'inox', 3.95, 1, 4,
+    rangos([1, 1.25, 'XC'], [1.25, 1.75, 'VC'], [1.75, 4, 'C']),
+    'Solo en acero inoxidable.'),
+  tj('xr8015', 'XR', 'XR8015', '15', 80, 'abanico-plano', 'inox', 5.92, 1, 4,
+    rangos([1, 1.75, 'XC'], [1.75, 2.75, 'VC'], [2.75, 4, 'C']),
+    'Solo en acero inoxidable.'),
 
   // ----- XRC TeeJet 110 (rango extendido en ceramica) -----
   // Solo se siembra el tamano 20: es el unico abanico plano del catalogo
@@ -240,6 +291,24 @@ export const CATALOGO_SIEMBRA = [
   tj('aic11015', 'AIC', 'AIC11015', '15', 110, 'abanico-induccion', 'inox', 5.92, 2, 8,
     rangos([2, 3.5, 'UC'], [3.5, 5.5, 'XC'], [5.5, 7.5, 'VC'], [7.5, 8, 'C']),
     'Solo en acero inoxidable. Es la boquilla de inducción de aire de mayor caudal del catálogo.'),
+
+  // ----- AI TeeJet 80 (induccion de aire, el otro angulo de la serie) -----
+  // Mismo caudal que la ficha de 110 y la clase de gota de la columna de
+  // 80 grados. El tamaño 08 solo existe en 110.
+  tj('ai80015', 'AI', 'AI80015', '015', 80, 'abanico-induccion', 'inox', 0.59, 2, 8,
+    rangos([2, 2.5, 'UC'], [2.5, 4.5, 'XC'], [4.5, 6.5, 'VC'], [6.5, 8, 'C'])),
+  tj('ai8002', 'AI', 'AI8002', '02', 80, 'abanico-induccion', 'inox', 0.79, 2, 8,
+    rangos([2, 2.5, 'UC'], [2.5, 4.5, 'XC'], [4.5, 6.5, 'VC'], [6.5, 8, 'C'])),
+  tj('ai80025', 'AI', 'AI80025', '025', 80, 'abanico-induccion', 'inox', 0.99, 2, 8,
+    rangos([2, 2.5, 'UC'], [2.5, 4.5, 'XC'], [4.5, 7.5, 'VC'], [7.5, 8, 'C'])),
+  tj('ai8003', 'AI', 'AI8003', '03', 80, 'abanico-induccion', 'inox', 1.18, 2, 8,
+    rangos([2, 2.5, 'UC'], [2.5, 4.5, 'XC'], [4.5, 8, 'VC'])),
+  tj('ai8004', 'AI', 'AI8004', '04', 80, 'abanico-induccion', 'inox', 1.58, 2, 8,
+    rangos([2, 2.5, 'UC'], [2.5, 4.5, 'XC'], [4.5, 6.5, 'VC'], [6.5, 8, 'C'])),
+  tj('ai8005', 'AI', 'AI8005', '05', 80, 'abanico-induccion', 'inox', 1.97, 2, 8,
+    rangos([2, 2.5, 'UC'], [2.5, 5.5, 'XC'], [5.5, 7.5, 'VC'], [7.5, 8, 'C'])),
+  tj('ai8006', 'AI', 'AI8006', '06', 80, 'abanico-induccion', 'inox', 2.37, 2, 8,
+    rangos([2, 3.5, 'UC'], [3.5, 7.5, 'XC'], [7.5, 8, 'VC'])),
 
   // ----- TX ConeJet VisiFlo (cono hueco ceramico, 80 grados a 7 bar) -----
   // Tamanos propios de TeeJet, NO ISO. Uso tipico a 3 bar o mas.
@@ -580,6 +649,113 @@ CATALOGO_SIEMBRA.push(
   mj('mug-05', 'MUG', 'MUG 05', '05', 110, 'induccion', 2.14, 3.4, 2, 6.2, 0.498,
     rangos([2, 6.2, 'UC']))
 );
+
+// ----- TeeJet sin clase de gota publicada: cono lleno y chorro solido -----
+// Dos familias que el catalogo tabula con caudal por presion pero SIN
+// columna de tamaño de gota, asi que van con clasesGota vacia y no
+// participan en el filtrado por clase, igual que las Albuz y las Hypro:
+//
+//   FL FullJet, cono lleno de angulo ancho (120 grados, tabla de alturas
+//   de la pagina 140 del catalogo). Su numero es capacidad propia de
+//   TeeJet, NO el codigo de tamaño ISO, asi que no lleva tamanoIso ni
+//   color de la norma.
+//
+//   SJ3 y SJ7 StreamJet, de fertilizante liquido: tres o siete chorros
+//   solidos y paralelos. NO tienen angulo de aspersion —no abren abanico
+//   ni cono— y por eso su ficha lo deja vacio; el chorro solido casi no
+//   deriva y moja en franjas, que es justo lo que se busca para no
+//   quemar la hoja. Su numero si es el codigo de capacidad de TeeJet, y
+//   el caudal cae dentro de la tolerancia de la norma en todos los
+//   tamaños salvo el que lleva nota.
+//
+// El exponente va ajustado a la tabla de cada ficha, como en Magnojet:
+// estas series se apartan de la raiz cuadrada mucho mas que un abanico
+// (de 0.38 a 0.57), porque el orificio dosificador no es el que forma el
+// patron.
+function sinClase(id, serie, modelo, tamanoIso, angulo, tipoPatron, material, caudal3bar, presionMin, presionMax, exponente, notas = '') {
+  return {
+    id,
+    fabricante: 'TeeJet',
+    serie,
+    modelo,
+    tipoPatron,
+    anguloGrados: angulo,
+    tamanoIso,
+    caudalRefLmin: caudal3bar,
+    presionRefBar: 3,
+    presionMinBar: presionMin,
+    presionMaxBar: presionMax,
+    exponente,
+    material,
+    edicionEstandar: null,
+    clasesGota: [],
+    notas,
+    fuente: 'TeeJet Catalog 51A-M (métrico), tabla de la serie. No publica clase de gota.',
+  };
+}
+
+CATALOGO_SIEMBRA.push(
+
+  // ----- FL -----
+  sinClase('fl-5', 'FL', 'FL-5', null, 120, 'cono-lleno', 'inox/polimero', 1.97, 1, 3, 0.453),
+  sinClase('fl-65', 'FL', 'FL-6.5', null, 120, 'cono-lleno', 'inox/polimero', 2.56, 1, 3, 0.447),
+  sinClase('fl-8', 'FL', 'FL-8', null, 120, 'cono-lleno', 'inox/polimero', 3.15, 1, 3, 0.461),
+  sinClase('fl-10', 'FL', 'FL-10', null, 120, 'cono-lleno', 'inox/polimero', 3.93, 1, 3, 0.451),
+  sinClase('fl-15', 'FL', 'FL-15', null, 120, 'cono-lleno', 'inox/polimero', 5.9, 1, 3, 0.462),
+
+  // ----- SJ3 -----
+  sinClase('sj3-015', 'SJ3', 'SJ3-015', '015', null, 'chorro', 'polimero', 0.58, 1.5, 4, 0.391),
+  sinClase('sj3-02', 'SJ3', 'SJ3-02', '02', null, 'chorro', 'polimero', 0.78, 1.5, 4, 0.450),
+  sinClase('sj3-03', 'SJ3', 'SJ3-03', '03', null, 'chorro', 'polimero', 1.18, 1.5, 4, 0.376),
+  sinClase('sj3-04', 'SJ3', 'SJ3-04', '04', null, 'chorro', 'polimero', 1.56, 1.5, 4, 0.412),
+  sinClase('sj3-05', 'SJ3', 'SJ3-05', '05', null, 'chorro', 'polimero', 1.96, 1.5, 4, 0.450),
+  sinClase('sj3-06', 'SJ3', 'SJ3-06', '06', null, 'chorro', 'polimero', 2.4, 1.5, 4, 0.479),
+  sinClase('sj3-08', 'SJ3', 'SJ3-08', '08', null, 'chorro', 'polimero', 3.13, 1.5, 4, 0.401),
+  sinClase('sj3-10', 'SJ3', 'SJ3-10', '10', null, 'chorro', 'polimero', 3.91, 1.5, 4, 0.489),
+  sinClase('sj3-15', 'SJ3', 'SJ3-15', '15', null, 'chorro', 'polimero', 5.86, 1.5, 4, 0.572),
+  sinClase('sj3-20', 'SJ3', 'SJ3-20', '20', null, 'chorro', 'polimero', 8.05, 1.5, 4, 0.528),
+
+  // ----- SJ7 -----
+  sinClase('sj7-015', 'SJ7', 'SJ7-015', null, null, 'chorro', 'polimero', 0.57, 1.5, 4, 0.543,
+    'Su caudal a 3 bar queda 5 % por debajo del nominal del tamaño 015 (0,6 L/min), justo en ' +
+      'el límite de la tolerancia de la norma: por eso no se le declara tamaño ISO.'),
+  sinClase('sj7-02', 'SJ7', 'SJ7-02', '02', null, 'chorro', 'polimero', 0.8, 1.5, 4, 0.542),
+  sinClase('sj7-03', 'SJ7', 'SJ7-03', '03', null, 'chorro', 'polimero', 1.18, 1.5, 4, 0.422),
+  sinClase('sj7-04', 'SJ7', 'SJ7-04', '04', null, 'chorro', 'polimero', 1.55, 1.5, 4, 0.393),
+  sinClase('sj7-05', 'SJ7', 'SJ7-05', '05', null, 'chorro', 'polimero', 1.95, 1.5, 4, 0.378),
+  sinClase('sj7-06', 'SJ7', 'SJ7-06', '06', null, 'chorro', 'polimero', 2.35, 1.5, 4, 0.398),
+  sinClase('sj7-08', 'SJ7', 'SJ7-08', '08', null, 'chorro', 'polimero', 3.15, 1.5, 4, 0.437),
+  sinClase('sj7-10', 'SJ7', 'SJ7-10', '10', null, 'chorro', 'polimero', 3.94, 1.5, 4, 0.442),
+  sinClase('sj7-15', 'SJ7', 'SJ7-15', '15', null, 'chorro', 'polimero', 5.87, 1.5, 4, 0.497)
+);
+
+// ----- Magnojet AD-IA en 80 grados -----
+// A diferencia de TeeJet, Magnojet NO publica una columna de clase por
+// angulo: la misma fila de la tabla lleva los dos codigos (80 y 110
+// grados) y una sola columna de caudal y de tamaño de gota. Estas fichas
+// se derivan de las de 110 en vez de retranscribir sus numeros, para que
+// no puedan separarse si mañana se corrige la tabla.
+//
+// Solo seis tamanos llevan codigo de 80 grados. Los demas (007, 05, 06 y
+// 08) existen unicamente en 110 y no se inventan.
+const AD_IA_EN_80 = ['01', '015', '02', '025', '03', '04'];
+
+CATALOGO_SIEMBRA.push(
+  ...AD_IA_EN_80.map((tamano) => {
+    const base = CATALOGO_SIEMBRA.find((b) => b.id === `mj-adia-${tamano}`);
+    return {
+      ...base,
+      id: `mj-adia80-${tamano}`,
+      modelo: `AD-IA 80 ${tamano}`,
+      anguloGrados: 80,
+      clasesGota: base.clasesGota.map((r) => ({ ...r })),
+      notas:
+        'El catálogo publica una sola tabla de caudal y de clase de gota para los dos ángulos ' +
+        'de este tamaño: lo que cambia entre la de 80 y la de 110 grados es el código de pieza.',
+    };
+  })
+);
+
 export const TIPOS_PATRON = [
   'abanico-plano',
   'abanico-preorificio',

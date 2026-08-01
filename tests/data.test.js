@@ -185,6 +185,96 @@ test('la tabla de Hypro ULD120-08 se reproduce con exponente 0.5', () => {
   assert.equal(clasificarGota({ boquilla: uld08, presionBar: 3 }), null);
 });
 
+test('el cono lleno y el chorro solido estan sembrados, y sin clase inventada', () => {
+  const conoLleno = CATALOGO_SIEMBRA.filter((b) => b.tipoPatron === 'cono-lleno');
+  const chorro = CATALOGO_SIEMBRA.filter((b) => b.tipoPatron === 'chorro');
+  assert.ok(conoLleno.length > 0, 'ninguna boquilla de cono lleno');
+  assert.ok(chorro.length > 0, 'ninguna boquilla de chorro');
+  // El catalogo no publica tamaño de gota para estas series.
+  for (const b of [...conoLleno, ...chorro]) {
+    assert.equal(b.edicionEstandar, null, `${b.id} no debería declarar edición`);
+    assert.deepEqual(b.clasesGota, [], `${b.id} no debería traer clase`);
+  }
+  // El chorro solido no abre abanico ni cono: no tiene angulo que declarar.
+  for (const b of chorro) {
+    assert.equal(b.anguloGrados, null, `${b.id} no debería tener ángulo`);
+  }
+  // La FullJet lleva su angulo de cono y NO lleva tamaño ISO: su numero
+  // es capacidad propia de TeeJet, no el codigo de la norma.
+  for (const b of conoLleno) {
+    assert.equal(b.anguloGrados, 120, `${b.id} ángulo`);
+    assert.equal(b.tamanoIso, null, `${b.id} no debería declarar tamaño ISO`);
+  }
+});
+
+test('la tabla de las FullJet y las StreamJet se reproduce con su exponente', () => {
+  const en = (id, presion) => {
+    const b = CATALOGO_SIEMBRA.find((x) => x.id === id);
+    return caudalAPresion({
+      caudalRef: b.caudalRefLmin,
+      presionRef: b.presionRefBar,
+      presion,
+      exponente: b.exponente,
+    });
+  };
+  const T = 0.05;
+  cercanoRel(en('fl-15', 1), 3.56, T, 'FL-15 a 1 bar');
+  cercanoRel(en('fl-15', 2), 4.84, T, 'FL-15 a 2 bar');
+  cercanoRel(en('sj3-20', 1.5), 5.58, T, 'SJ3-20 a 1,5 bar');
+  cercanoRel(en('sj3-20', 4), 9.31, T, 'SJ3-20 a 4 bar');
+  cercanoRel(en('sj7-06', 1.5), 1.77, T, 'SJ7-06 a 1,5 bar');
+  cercanoRel(en('sj7-06', 4), 2.61, T, 'SJ7-06 a 4 bar');
+  // La SJ7-015 queda al 5 % justo del nominal ISO, en el borde de la
+  // tolerancia: por eso va sin tamaño ISO en vez de forzarlo.
+  const sj7015 = CATALOGO_SIEMBRA.find((b) => b.id === 'sj7-015');
+  assert.equal(sj7015.tamanoIso, null);
+  assert.match(sj7015.notas, /tolerancia/);
+});
+
+test('las series de dos angulos traen el mismo caudal y la clase de SU angulo', () => {
+  // El orificio no sabe de angulo: el caudal de la 80 y el de la 110 del
+  // mismo tamaño tienen que coincidir. La clase de gota no: el catalogo
+  // publica una columna por angulo y a igual presion el abanico de 80
+  // grados da gota mas gruesa.
+  const pares = [
+    ['xr8004', 'xr11004'],
+    ['xr8008', 'xr11008'],
+    ['ai8006', 'ai11006'],
+  ];
+  for (const [id80, id110] of pares) {
+    const a = CATALOGO_SIEMBRA.find((b) => b.id === id80);
+    const b110 = CATALOGO_SIEMBRA.find((b) => b.id === id110);
+    assert.ok(a && b110, `faltan ${id80} o ${id110}`);
+    assert.equal(a.anguloGrados, 80);
+    assert.equal(b110.anguloGrados, 110);
+    assert.equal(a.caudalRefLmin, b110.caudalRefLmin, `${id80} y ${id110} deben dar el mismo caudal`);
+    assert.equal(a.tamanoIso, b110.tamanoIso);
+    assert.notDeepEqual(
+      a.clasesGota,
+      b110.clasesGota,
+      `${id80} y ${id110} no pueden tener la misma clase: el catálogo las distingue`
+    );
+  }
+  // El 035 de XR solo existe en 80 grados y no tiene par en 110.
+  assert.ok(CATALOGO_SIEMBRA.some((b) => b.id === 'xr80035'));
+  assert.equal(CATALOGO_SIEMBRA.find((b) => b.id === 'xr110035'), undefined);
+});
+
+test('las AD-IA de 80 grados salen de las de 110, sin numeros propios', () => {
+  const en80 = CATALOGO_SIEMBRA.filter((b) => b.id.startsWith('mj-adia80-'));
+  assert.equal(en80.length, 6, 'solo seis tamaños llevan código de 80 grados');
+  for (const b of en80) {
+    const base = CATALOGO_SIEMBRA.find((x) => x.id === b.id.replace('adia80-', 'adia-'));
+    assert.ok(base, `${b.id} sin su ficha de 110 grados`);
+    assert.equal(b.anguloGrados, 80);
+    assert.equal(b.caudalRefLmin, base.caudalRefLmin);
+    assert.equal(b.exponente, base.exponente);
+    // Magnojet publica una sola columna de clase para los dos angulos.
+    assert.deepEqual(b.clasesGota, base.clasesGota);
+    assert.notEqual(b.clasesGota, base.clasesGota, 'los rangos deben ser copia, no el mismo arreglo');
+  }
+});
+
 test('la tabla de Magnojet se reproduce con el exponente ajustado a cada ficha', () => {
   const en = (id, presion) => {
     const b = CATALOGO_SIEMBRA.find((x) => x.id === id);
