@@ -1,7 +1,17 @@
 // Pestana Avance (dominio A): velocidad desde marcha y regimen, o desde
 // el reporte de campo en segundos por tramo. Muestra siempre la
 // velocidad teorica y la corregida por factores medidos, con el tiempo
-// por tabla, el estado de la TDF y la geometria derivada.
+// por tabla y el estado de la TDF.
+//
+// Aqui NO se repite la geometria derivada. La tarjeta que la traia era
+// cuatro cifras que esta pantalla no usa para nada: dos de ellas (area
+// en m2 y superficie en ha) son el mismo numero dividido entre 10000,
+// "tramos por tabla" ya sale en la tarjeta de Resultado unos dedos mas
+// arriba, y el espaciamiento manda en Gasto de agua, no en Avance. El
+// bloque completo vive en Sistema, Configuracion, pegado a los campos
+// que lo producen, y los avisos de espaciamiento (captura en
+// centimetros, discrepancia contra el derivado) se siguen pintando ahi
+// y en las tres pantallas que si usan el espaciamiento.
 //
 // Es la pestana EJEMPLAR del proyecto: borradores con autosave,
 // cuadricula de marchas generada desde la transmision, resultados con
@@ -23,7 +33,6 @@ import {
   avanceDesdeReporte,
   velocidadDesdeReporte,
   calibrarMarcha,
-  geometria,
   factorDesviacion,
   velocidadCorregida,
   validarRegimen,
@@ -262,7 +271,6 @@ export function render(panel, ctx) {
   // ---------------- Resultados ----------------
   const zonaResultados = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } });
   const zonaTdf = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } });
-  const zonaGeometria = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } });
 
   function recalcular() {
     const estado = ctx.estado();
@@ -448,7 +456,6 @@ export function render(panel, ctx) {
 
     reemplazar(zonaResultados, nodos);
     pintarTdf();
-    pintarGeometria();
   }
 
   // Solo las marchas que SI reproducen la velocidad con el motor dentro
@@ -579,42 +586,6 @@ export function render(panel, ctx) {
     reemplazar(zonaTdf, nodos);
   }
 
-  function pintarGeometria() {
-    const g = geometria(ctx.parametrosGeometria());
-    reemplazar(
-      zonaGeometria,
-      el(
-        'div',
-        { estilo: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' } },
-        pintarResultado({
-          etiqueta: 'Área por tabla',
-          valor: aSistema('areaChica', g.valores.areaM2, sistema),
-          unidad: unidad('areaChica', sistema),
-          decimales: 2,
-        }),
-        pintarResultado({
-          etiqueta: 'Superficie por tabla',
-          valor: aSistema('superficie', g.valores.hectareasPorTabla, sistema),
-          unidad: unidad('superficie', sistema),
-          decimales: 4,
-        }),
-        pintarResultado({
-          etiqueta: 'Tramos por tabla',
-          valor: g.valores.tramosPorTabla,
-          unidad: '',
-          decimales: 2,
-        }),
-        pintarResultado({
-          etiqueta: 'Espaciamiento efectivo',
-          valor: aSistema('distanciaCorta', g.valores.espaciamientoEfectivo, sistema),
-          unidad: unidad('distanciaCorta', sistema),
-          decimales: 4,
-        })
-      ),
-      ...pintarAvisos(g.avisos)
-    );
-  }
-
   async function abrirCalibracion() {
     const fila = filaSeleccionada();
     if (!fila) {
@@ -742,13 +713,6 @@ export function render(panel, ctx) {
         descripcion: 'Si la bomba es de TDF, su velocidad cae con el régimen del motor.',
       },
       zonaTdf
-    ),
-    tarjeta(
-      {
-        titulo: 'Geometría derivada',
-        ayuda: 'Sale de la geometría configurada; se edita en Sistema, Configuración.',
-      },
-      zonaGeometria
     )
   );
 
