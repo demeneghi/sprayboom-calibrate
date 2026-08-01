@@ -37,8 +37,15 @@ import { desviacionContraObjetivo, mezclaTanque } from '../../domain/mix.js';
 import { forzamientoDesdeObjetivo } from '../../domain/forcing.js';
 import { gPorScfEfectivo } from '../../domain/gas.js';
 import { geometria } from '../../domain/speed.js';
-import { RECETAS, recetaPorId, pasosDeReceta, progresoDeReceta, indiceDelSiguiente } from '../../domain/recetas.js';
-import { valorDeDato, fijarDato, lecturaDeDatos } from '../dato.js';
+import { RECETAS, recetaPorId, pasosDeReceta, progresoDeReceta } from '../../domain/recetas.js';
+import {
+  valorDeDato,
+  fijarDato,
+  lecturaDeDatos,
+  reiniciarCalibracion,
+  hayCalibracionCapturada,
+} from '../dato.js';
+import { confirmar } from '../dialog.js';
 import { montarPaso, volumenVigente } from './guia/pasos.js';
 
 export const id = 'guia';
@@ -137,6 +144,33 @@ function cabeceraDeReceta(ctx, receta) {
   );
 }
 
+// Elegir un objetivo EMPIEZA DE CERO: paso uno y todos los datos de la
+// calibración anterior borrados.
+//
+// Es lo que se pidió tras usarlo en campo, y es lo correcto: cambiar de
+// tipo de calibración es empezar otro trabajo, y arrastrar la velocidad
+// o la boquilla del anterior es exactamente cómo se cuela un número que
+// ya no es el de hoy.
+//
+// Como el borrado NO se puede deshacer y alcanza a lo que capturaste en
+// las pestañas —es el mismo dato—, se pregunta antes. Solo se pregunta
+// si de verdad hay algo que perder: en un estreno se entra directo.
+async function empezarObjetivo(ctx, receta) {
+  if (hayCalibracionCapturada(ctx)) {
+    const ok = await confirmar({
+      titulo: `Empezar «${receta.titulo}» desde cero`,
+      descripcion:
+        'Se borra lo capturado en esta calibración —velocidad, boquilla, presión, volúmenes y ' +
+        'lo aforado— y el asistente arranca en el paso uno. La configuración del rancho, las ' +
+        'barras, los tractores y la bitácora no se tocan.',
+      confirmarTexto: 'Empezar de cero',
+    });
+    if (!ok) return;
+    reiniciarCalibracion(ctx);
+  }
+  fijarEstadoGuia(ctx, { recetaId: receta.id, indice: 0, vistos: [] });
+}
+
 function tarjetaObjetivos(ctx) {
   const opciones = RECETAS.map((receta) => {
     const avance = progresoDeReceta(receta, instantanea(ctx, receta));
@@ -146,15 +180,7 @@ function tarjetaObjetivos(ctx) {
         clase: 'boton boton--contorno',
         id: `receta-opcion-${receta.id}`,
         'aria-pressed': 'false',
-        alClic: () => {
-          // Se entra por el primer dato que falta, no por el paso uno:
-          // quien ya capturó la velocidad hoy no tiene por qué volver a
-          // pasar por ella.
-          fijarEstadoGuia(ctx, {
-            recetaId: receta.id,
-            indice: indiceDelSiguiente(receta, instantanea(ctx, receta)),
-          });
-        },
+        alClic: () => empezarObjetivo(ctx, receta),
       },
       el('span', { clase: 'receta-opcion__titulo' }, receta.titulo),
       el('span', { clase: 'receta-opcion__objetivo texto-meta' }, receta.objetivo),
@@ -174,7 +200,9 @@ function tarjetaObjetivos(ctx) {
         'El asistente pregunta cada dato UNA vez y lo guarda donde lo leen todas las pantallas: ' +
         'si ya capturaste la velocidad hoy, no te la vuelve a pedir. Las pestañas siguen ahí ' +
         'para calcular a mano, recalibrar una sola cosa o ver el desglose completo, y trabajan ' +
-        'sobre los mismos números. Para salir de un objetivo, el botón «Cambiar» de arriba.',
+        'sobre los mismos números. Elegir un objetivo empieza de cero: borra lo capturado en la ' +
+        'calibración anterior y arranca en el paso uno, y pregunta antes de hacerlo. Para salir ' +
+        'de un objetivo, el botón «Cambiar» de arriba.',
     },
     el('div', { clase: 'grupo-modo grupo-modo--columna' }, opciones)
   );

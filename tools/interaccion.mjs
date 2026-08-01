@@ -629,19 +629,87 @@ await pagina.goto(`${base}#/calibrar/guia`, { waitUntil: 'networkidle' });
 await pagina.waitForTimeout(300);
 const opcionGasto = pagina.locator('#receta-opcion-gasto-agua');
 verificar((await opcionGasto.count()) === 1, 'Asistente: el objetivo «Ajustar el gasto de agua» está');
+// Elegir un objetivo EMPIEZA DE CERO. Como en esta corrida ya hay
+// capturas —velocidad, presión, boquilla—, primero pregunta.
 await opcionGasto.click();
 await pagina.waitForTimeout(400);
+const dialogoReinicio = pagina.locator('dialog[open]');
+verificar(
+  (await dialogoReinicio.count()) === 1 &&
+    /desde cero/i.test(await dialogoReinicio.innerText()),
+  'Asistente: con datos capturados, pregunta antes de borrarlos'
+);
+// Cancelar no borra nada ni entra al objetivo.
+await pagina.getByRole('button', { name: 'Cancelar' }).click();
+await pagina.waitForTimeout(350);
+verificar(
+  (await pagina.locator('.nav-paso').count()) === 0 &&
+    (await pagina.evaluate(
+      () => JSON.parse(localStorage.getItem('sprayboom.v1')).jornada?.presionBar ?? null
+    )) !== null,
+  'Asistente: cancelar deja la calibración intacta y no entra al objetivo'
+);
+
+await opcionGasto.click();
+await pagina.waitForTimeout(300);
+await pagina.getByRole('button', { name: 'Empezar de cero' }).click();
+await pagina.waitForTimeout(450);
 verificar(
   (await opcionGasto.getAttribute('aria-pressed')) === 'true',
   'Asistente: el objetivo elegido se señala por atributo, no cambiando de variante'
 );
-// Se entra por el primer dato que FALTA, no por el paso uno: la
-// velocidad ya se capturó arriba en esta misma corrida.
+// Arranca en el paso UNO, no en el primer dato que falta.
 texto = await pagina.locator('#panel').innerText();
 verificar(
-  /Paso 2 de 5/.test(texto),
-  `Asistente: entra por el primer dato que falta, no por el paso uno (${(texto.match(/Paso \d de \d/) ?? ['sin paso'])[0]})`
+  /Paso 1 de 5/.test(texto),
+  `Asistente: cambiar de objetivo arranca en el paso uno (${(texto.match(/Paso \d de \d/) ?? ['sin paso'])[0]})`
 );
+// Y con todo en blanco: ni la velocidad de Avance ni la presión de Gasto
+// de agua sobreviven al reinicio.
+const trasReinicio = await pagina.evaluate(() => {
+  const e = JSON.parse(localStorage.getItem('sprayboom.v1'));
+  return {
+    presionBar: e.jornada?.presionBar ?? null,
+    boquillaId: e.jornada?.boquillaId ?? null,
+    marcha: e.borradores?.avance?.marcha ?? null,
+    lhaMedido: e.resultados?.lhaMedido ?? null,
+    // Lo que NO se toca: el fierro y el historial.
+    barras: e.equipos.length,
+    catalogo: e.catalogo.length,
+  };
+});
+verificar(
+  trasReinicio.presionBar === null &&
+    trasReinicio.boquillaId === null &&
+    trasReinicio.marcha === null &&
+    trasReinicio.lhaMedido === null,
+  `Asistente: el reinicio borra lo capturado (${JSON.stringify(trasReinicio)})`
+);
+verificar(
+  trasReinicio.barras > 0 && trasReinicio.catalogo > 0,
+  'Asistente: el reinicio NO toca las barras ni el catálogo'
+);
+// El reinicio NO borra la marcha de trabajo del tractor: eso es
+// configuración del fierro, no la captura de hoy, y la aplicación ya la
+// usa como último respaldo con su aviso. Lo que sí tiene que pasar es
+// que el paso de velocidad arranque sin marcha elegida y, si muestra una
+// velocidad, diga de dónde sale.
+const enPasoVelocidad = await pagina.locator('#panel').innerText();
+verificar(
+  (await pagina.locator('.marcha[aria-pressed="true"]').count()) === 0,
+  'Asistente: tras el reinicio no hay marcha elegida en el paso de velocidad'
+);
+verificar(
+  !/km\/h/.test(
+    await pagina.locator('#panel .resultado').allInnerTexts().then((t) => t.join(' '))
+  ) || /marcha de trabajo guardada/i.test(enPasoVelocidad),
+  'Asistente: si tras el reinicio hay velocidad, es la marcha de trabajo del tractor y lo dice'
+);
+
+// Con todo borrado hay que capturar de nuevo desde el asistente: marcha,
+// boquilla y presión.
+await pagina.locator('.marcha', { hasText: 'A1' }).first().click();
+await pagina.waitForTimeout(300);
 
 // Recorrido completo, juntando las etiquetas de todos los campos que
 // pide. Es LA comprobación del cambio de rumbo: ningún dato se pregunta
@@ -650,6 +718,21 @@ const etiquetasPedidas = [];
 for (let vuelta = 0; vuelta < 6; vuelta += 1) {
   const etiquetas = await pagina.locator('#panel .campo .etiqueta').allInnerTexts();
   etiquetasPedidas.push(...etiquetas.map((t) => t.trim()).filter(Boolean));
+
+  // Se captura sobre la marcha lo que el paso pida: tras el reinicio no
+  // queda nada, así que la hoja del final solo sale si el recorrido de
+  // verdad llena la boquilla y su presión.
+  const combo = pagina.locator('#guia-boquilla');
+  if ((await combo.count()) === 1) {
+    await combo.click();
+    await combo.fill('XR11004');
+    await pagina.waitForTimeout(250);
+    await pagina.locator('.combobox__opcion').first().click();
+    await pagina.waitForTimeout(200);
+    await pagina.getByRole('textbox', { name: 'Presión en la boquilla' }).fill('3');
+    await pagina.waitForTimeout(250);
+  }
+
   const siguiente = pagina.locator('.nav-paso__siguiente');
   if ((await siguiente.count()) === 0) break;
   const rotulo = await siguiente.innerText();
@@ -735,6 +818,12 @@ for (const receta of ['elegir-boquilla', 'mezcla-tanque', 'forzamiento-etileno']
   }
   await pagina.locator(`#receta-opcion-${receta}`).click();
   await pagina.waitForTimeout(350);
+  // Elegir objetivo empieza de cero: si hay algo capturado, pregunta.
+  const confirmarReinicio = pagina.getByRole('button', { name: 'Empezar de cero' });
+  if ((await confirmarReinicio.count()) > 0) {
+    await confirmarReinicio.click();
+    await pagina.waitForTimeout(400);
+  }
   for (let vuelta = 0; vuelta < 8; vuelta += 1) {
     const siguiente = pagina.locator('.nav-paso__siguiente');
     if ((await siguiente.count()) === 0) break;
@@ -765,6 +854,10 @@ verificar(
 // sin velocidad y sin boquilla: casi todo lo que se quería compartir.
 await pagina.goto(`${base}#/calibrar/gasto`, { waitUntil: 'networkidle' });
 await pagina.waitForTimeout(350);
+// Se captura aquí y no se hereda de arriba: los recorridos del asistente
+// empiezan de cero, así que esta comprobación se planta su propio dato.
+await entradaPresion.fill('2.6');
+await pagina.waitForTimeout(300);
 const presionCompartida = await entradaPresion.inputValue();
 const enlace = await pagina.evaluate(async () => {
   // Se lee el enlace del portapapeles que arma el botón de compartir.

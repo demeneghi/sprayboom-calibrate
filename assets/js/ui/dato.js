@@ -16,7 +16,7 @@ import { crearCampoHeredado } from './heredado.js';
 import { formatear } from './formato.js';
 import { aSistema, deSistema, unidad } from '../domain/units.js';
 import { geometria, redondeoLegible } from '../domain/speed.js';
-import { DATOS, dato } from '../domain/datos.js';
+import { DATOS, dato, rastroDeCalibracion, senalesDeCaptura } from '../domain/datos.js';
 
 // ---------------------------------------------------------------------
 // Resolucion del respaldo: de donde sale el valor cuando la jornada
@@ -278,3 +278,58 @@ export function lecturaDeDatos(ctx, ids) {
 }
 
 export { DATOS };
+
+// ---------------------------------------------------------------------
+// Empezar de cero
+//
+// Borra TODO lo capturado de la calibración de hoy: los datos de la
+// jornada, lo que el asistente escribió en los borradores de las
+// pantallas y los resultados compartidos que esa captura produjo. El
+// inventario sale de `rastroDeCalibracion()`, así que un dato nuevo en
+// el registro queda cubierto sin tocar esta función.
+//
+// Lo que NO se borra: la configuración del rancho, las barras, los
+// tractores, el catálogo y la bitácora. Eso es el fierro y el historial,
+// no la captura de hoy.
+//
+// Se escribe como 'contexto' porque cambia lo que se está pintando.
+export function reiniciarCalibracion(ctx) {
+  const rastro = rastroDeCalibracion();
+  ctx.almacen.actualizar((estado) => {
+    for (const clave of rastro.jornada) delete estado.jornada?.[clave];
+    for (const [tab, claves] of Object.entries(rastro.borradores)) {
+      const borrador = estado.borradores?.[tab];
+      if (!borrador) continue;
+      for (const clave of claves) delete borrador[clave];
+    }
+    for (const clave of rastro.resultados) delete estado.resultados?.[clave];
+  }, 'contexto');
+}
+
+// Verdadero si hay algo capturado que un reinicio se llevaría por
+// delante. Sirve para no preguntar cuando no hay nada que perder: en un
+// teléfono recién estrenado se entra directo al paso uno.
+export function hayCalibracionCapturada(ctx) {
+  const senales = senalesDeCaptura();
+  const estado = ctx.estado();
+  const puesto = (valor) =>
+    valor !== undefined && valor !== null && !(Array.isArray(valor) && valor.length === 0);
+
+  for (const senal of senales.jornada) {
+    const valor = estado.jornada?.[senal.id];
+    if (!puesto(valor)) continue;
+    // Un dato heredado se persiste solo al montar su campo: solo cuenta
+    // si lleva puesta su marca de captura manual.
+    if (senal.exigeMarca && estado.jornada?.[senal.exigeMarca] !== true) continue;
+    return true;
+  }
+  for (const [tab, claves] of Object.entries(senales.borradores)) {
+    for (const clave of claves) {
+      if (puesto(estado.borradores?.[tab]?.[clave])) return true;
+    }
+  }
+  for (const clave of senales.resultados) {
+    if (puesto(estado.resultados?.[clave])) return true;
+  }
+  return false;
+}

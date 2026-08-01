@@ -263,3 +263,98 @@ export function clavesDeJornada() {
   }
   return claves;
 }
+
+// ---------------------------------------------------------------------
+// Rastro de una calibración: todo lo que deja capturado
+//
+// Sirve para EMPEZAR DE CERO al elegir otro objetivo en el asistente.
+// Se deriva del registro —no es una segunda lista que mantener a mano—
+// más dos añadidos que el registro no puede deducir solo:
+//
+//   1. Los borradores de los que un dato DERIVA su valor. La velocidad
+//      no se guarda: sale del modo, la marcha, el régimen y los segundos
+//      por tramo que vivan en el borrador de Avance. Sin borrar eso, el
+//      asistente diría «reiniciado» y seguiría trayendo la velocidad de
+//      la calibración anterior.
+//   2. Los resultados compartidos que produce una calibración. Si
+//      quedaran, el volumen de aplicación del objetivo nuevo seguiría
+//      heredando el aforo del objetivo viejo.
+//
+// Lo que NO entra, a propósito: la configuración del rancho, las barras,
+// los tractores, el catálogo y la bitácora. Eso no es la captura de hoy,
+// es el fierro y el historial.
+const DERIVADOS_EN_BORRADOR = {
+  avance: ['modo', 'marcha', 'rpm', 'segundosPorTramo'],
+  captura: ['tiempoS', 'volumenesMl'],
+};
+
+export const RESULTADOS_DE_CALIBRACION = [
+  'lhaObjetivo',
+  'lhaCalculado',
+  'lhaMedido',
+  'masaPorTablaG',
+];
+
+// Lo que cuenta como CAPTURA de una persona, para saber si un reinicio
+// se llevaria algo por delante. No es lo mismo que el rastro que se
+// borra, y la diferencia importa:
+//
+//   - Un dato heredado se PERSISTE solo al montar su campo —el
+//     espaciamiento de la barra se escribe en la jornada con solo abrir
+//     Gasto de agua— para que el enlace compartido y la bitacora lleven
+//     el mismo numero que esta en pantalla. Ese no lo tecleo nadie: solo
+//     cuenta cuando su marca de captura manual esta puesta.
+//   - Avance persiste `modo` y `rpm` al abrirse, con el regimen habitual
+//     precargado. Lo que una persona elige ahi es la MARCHA o los
+//     segundos por tramo.
+//
+// Sin esta distincion, el asistente preguntaria «¿borro lo capturado?»
+// en un telefono recien estrenado donde no hay nada que borrar.
+const ELEGIDOS_EN_BORRADOR = {
+  avance: ['marcha', 'segundosPorTramo'],
+  captura: ['volumenesMl'],
+};
+
+export function senalesDeCaptura() {
+  const rastro = rastroDeCalibracion();
+  const jornada = [];
+  for (const [id, declaracion] of Object.entries(DATOS)) {
+    if (declaracion.guarda) continue;
+    // Con marca de captura manual, manda la marca; sin ella, basta con
+    // que el dato tenga valor.
+    jornada.push(declaracion.manual ? { id, exigeMarca: declaracion.manual } : { id });
+  }
+  const borradores = {};
+  for (const [tab, claves] of Object.entries(ELEGIDOS_EN_BORRADOR)) {
+    borradores[tab] = [...claves];
+  }
+  for (const declaracion of Object.values(DATOS)) {
+    if (!declaracion.guarda) continue;
+    const { tab, clave } = declaracion.guarda;
+    if (!borradores[tab]) borradores[tab] = [];
+    if (!borradores[tab].includes(clave)) borradores[tab].push(clave);
+  }
+  return { jornada, borradores, resultados: rastro.resultados };
+}
+
+export function rastroDeCalibracion() {
+  const borradores = {};
+  for (const [tab, claves] of Object.entries(DERIVADOS_EN_BORRADOR)) {
+    borradores[tab] = [...claves];
+  }
+  for (const declaracion of Object.values(DATOS)) {
+    if (!declaracion.guarda) continue;
+    const { tab, clave } = declaracion.guarda;
+    if (!borradores[tab]) borradores[tab] = [];
+    if (!borradores[tab].includes(clave)) borradores[tab].push(clave);
+  }
+  // Solo los que de verdad viven en la jornada: los que declaran
+  // `guarda` viven en el borrador de su pantalla y ya salen arriba.
+  const jornada = [];
+  for (const [id, declaracion] of Object.entries(DATOS)) {
+    if (declaracion.guarda) continue;
+    jornada.push(id);
+    if (declaracion.manual) jornada.push(declaracion.manual);
+  }
+  return { jornada, borradores, resultados: [...RESULTADOS_DE_CALIBRACION] };
+}
