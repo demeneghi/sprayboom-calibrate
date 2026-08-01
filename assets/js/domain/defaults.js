@@ -352,7 +352,17 @@ export const COTAS_BOQUILLA = {
   presionMinBar: { min: 0.1, max: 50, unidad: 'bar', etiqueta: 'Presión mínima de operación' },
   presionMaxBar: { min: 0.1, max: 50, unidad: 'bar', etiqueta: 'Presión máxima de operación' },
   exponente: { min: 0.2, max: 0.8, unidad: '', etiqueta: 'Exponente presión-caudal' },
-  anguloGrados: { min: 10, max: 180, unidad: 'grados', etiqueta: 'Ángulo de aspersión' },
+  // Opcional porque hay boquillas SIN angulo de aspersion: las de chorro
+  // solido (StreamJet SJ3 y SJ7) tiran chorros paralelos para
+  // fertilizante liquido, no abren abanico ni cono. Poner un numero ahi
+  // seria inventarle una geometria que no tiene; vacio es el dato.
+  anguloGrados: {
+    min: 10,
+    max: 180,
+    unidad: 'grados',
+    etiqueta: 'Ángulo de aspersión',
+    opcional: true,
+  },
 };
 
 // Semilla del formulario "agregar boquilla": los valores de arranque de

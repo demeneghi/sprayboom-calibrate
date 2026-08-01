@@ -9,9 +9,12 @@
 //      https://www.teejet.com/-/media/dam/agricultural/usa/sales-material/catalog/cat51a_metric.pdf
 //      Caudales en L/min por presion en bar y clase de gota por presion
 //      tomados de las tablas de cada serie (paginas 7-15 y 40-41 del
-//      PDF). Las clases de gota del catalogo TeeJet estan clasificadas
-//      conforme a ASABE S572.1. Para las series de dos angulos se
-//      tomo la columna del angulo indicado en cada ficha.
+//      PDF; la FullJet en la 30 y las StreamJet en la 49 y la 50). Las
+//      clases de gota del catalogo TeeJet estan clasificadas conforme a
+//      ASABE S572.1. Para las series de dos angulos se tomo la columna
+//      del angulo indicado en cada ficha. El angulo del cono de la
+//      FullJet sale de la tabla de alturas de la pagina 140, que lo
+//      declara en 120 grados.
 //
 // [LE] Lechler, Agricultural Spray Nozzles and Accessories, catalogo
 //      2025 (edicion en ingles),
@@ -645,6 +648,85 @@ CATALOGO_SIEMBRA.push(
     rangos([2, 6.2, 'UC'])),
   mj('mug-05', 'MUG', 'MUG 05', '05', 110, 'induccion', 2.14, 3.4, 2, 6.2, 0.498,
     rangos([2, 6.2, 'UC']))
+);
+
+// ----- TeeJet sin clase de gota publicada: cono lleno y chorro solido -----
+// Dos familias que el catalogo tabula con caudal por presion pero SIN
+// columna de tamaño de gota, asi que van con clasesGota vacia y no
+// participan en el filtrado por clase, igual que las Albuz y las Hypro:
+//
+//   FL FullJet, cono lleno de angulo ancho (120 grados, tabla de alturas
+//   de la pagina 140 del catalogo). Su numero es capacidad propia de
+//   TeeJet, NO el codigo de tamaño ISO, asi que no lleva tamanoIso ni
+//   color de la norma.
+//
+//   SJ3 y SJ7 StreamJet, de fertilizante liquido: tres o siete chorros
+//   solidos y paralelos. NO tienen angulo de aspersion —no abren abanico
+//   ni cono— y por eso su ficha lo deja vacio; el chorro solido casi no
+//   deriva y moja en franjas, que es justo lo que se busca para no
+//   quemar la hoja. Su numero si es el codigo de capacidad de TeeJet, y
+//   el caudal cae dentro de la tolerancia de la norma en todos los
+//   tamaños salvo el que lleva nota.
+//
+// El exponente va ajustado a la tabla de cada ficha, como en Magnojet:
+// estas series se apartan de la raiz cuadrada mucho mas que un abanico
+// (de 0.38 a 0.57), porque el orificio dosificador no es el que forma el
+// patron.
+function sinClase(id, serie, modelo, tamanoIso, angulo, tipoPatron, material, caudal3bar, presionMin, presionMax, exponente, notas = '') {
+  return {
+    id,
+    fabricante: 'TeeJet',
+    serie,
+    modelo,
+    tipoPatron,
+    anguloGrados: angulo,
+    tamanoIso,
+    caudalRefLmin: caudal3bar,
+    presionRefBar: 3,
+    presionMinBar: presionMin,
+    presionMaxBar: presionMax,
+    exponente,
+    material,
+    edicionEstandar: null,
+    clasesGota: [],
+    notas,
+    fuente: 'TeeJet Catalog 51A-M (métrico), tabla de la serie. No publica clase de gota.',
+  };
+}
+
+CATALOGO_SIEMBRA.push(
+
+  // ----- FL -----
+  sinClase('fl-5', 'FL', 'FL-5', null, 120, 'cono-lleno', 'inox/polimero', 1.97, 1, 3, 0.453),
+  sinClase('fl-65', 'FL', 'FL-6.5', null, 120, 'cono-lleno', 'inox/polimero', 2.56, 1, 3, 0.447),
+  sinClase('fl-8', 'FL', 'FL-8', null, 120, 'cono-lleno', 'inox/polimero', 3.15, 1, 3, 0.461),
+  sinClase('fl-10', 'FL', 'FL-10', null, 120, 'cono-lleno', 'inox/polimero', 3.93, 1, 3, 0.451),
+  sinClase('fl-15', 'FL', 'FL-15', null, 120, 'cono-lleno', 'inox/polimero', 5.9, 1, 3, 0.462),
+
+  // ----- SJ3 -----
+  sinClase('sj3-015', 'SJ3', 'SJ3-015', '015', null, 'chorro', 'polimero', 0.58, 1.5, 4, 0.391),
+  sinClase('sj3-02', 'SJ3', 'SJ3-02', '02', null, 'chorro', 'polimero', 0.78, 1.5, 4, 0.450),
+  sinClase('sj3-03', 'SJ3', 'SJ3-03', '03', null, 'chorro', 'polimero', 1.18, 1.5, 4, 0.376),
+  sinClase('sj3-04', 'SJ3', 'SJ3-04', '04', null, 'chorro', 'polimero', 1.56, 1.5, 4, 0.412),
+  sinClase('sj3-05', 'SJ3', 'SJ3-05', '05', null, 'chorro', 'polimero', 1.96, 1.5, 4, 0.450),
+  sinClase('sj3-06', 'SJ3', 'SJ3-06', '06', null, 'chorro', 'polimero', 2.4, 1.5, 4, 0.479),
+  sinClase('sj3-08', 'SJ3', 'SJ3-08', '08', null, 'chorro', 'polimero', 3.13, 1.5, 4, 0.401),
+  sinClase('sj3-10', 'SJ3', 'SJ3-10', '10', null, 'chorro', 'polimero', 3.91, 1.5, 4, 0.489),
+  sinClase('sj3-15', 'SJ3', 'SJ3-15', '15', null, 'chorro', 'polimero', 5.86, 1.5, 4, 0.572),
+  sinClase('sj3-20', 'SJ3', 'SJ3-20', '20', null, 'chorro', 'polimero', 8.05, 1.5, 4, 0.528),
+
+  // ----- SJ7 -----
+  sinClase('sj7-015', 'SJ7', 'SJ7-015', null, null, 'chorro', 'polimero', 0.57, 1.5, 4, 0.543,
+    'Su caudal a 3 bar queda 5 % por debajo del nominal del tamaño 015 (0,6 L/min), justo en ' +
+      'el límite de la tolerancia de la norma: por eso no se le declara tamaño ISO.'),
+  sinClase('sj7-02', 'SJ7', 'SJ7-02', '02', null, 'chorro', 'polimero', 0.8, 1.5, 4, 0.542),
+  sinClase('sj7-03', 'SJ7', 'SJ7-03', '03', null, 'chorro', 'polimero', 1.18, 1.5, 4, 0.422),
+  sinClase('sj7-04', 'SJ7', 'SJ7-04', '04', null, 'chorro', 'polimero', 1.55, 1.5, 4, 0.393),
+  sinClase('sj7-05', 'SJ7', 'SJ7-05', '05', null, 'chorro', 'polimero', 1.95, 1.5, 4, 0.378),
+  sinClase('sj7-06', 'SJ7', 'SJ7-06', '06', null, 'chorro', 'polimero', 2.35, 1.5, 4, 0.398),
+  sinClase('sj7-08', 'SJ7', 'SJ7-08', '08', null, 'chorro', 'polimero', 3.15, 1.5, 4, 0.437),
+  sinClase('sj7-10', 'SJ7', 'SJ7-10', '10', null, 'chorro', 'polimero', 3.94, 1.5, 4, 0.442),
+  sinClase('sj7-15', 'SJ7', 'SJ7-15', '15', null, 'chorro', 'polimero', 5.87, 1.5, 4, 0.497)
 );
 
 // ----- Magnojet AD-IA en 80 grados -----

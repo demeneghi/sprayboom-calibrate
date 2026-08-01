@@ -237,6 +237,26 @@ test('catalogo por separado: exportar, importar y rechazar entradas invalidas', 
   assert.equal(resultado.rechazos.length >= 2, true);
 });
 
+test('una boquilla sin angulo de aspersion sobrevive la ida y vuelta', () => {
+  // Las de chorro solido (StreamJet) no abren abanico ni cono: su angulo
+  // va vacio. Si la cota no lo aceptara, la importacion las tiraria en
+  // silencio y el usuario perderia esas fichas al restaurar su respaldo.
+  const estado = sembrarEstado();
+  const sinAngulo = estado.catalogo.filter((b) => b.anguloGrados === null);
+  assert.ok(sinAngulo.length > 0, 'la siembra debería traer boquillas sin ángulo');
+
+  const json = JSON.parse(exportarCatalogoJSON(estado));
+  const resultado = importarCatalogoJSON(JSON.stringify(json), estado);
+  assert.equal(resultado.ok, true);
+  assert.equal(resultado.rechazos.length, 0, 'ninguna ficha debería rechazarse');
+  assert.equal(resultado.estado.catalogo.length, estado.catalogo.length);
+  for (const b of sinAngulo) {
+    const vuelta = resultado.estado.catalogo.find((x) => x.id === b.id);
+    assert.ok(vuelta, `${b.id} se perdió al importar`);
+    assert.equal(vuelta.anguloGrados, null, `${b.id} debería seguir sin ángulo`);
+  }
+});
+
 // ---------------------------------------------------------------------
 // Migracion: la geometria de la barra bajo de parametros.geometria a
 // cada barra. Un telefono de campo tiene guardado el esquema viejo; si

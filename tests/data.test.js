@@ -185,6 +185,52 @@ test('la tabla de Hypro ULD120-08 se reproduce con exponente 0.5', () => {
   assert.equal(clasificarGota({ boquilla: uld08, presionBar: 3 }), null);
 });
 
+test('el cono lleno y el chorro solido estan sembrados, y sin clase inventada', () => {
+  const conoLleno = CATALOGO_SIEMBRA.filter((b) => b.tipoPatron === 'cono-lleno');
+  const chorro = CATALOGO_SIEMBRA.filter((b) => b.tipoPatron === 'chorro');
+  assert.ok(conoLleno.length > 0, 'ninguna boquilla de cono lleno');
+  assert.ok(chorro.length > 0, 'ninguna boquilla de chorro');
+  // El catalogo no publica tamaño de gota para estas series.
+  for (const b of [...conoLleno, ...chorro]) {
+    assert.equal(b.edicionEstandar, null, `${b.id} no debería declarar edición`);
+    assert.deepEqual(b.clasesGota, [], `${b.id} no debería traer clase`);
+  }
+  // El chorro solido no abre abanico ni cono: no tiene angulo que declarar.
+  for (const b of chorro) {
+    assert.equal(b.anguloGrados, null, `${b.id} no debería tener ángulo`);
+  }
+  // La FullJet lleva su angulo de cono y NO lleva tamaño ISO: su numero
+  // es capacidad propia de TeeJet, no el codigo de la norma.
+  for (const b of conoLleno) {
+    assert.equal(b.anguloGrados, 120, `${b.id} ángulo`);
+    assert.equal(b.tamanoIso, null, `${b.id} no debería declarar tamaño ISO`);
+  }
+});
+
+test('la tabla de las FullJet y las StreamJet se reproduce con su exponente', () => {
+  const en = (id, presion) => {
+    const b = CATALOGO_SIEMBRA.find((x) => x.id === id);
+    return caudalAPresion({
+      caudalRef: b.caudalRefLmin,
+      presionRef: b.presionRefBar,
+      presion,
+      exponente: b.exponente,
+    });
+  };
+  const T = 0.05;
+  cercanoRel(en('fl-15', 1), 3.56, T, 'FL-15 a 1 bar');
+  cercanoRel(en('fl-15', 2), 4.84, T, 'FL-15 a 2 bar');
+  cercanoRel(en('sj3-20', 1.5), 5.58, T, 'SJ3-20 a 1,5 bar');
+  cercanoRel(en('sj3-20', 4), 9.31, T, 'SJ3-20 a 4 bar');
+  cercanoRel(en('sj7-06', 1.5), 1.77, T, 'SJ7-06 a 1,5 bar');
+  cercanoRel(en('sj7-06', 4), 2.61, T, 'SJ7-06 a 4 bar');
+  // La SJ7-015 queda al 5 % justo del nominal ISO, en el borde de la
+  // tolerancia: por eso va sin tamaño ISO en vez de forzarlo.
+  const sj7015 = CATALOGO_SIEMBRA.find((b) => b.id === 'sj7-015');
+  assert.equal(sj7015.tamanoIso, null);
+  assert.match(sj7015.notas, /tolerancia/);
+});
+
 test('las series de dos angulos traen el mismo caudal y la clase de SU angulo', () => {
   // El orificio no sabe de angulo: el caudal de la 80 y el de la 110 del
   // mismo tamaño tienen que coincidir. La clase de gota no: el catalogo
