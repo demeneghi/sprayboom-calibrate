@@ -159,10 +159,32 @@ h4 {
 }
 
 /* Nada produce scroll horizontal de pagina; lo ancho scrollea dentro
-   de su propio contenedor. */
+   de su propio contenedor.
+
+   RECORTA (`clip`), NO ESCONDE (`hidden`). Los dos tapan igual lo que
+   se sale de lado, pero `hidden` es un desbordamiento DESPLAZABLE: hace
+   de <html> un contenedor de scroll y la pagina deja de desplazarse en
+   el viewport para desplazarse dentro de la raiz. Eso rompe las dos
+   piezas que se anclan a la pantalla, y cada una a su manera:
+
+   - El encabezado con los selectores (`position: sticky`) pasa a
+     pegarse al borde de ESE contenedor, que es el documento entero, asi
+     que se pierde arriba en cuanto se baja. Falla en TODO navegador
+     —`humo.mjs` lo mide en Chromium—.
+   - La navegacion inferior (`position: fixed`) se va con el contenido y
+     queda a media pantalla en Safari de iPhone, que es el telefono con
+     el que se calibra. Ese no se reproduce en Chromium.
+
+   `clip` recorta igual y NO crea contenedor de scroll, asi que el ancla
+   de las dos vuelve a ser la pantalla.
+
+   La declaracion `hidden` se queda de respaldo para un navegador sin
+   `clip` (Safari anterior al 16): ahi el comportamiento es el de antes,
+   no uno peor. */
 html,
 body {
   overflow-x: hidden;
+  overflow-x: clip;
 }
 
 .scroll-x {

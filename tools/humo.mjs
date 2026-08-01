@@ -143,6 +143,59 @@ for (const [ancho, alto, nombre] of [[390, 844, 'iphone'], [360, 740, 'gama-baja
           .join(', ')})`
       );
     }
+    // La navegacion inferior se queda pegada al borde de la pantalla y
+    // el encabezado con los selectores, pegado arriba: las dos anclas
+    // se revisan DESPLAZANDO hasta el final, que es donde se rompen.
+    //
+    // Van dos comprobaciones porque fallan por motivos distintos:
+    //
+    // 1. Que sigan en su sitio despues de bajar. Esto atrapa el caso que
+    //    rompe en cualquier navegador: un ancestro con `transform`,
+    //    `filter` o `contain` se vuelve el contenedor de lo fijo.
+    // 2. Que ni <html> ni <body> escondan con `overflow: hidden`. Eso
+    //    hace de la raiz un contenedor de scroll: el encabezado pegajoso
+    //    se despega aqui mismo —lo atrapa la comprobacion 1—, pero la
+    //    barra fija solo se va con el contenido en Safari de iPhone, y
+    //    Chromium no lo reproduce. Como ese lado NO se puede medir desde
+    //    esta prueba, se prohibe la causa.
+    const anclas = await pagina.evaluate(async () => {
+      const raiz = getComputedStyle(document.documentElement).overflowX;
+      const cuerpo = getComputedStyle(document.body).overflowX;
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const barra = document.querySelector('.nav-inferior').getBoundingClientRect();
+      const cabecera = document.querySelector('.encabezado').getBoundingClientRect();
+      const bajado = window.scrollY;
+      window.scrollTo(0, 0);
+      return {
+        raiz,
+        cuerpo,
+        bajado,
+        barra: window.innerHeight - barra.bottom,
+        cabecera: cabecera.top,
+      };
+    });
+    for (const [donde, valor] of [['html', anclas.raiz], ['body', anclas.cuerpo]]) {
+      if (valor === 'hidden') {
+        problemas.push(
+          `[${nombre}] ${seccion}/${tab}: ${donde} lleva overflow-x: hidden; usa clip, o en iPhone la barra inferior y el encabezado se van con el scroll`
+        );
+      }
+    }
+    // Con menos de 8px de recorrido no hay nada que probar: la pestana
+    // cabe entera en la pantalla y las anclas no se han movido de sitio.
+    if (anclas.bajado > 8) {
+      if (Math.abs(anclas.barra) > 1) {
+        problemas.push(
+          `[${nombre}] ${seccion}/${tab}: la navegacion inferior se despego ${Math.round(anclas.barra)}px del borde al desplazar`
+        );
+      }
+      if (Math.abs(anclas.cabecera) > 1) {
+        problemas.push(
+          `[${nombre}] ${seccion}/${tab}: el encabezado se despego ${Math.round(anclas.cabecera)}px de arriba al desplazar`
+        );
+      }
+    }
     if (capturas && nombre === 'iphone') {
       await pagina.screenshot({
         path: new URL(`../capturas/${seccion}-${tab}.png`, import.meta.url).pathname,
