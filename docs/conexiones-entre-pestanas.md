@@ -1,10 +1,15 @@
 # Conexiones entre pestañas: análisis e inventario
 
 Este documento levanta el inventario de los datos que una pestaña **calcula** y otra
-**necesita**, dice cuáles están conectados hoy, cuáles no, y cuáles están conectados pero
-fallan. No cambia código: es el mapa para decidir qué conectar y en qué orden.
+**necesita**, dice cuáles están conectados, cuáles no, y cuáles estaban conectados pero
+fallaban.
 
 Fecha del análisis: agosto de 2026. Rama: `claude/calculated-fields-tabs-sync-0zbwcz`.
+
+> **Estado: remediado.** El análisis se escribió primero y después se aplicó completo. El
+> cuerpo del documento describe **cómo estaba** —para que el motivo de cada cambio quede
+> escrito— y la §8, al final, dice qué se hizo, qué quedó fuera y por qué. Los tiempos
+> verbales en pasado del inventario se refieren al estado anterior al arreglo.
 
 ---
 
@@ -318,7 +323,93 @@ decisión aparte, no venir de arrastre en un trabajo de sincronización.
 
 ---
 
-## 7. Nota sobre el modelo de propagación
+## 7. Qué se hizo
+
+### El derivado compartido, una sola vez
+
+`ctx.velocidadDeAvance()` y `ctx.avanceDeAvance()` son ahora la **única** versión de ese
+cálculo. Las cinco implementaciones divergentes de §4 desaparecieron: las dos copias literales
+de `traerTiempoDeAvance` (gas y forzamiento) y la de `velocidadEjemplo` (metodología) leen el
+derivado; el campo de régimen de Gasto de agua ya no lee el borrador de Avance de frente.
+Metodología conserva solo su respaldo propio, que las demás no tienen.
+
+### El fallo del régimen, cerrado por dos lados
+
+1. **Avance persiste lo que muestra.** Al montar guarda el `modo` y el `rpm` efectivos, no
+   solo los que se teclean.
+2. **`velocidadDeAvance` acepta `rpmRespaldo`**, que `ctx` llena con el régimen habitual del
+   tractor. Esto cubre los teléfonos que ya tienen un borrador guardado sin `rpm` y que no
+   volverán a abrir Avance.
+
+Cualquiera de los dos basta por separado; están los dos a propósito, porque el segundo es lo
+único que alcanza a lo ya guardado en campo.
+
+Además, cuando la velocidad **no** sale del modo elegido en Avance, el dominio emite el aviso
+`fuente-distinta-al-modo` y el campo lo pinta. El respaldo silencioso era la mitad del problema.
+
+### La marcha ya no se transfiere entre tractores
+
+La marcha guardada lleva `tractorId` y no se hereda si no es la del tractor activo. Un borrador
+anterior al sello se acepta y se vuelve a sellar: nadie pierde su selección por actualizar.
+
+### El patrón de campo heredado, extraído
+
+`ui/heredado.js` tiene el patrón completo (precarga + chip de procedencia + captura manual que
+manda + botón para volver a heredar). Lo usan ahora **nueve** campos: velocidad (3 pantallas),
+tiempo por tabla (2), régimen (2), volumen de aplicación (2), masa por tabla (1) y
+espaciamiento (3). `crearCampoVelocidad` quedó reducido a lo propio de la velocidad.
+
+La bandera `guardadoSinMarcaEsManual` protege a los campos que **antes** se capturaban a mano:
+lo que ya estaba guardado sin marca es una captura del usuario y no se pisa con lo heredado.
+
+### El volumen de aplicación conectado
+
+`estado.resultados` guarda lo que una pantalla calculó y otra necesita, con procedencia y
+fecha. Gasto de agua publica `lhaCalculado`, la Prueba de captura publica `lhaMedido`, y las
+tres pantallas que capturan el objetivo comparten `lhaObjetivo`. **Solo se publica lo que pasó
+el gate de verificación redundante.**
+
+Mezcla y Forzamiento lo heredan con el criterio del proyecto: **el aforo manda sobre el
+cálculo**, y cuál de los dos se está usando va a la vista con su fecha. Sin ninguno de los dos,
+el objetivo propio del rancho, dicho con esas palabras.
+
+### Puentes puntuales
+
+- Forzamiento `masaPorTablaG` → Gas etileno `masaObjetivoG`.
+- Gasto de agua precarga la presión de la última calibración de la barra, como ya hacía captura.
+- La Prueba de captura registra el régimen del motor del aforo y lo guarda con la prueba: sin
+  él, la deriva del desgaste mezclaba pruebas hechas a regímenes distintos.
+- El espaciamiento muestra su procedencia en las tres pantallas que lo precargan.
+
+### Pruebas
+
+Seis casos nuevos en `tests/speed.test.js` (respaldo del régimen, prioridad del tecleado, la
+marcha ganando al reporte viejo, el aviso de fuente distinta al modo y el filtro por tractor) y
+tres bloques en `tools/interaccion.mjs`, con navegador real:
+
+- cambiar de modo en Avance cambia lo que heredan Gasto de agua y Gas etileno;
+- el caso de estreno —elegir marcha y aceptar el régimen precargado— llega a las demás
+  pantallas;
+- Mezcla hereda el mismo L/ha que calculó Gasto de agua.
+
+Los dos últimos se comprobaron revirtiendo el arreglo: **fallan sin él**.
+
+## 8. Lo que quedó fuera, y por qué
+
+- **El caudal medido en la Prueba de captura no alimenta a Gasto de agua.** Es la conexión de
+  mayor valor agronómico y sigue pendiente a propósito: cambia qué número manda en el cálculo
+  central de la aplicación —el de catálogo de una boquilla nueva contra el real de una barra
+  desgastada— y esa es una decisión de producto, no un arrastre de un trabajo de
+  sincronización.
+- **Boquillas no ofrece «usar en Prueba de captura».** La tabla de candidatas ya lleva seis
+  columnas y scroll horizontal en teléfono; una séptima empeora más de lo que ayuda. La boquilla
+  de la barra ya se precarga en las dos pantallas.
+- **`mezcla.lhaAplicacionLha` y `forzamiento.volumenAguaLha` conservan su nombre.** No son el
+  objetivo, sino el volumen aplicado: unificarlos con `lhaObjetivo` habría juntado dos
+  conceptos distintos. En Gasto de agua el nombre viejo `lhaObjetivoLha` se sigue leyendo para
+  no perder lo capturado en un teléfono.
+
+## 9. Nota sobre el modelo de propagación
 
 Un detalle que conviene tener presente al implementar: hoy las pestañas se vuelven a pintar
 **solo** al navegar o al cambiar el contexto (tractor, barra, unidades, tema). Los borradores

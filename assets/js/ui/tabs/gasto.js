@@ -20,6 +20,7 @@ import {
 } from '../render.js';
 import { crearCampoNumerico, crearCampoSelect } from '../campos.js';
 import { crearCampoVelocidad } from '../velocidad.js';
+import { crearCampoHeredado, fuenteEspaciamiento } from '../heredado.js';
 import { formatear } from '../formato.js';
 import { mostrarToast } from '../toast.js';
 import { crearCombobox } from '../combobox.js';
@@ -74,14 +75,6 @@ export function render(panel, ctx) {
   function precarga(magnitud, valorMetrico) {
     if (valorMetrico === null || valorMetrico === undefined) return null;
     return redondeoLegible(aSistema(magnitud, valorMetrico, sistema));
-  }
-
-  function espaciamientoDeConfiguracion() {
-    try {
-      return geometria(ctx.parametrosGeometria()).valores.espaciamientoEfectivo;
-    } catch {
-      return null;
-    }
   }
 
   // Caudal de la boquilla a una presion dada: con agua y con el caldo
@@ -184,8 +177,13 @@ export function render(panel, ctx) {
   const campoPresion = crearCampoNumerico({
     etiqueta: 'Presión en la boquilla',
     unidad: unidadPresion,
-    valorInicial: precarga('presion', borrador.presionBar ?? null),
-    ayuda: 'La presión leída en el manómetro durante el trabajo.',
+    // Se precarga la presion de la ultima calibracion de la barra, igual
+    // que hace la Prueba de captura: arrancar en blanco obligaba a
+    // teclear un numero que la aplicacion ya conoce.
+    valorInicial: precarga('presion', borrador.presionBar ?? equipo?.presionCalibracion ?? null),
+    ayuda:
+      'La presión leída en el manómetro durante el trabajo. Se precarga la de la última ' +
+      'calibración registrada para esta barra; cámbiala por la que marque hoy el manómetro.',
     alCambiar: (valor) => {
       ctx.guardarBorrador(id, { presionBar: deSistema('presion', valor, sistema) });
       recalcular();
@@ -222,18 +220,30 @@ export function render(panel, ctx) {
       recalcular();
     },
   });
-  const campoEspaciamiento = crearCampoNumerico({
+  const fuenteEsp = fuenteEspaciamiento(ctx);
+  const campoEspaciamiento = crearCampoHeredado({
+    ctx,
+    tabId: id,
+    clave: 'espaciamientoM',
+    claveManual: 'espaciamientoManual',
     etiqueta: 'Espaciamiento entre boquillas',
     unidad: unidadEspaciamiento,
-    valorInicial: precarga(
-      'distanciaCorta',
-      borrador.espaciamientoM ?? espaciamientoDeConfiguracion()
-    ),
-    ayuda: 'Precargado del espaciamiento efectivo de la configuración (capturado o ancho entre número de boquillas).',
-    alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { espaciamientoM: deSistema('distanciaCorta', valor, sistema) });
-      recalcular();
-    },
+    ayuda:
+      'Sale de la geometría de la barra activa: el capturado si lo hay, y si no el ancho entre ' +
+      'el número de boquillas. Editarlo aquí no cambia la configuración.',
+    fuente: fuenteEsp.fuente,
+    nombreDato: 'el espaciamiento',
+    heredado: { valor: fuenteEsp.valor, etiqueta: fuenteEsp.etiqueta },
+    aCampo: (m) =>
+      Number.isFinite(m) ? Number(aSistema('distanciaCorta', m, sistema).toPrecision(6)) : null,
+    deCampo: (valor) => deSistema('distanciaCorta', valor, sistema),
+    formatearValor: (valor) => `${formatear(valor, 3)} ${unidadEspaciamiento}`,
+    destino: fuenteEsp.destino,
+    textoSinDato:
+      'Captura el ancho y el número de boquillas de la barra en Sistema, Configuración, o ' +
+      'escribe aquí el espaciamiento.',
+    guardadoSinMarcaEsManual: true,
+    alCambiar: () => recalcular(),
   });
 
   function lecturas() {
@@ -474,6 +484,19 @@ export function render(panel, ctx) {
             lhaPorBarra: resultado.valores.lhaPorBarra,
             discrepanciaPct: resultado.valores.discrepanciaPct,
           };
+          // El volumen calculado queda a disposicion de las pantallas que
+          // lo necesitan de entrada (Mezcla y Forzamiento). Solo se
+          // publica el verificado: un numero que no paso el gate de
+          // verificacion no se muestra aqui, asi que menos todavia puede
+          // irse a decidir la dosis de producto de otro tanque. Se publica
+          // el metodo por boquilla, que es el que responde a lo capturado
+          // en esta pantalla; la discrepancia contra el de barra ya se
+          // advierte arriba.
+          ctx.guardarResultado('lhaCalculado', {
+            valor: resultado.valores.lhaPorBoquilla,
+            origen: 'gasto',
+            detalle: `calculada en Gasto de agua con ${b.fabricante} ${b.modelo}`,
+          });
         }
       }
     } catch (error) {
@@ -522,10 +545,20 @@ export function render(panel, ctx) {
   const campoObjetivo = crearCampoNumerico({
     etiqueta: 'Volumen objetivo',
     unidad: unidadVolumen,
-    valorInicial: precarga('volumenAplicacion', borrador.lhaObjetivoLha ?? null),
-    ayuda: 'El volumen de aplicación que se quiere lograr; el despeje usa la captura de arriba.',
+    // Mismo objetivo de jornada que Boquillas y Prueba de captura. El
+    // nombre viejo del borrador se sigue leyendo para no perder lo que ya
+    // este capturado en un telefono.
+    valorInicial: precarga(
+      'volumenAplicacion',
+      borrador.lhaObjetivo ?? borrador.lhaObjetivoLha ?? ctx.objetivoVolumenLha()
+    ),
+    ayuda:
+      'El volumen de aplicación que se quiere lograr; el despeje usa la captura de arriba. Se ' +
+      'precarga el último objetivo capturado en la aplicación.',
     alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { lhaObjetivoLha: deSistema('volumenAplicacion', valor, sistema) });
+      const lha = deSistema('volumenAplicacion', valor, sistema);
+      ctx.guardarBorrador(id, { lhaObjetivo: lha });
+      ctx.guardarResultado('lhaObjetivo', { valor: lha, origen: id, detalle: 'objetivo de la jornada' });
       recalcularInverso();
     },
   });
@@ -693,15 +726,35 @@ export function render(panel, ctx) {
   }
 
   // ---------------- Efecto del regimen en la bomba ----------------
-  const campoRpmTrabajo = crearCampoNumerico({
+  // El regimen sale de Avance, con chip de procedencia y boton para
+  // volver a heredarlo: antes era una precarga muda que leia el borrador
+  // de Avance de frente y, en cuanto se tocaba una vez, quedaba
+  // desconectada para siempre sin que nada lo dijera.
+  const rpmDeAvance = ctx.borrador('avance').rpm ?? tractor?.regimenHabitual ?? null;
+  const campoRpmTrabajo = crearCampoHeredado({
+    ctx,
+    tabId: id,
+    clave: 'rpmTrabajo',
+    claveManual: 'rpmTrabajoManual',
     etiqueta: 'Régimen de trabajo del motor',
     unidad: 'rpm',
-    valorInicial: borrador.rpmTrabajo ?? ctx.borrador('avance').rpm ?? null,
-    ayuda: 'Se precarga el régimen capturado en Avance.',
-    alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { rpmTrabajo: valor });
-      recalcularBomba();
+    ayuda:
+      'Se precarga el régimen capturado en Avance. Si hoy trabajas a otro, escríbelo aquí: la ' +
+      'presión, el caudal y el volumen por hectárea cambian con él según el tipo de bomba.',
+    fuente: 'Avance',
+    nombreDato: 'el régimen',
+    heredado: {
+      valor: rpmDeAvance,
+      etiqueta:
+        Number.isFinite(ctx.borrador('avance').rpm)
+          ? 'capturado en Avance'
+          : `régimen habitual del ${tractor?.nombre ?? 'tractor'}`,
     },
+    formatearValor: (valor) => `${formatear(valor, 0)} rpm`,
+    destino: { seccion: 'calibrar', tab: 'avance' },
+    textoSinDato: 'Captura el régimen del motor en Avance, o escríbelo aquí.',
+    guardadoSinMarcaEsManual: true,
+    alCambiar: () => recalcularBomba(),
   });
   const zonaBomba = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } });
 

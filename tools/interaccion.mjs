@@ -98,6 +98,81 @@ verificar(/2\.59|2,59/.test(texto), 'Reporte: 139 s/100 m dan 2.59 km/h');
 verificar(/898/.test(texto), 'Reporte: tiempo por tabla 898 s');
 verificar(/rpm requeridas|Marchas que reproducen/i.test(texto), 'Reporte: lista de marchas presente');
 
+// ---------- La velocidad heredada SIGUE al modo elegido en Avance ----
+// Este es el fallo que motivo la sincronizacion entre pestanas: cambiar
+// de modo en Avance no cambiaba lo que veian las demas pantallas, y el
+// chip seguia diciendo «de Avance» sobre un numero de otro dia. En este
+// punto Avance tiene el reporte (139 s) Y la marcha A1 a 2100 rpm.
+async function velocidadEnGasto() {
+  await pagina.goto(`${base}#/calibrar/gasto`, { waitUntil: 'networkidle' });
+  await pagina.waitForTimeout(250);
+  return pagina.locator('#panel').innerText();
+}
+
+let enGasto = await velocidadEnGasto();
+verificar(
+  /2[.,]59/.test(enGasto) && /del reporte de campo/i.test(enGasto),
+  'Herencia: con Avance en modo reporte, Gasto hereda 2.59 km/h del reporte'
+);
+
+await pagina.goto(`${base}#/calibrar/avance`, { waitUntil: 'networkidle' });
+await pagina.waitForTimeout(250);
+await pagina.getByRole('button', { name: 'Desde marcha y rpm' }).click();
+await pagina.waitForTimeout(200);
+enGasto = await velocidadEnGasto();
+verificar(
+  /1[.,]84/.test(enGasto) && /de la marcha A1/i.test(enGasto),
+  'Herencia: al volver a modo marcha, Gasto pasa a 1.84 km/h de la marcha A1'
+);
+verificar(
+  !/2[.,]59\s*km\/h/.test(enGasto),
+  'Herencia: el reporte de campo viejo ya no se cuela en Gasto'
+);
+
+// El tiempo por tabla de Gas etileno sale del MISMO derivado: con la
+// marcha elegida ya no puede traer el tiempo del reporte.
+await pagina.goto(`${base}#/calibrar/gas`, { waitUntil: 'networkidle' });
+await pagina.waitForTimeout(250);
+const enGas = await pagina.locator('#panel').innerText();
+verificar(
+  /de la marcha A1/i.test(enGas) && !/898/.test(enGas),
+  'Herencia: el tiempo por tabla de Gas etileno también sigue a la marcha, no al reporte'
+);
+
+// El caso de estreno, que es el que mas se da en campo: se elige la
+// marcha y se ACEPTA el regimen que la pantalla ya trae precargado, sin
+// teclearlo. Avance calcula con el desde que se abre; hasta que Avance
+// no lo persistio, las demas pantallas se quedaban sin velocidad.
+await pagina.evaluate(() => {
+  const clave = 'sprayboom.v1';
+  const estado = JSON.parse(localStorage.getItem(clave));
+  estado.borradores = {};
+  localStorage.setItem(clave, JSON.stringify(estado));
+});
+await pagina.goto(`${base}#/calibrar/avance`, { waitUntil: 'networkidle' });
+// Recarga de verdad: cambiar el hash no vuelve a arrancar los modulos, y
+// el estado en memoria seguiria trayendo el borrador que se acaba de
+// borrar del almacenamiento.
+await pagina.reload({ waitUntil: 'networkidle' });
+await pagina.waitForTimeout(250);
+await pagina.locator('.marcha', { hasText: 'A1' }).first().click();
+await pagina.waitForTimeout(200);
+const enAvanceEstreno = await pagina.locator('#panel').innerText();
+// A1 son 2.1 km/h a 2400 rpm nominales; el habitual precargado son 1800.
+verificar(
+  /1[.,]58/.test(enAvanceEstreno),
+  'Estreno: Avance calcula con el régimen habitual precargado (1.58 km/h)'
+);
+enGasto = await velocidadEnGasto();
+verificar(
+  /1[.,]58/.test(enGasto) && /de la marcha A1/i.test(enGasto),
+  'Estreno: Gasto hereda ese mismo número sin que nadie teclee el régimen'
+);
+verificar(
+  !/sin dato en Avance/i.test(enGasto),
+  'Estreno: Gasto ya no se queda sin velocidad con Avance mostrando una'
+);
+
 // ---------- Gasto de agua: ambos metodos ----------
 await pagina.goto(`${base}#/calibrar/gasto`, { waitUntil: 'networkidle' });
 await pagina.waitForTimeout(250);
@@ -126,6 +201,24 @@ texto = await pagina.locator('#panel').innerText();
 verificar(/por boquilla/i.test(texto) && /por barra/i.test(texto), 'Gasto: ambos métodos lado a lado');
 verificar(/Verificado por dos rutas|verificación/i.test(texto), 'Gasto: verificación redundante visible');
 verificar(/desglose/i.test(texto), 'Gasto: desglose paso a paso disponible');
+
+// ---------- El volumen de aplicación llega solo a Mezcla ----------
+// Toda la mezcla depende de este número y antes había que copiarlo a
+// mano de una pantalla a otra: la ayuda pedía traerlo de aquí sin que
+// hubiera forma de hacerlo.
+const lhaCalculado = (texto.match(/Método por boquilla\s+([\d.,]+)/) ?? [])[1] ?? null;
+verificar(lhaCalculado !== null, 'Gasto: el método por boquilla da un número');
+await pagina.goto(`${base}#/calibrar/mezcla`, { waitUntil: 'networkidle' });
+await pagina.waitForTimeout(250);
+const enMezcla = await pagina.locator('#panel').innerText();
+verificar(
+  /de Gasto de agua/i.test(enMezcla) && /calculada en Gasto de agua/i.test(enMezcla),
+  'Mezcla: el volumen de aplicación se hereda con su procedencia a la vista'
+);
+verificar(
+  lhaCalculado !== null && enMezcla.includes(lhaCalculado),
+  `Mezcla: hereda el mismo ${lhaCalculado} L/ha que calculó Gasto de agua`
+);
 
 // ---------- Cambio de unidades: vive SOLO en Configuración ----------
 verificar(

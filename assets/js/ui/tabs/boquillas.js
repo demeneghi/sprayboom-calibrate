@@ -29,6 +29,7 @@ import {
 } from '../render.js';
 import { crearCampoNumerico, crearCampoSelect } from '../campos.js';
 import { crearCampoVelocidad } from '../velocidad.js';
+import { crearCampoHeredado, fuenteEspaciamiento } from '../heredado.js';
 import { formatear, formatearPorcentaje } from '../formato.js';
 import { mostrarToast } from '../toast.js';
 import { estiloBadgeIso } from '../color.js';
@@ -70,26 +71,23 @@ export function render(panel, ctx) {
     return Number(aSistema(magnitud, valorMetrico, sistema).toPrecision(6));
   }
 
-  // Precarga del espaciamiento: el efectivo de la geometria configurada
-  // (capturado si existe; si no, ancho de barra entre numero de
-  // boquillas, derivado por el dominio). Editable solo en el borrador.
-  function espaciamientoPrecargaM() {
-    if (Number.isFinite(borrador.espaciamientoM)) return borrador.espaciamientoM;
-    try {
-      return geometria(ctx.parametrosGeometria()).valores.espaciamientoEfectivo;
-    } catch {
-      return null;
-    }
-  }
-
   // ---------------- Captura del objetivo ----------------
   const campoVolumen = crearCampoNumerico({
     etiqueta: 'Volumen de aplicación objetivo',
     unidad: unidadVolumen,
-    valorInicial: aCampo('volumenAplicacion', borrador.lhaObjetivo ?? null),
-    ayuda: 'Objetivo primero: el volumen agronómico manda y de él se despeja el caudal que cada boquilla debe entregar.',
+    // El objetivo de la jornada es UNO: se precarga lo ultimo capturado
+    // en cualquiera de las tres pantallas que lo piden (aqui, Gasto de
+    // agua y Prueba de captura) y, si no hay, el objetivo propio del
+    // rancho de Configuracion. Capturarlo tres veces era capturarlo tres
+    // veces distinto.
+    valorInicial: aCampo('volumenAplicacion', borrador.lhaObjetivo ?? ctx.objetivoVolumenLha()),
+    ayuda:
+      'Objetivo primero: el volumen agronómico manda y de él se despeja el caudal que cada ' +
+      'boquilla debe entregar. Se precarga el último objetivo capturado en la aplicación.',
     alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { lhaObjetivo: deSistema('volumenAplicacion', valor, sistema) });
+      const lha = deSistema('volumenAplicacion', valor, sistema);
+      ctx.guardarBorrador(id, { lhaObjetivo: lha });
+      ctx.guardarResultado('lhaObjetivo', { valor: lha, origen: id, detalle: 'objetivo de la jornada' });
       recalcular();
     },
   });
@@ -102,15 +100,30 @@ export function render(panel, ctx) {
     etiqueta: 'Velocidad de trabajo',
     alCambiar: () => recalcular(),
   });
-  const campoEspaciamiento = crearCampoNumerico({
+  const fuenteEsp = fuenteEspaciamiento(ctx);
+  const campoEspaciamiento = crearCampoHeredado({
+    ctx,
+    tabId: id,
+    clave: 'espaciamientoM',
+    claveManual: 'espaciamientoManual',
     etiqueta: 'Espaciamiento entre boquillas',
     unidad: unidadEspaciamiento,
-    valorInicial: aCampo('distanciaCorta', espaciamientoPrecargaM()),
-    ayuda: 'Precargado del espaciamiento efectivo de la geometría configurada; editarlo aquí no cambia la configuración.',
-    alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { espaciamientoM: deSistema('distanciaCorta', valor, sistema) });
-      recalcular();
-    },
+    ayuda:
+      'Sale de la geometría de la barra activa: el capturado si lo hay, y si no el ancho entre ' +
+      'el número de boquillas. Editarlo aquí no cambia la configuración.',
+    fuente: fuenteEsp.fuente,
+    nombreDato: 'el espaciamiento',
+    heredado: { valor: fuenteEsp.valor, etiqueta: fuenteEsp.etiqueta },
+    aCampo: (m) =>
+      Number.isFinite(m) ? Number(aSistema('distanciaCorta', m, sistema).toPrecision(6)) : null,
+    deCampo: (valor) => deSistema('distanciaCorta', valor, sistema),
+    formatearValor: (valor) => `${formatear(valor, 3)} ${unidadEspaciamiento}`,
+    destino: fuenteEsp.destino,
+    textoSinDato:
+      'Captura el ancho y el número de boquillas de la barra en Sistema, Configuración, o ' +
+      'escribe aquí el espaciamiento.',
+    guardadoSinMarcaEsManual: true,
+    alCambiar: () => recalcular(),
   });
   const selectClase = crearCampoSelect({
     etiqueta: 'Clase de gota deseada',

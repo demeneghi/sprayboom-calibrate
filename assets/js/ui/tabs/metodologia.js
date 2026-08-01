@@ -52,10 +52,7 @@ import {
   redondeoLegible,
   geometria,
   marchasDeTractor,
-  velocidadDesdeReporte,
   velocidadEfectiva,
-  factorDesviacion,
-  velocidadCorregida,
 } from '../../domain/speed.js';
 import { caudalAPresion, presionParaCaudal, caudalDesdeConvencionUs } from '../../domain/nozzles.js';
 import { ambosMetodos, caudalRequerido } from '../../domain/water.js';
@@ -164,50 +161,24 @@ export function render(panel, ctx) {
   }
 
   // Velocidad para los ejemplos vivos: lo que el sistema calcularia hoy.
-  // Prioridad: reporte de campo capturado en Avance, marcha con regimen
-  // capturados en Avance (con factor de desviacion medido si existe), y
-  // como respaldo la primera marcha disponible al regimen habitual.
+  // Sale del MISMO derivado que usan las pantallas de calculo
+  // (ctx.velocidadDeAvance), para que el ejemplo de la metodologia no
+  // pueda contradecir a la calculadora que explica. Antes esta pantalla
+  // tenia su propia version, que ignoraba el modo elegido en Avance.
+  //
+  // Lo unico propio de aqui es el ultimo respaldo: sin nada capturado en
+  // Avance, el ejemplo se arma con la primera marcha disponible al
+  // regimen habitual, porque una pagina de metodologia sin numeros no
+  // explica nada.
   function velocidadEjemplo() {
-    const capturaAvance = ctx.borrador('avance');
-    if (Number.isFinite(capturaAvance.segundosPorTramo)) {
+    const heredada = ctx.velocidadDeAvance();
+    if (Number.isFinite(heredada.velocidadKmh)) {
       return {
-        velocidadKmh: velocidadDesdeReporte({
-          segundosPorTramo: capturaAvance.segundosPorTramo,
-          distanciaReferencia: p.geometria.distanciaReferencia,
-        }),
-        origen: 'del reporte de campo capturado en Avance',
+        velocidadKmh: heredada.velocidadKmh,
+        origen: `${heredada.etiqueta}, capturada en Avance`,
       };
     }
-    const filas = marchasDeTractor(tractor);
-    if (capturaAvance.marcha && Number.isFinite(capturaAvance.rpm)) {
-      const fila = filas.find(
-        (f) => f.rango === capturaAvance.marcha.rango && f.marcha === capturaAvance.marcha.marcha
-      );
-      if (fila && fila.kmhNominal !== null) {
-        const teorica = velocidadEfectiva({
-          kmhNominal: fila.kmhNominal,
-          rpm: capturaAvance.rpm,
-          regimenNominal: tractor.regimenNominal,
-        });
-        const mediciones = estado.factoresDesviacion
-          .filter((m) => m.tractorId === tractor.id)
-          .map((m) => ({ rpm: m.rpm, factor: m.factor }));
-        const factor = factorDesviacion({ mediciones, rpm: capturaAvance.rpm });
-        const corregida = velocidadCorregida({
-          velocidadTeoricaKmh: teorica,
-          factor: factor.factor,
-          umbralDesviacionPct: p.umbrales.umbralDesviacionVelocidad,
-        });
-        return {
-          velocidadKmh: corregida.valores.velocidadCorregidaKmh ?? teorica,
-          origen:
-            corregida.valores.velocidadCorregidaKmh !== null
-              ? `de la marcha ${fila.etiqueta} capturada en Avance, con factor medido`
-              : `de la marcha ${fila.etiqueta} capturada en Avance (teórica sin verificar)`,
-        };
-      }
-    }
-    const fila = filas.find((f) => f.kmhNominal !== null);
+    const fila = marchasDeTractor(tractor).find((f) => f.kmhNominal !== null);
     if (fila) {
       return {
         velocidadKmh: velocidadEfectiva({

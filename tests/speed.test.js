@@ -290,3 +290,66 @@ test('velocidad heredada: marcha pendiente y sin reporte no inventa velocidad', 
   const r = heredar({ modo: 'marcha', marcha: { rango: 0, marcha: 2 }, rpm: 2100 });
   assert.equal(r.velocidadKmh, null);
 });
+
+// El regimen que Avance PRECARGA cuenta como capturado: la pantalla ya
+// calcula con el. Mientras no fue asi, elegir una marcha y aceptar el
+// regimen que venia puesto dejaba a las demas pantallas sin velocidad
+// —o heredando un reporte viejo— con Avance mostrando otra cosa.
+test('velocidad heredada: sin rpm capturado se usa el regimen habitual del tractor', () => {
+  const r = heredar(
+    { modo: 'marcha', marcha: { rango: 0, marcha: 1 } },
+    { rpmRespaldo: TRACTOR_HERENCIA.regimenHabitual }
+  );
+  cercano(r.velocidadKmh, 1.8, 1e-9, '2.4 km/h nominales a 1800 de 2400 rpm');
+  assert.equal(r.origen, 'marcha-teorica');
+});
+
+test('velocidad heredada: el rpm capturado gana sobre el regimen habitual', () => {
+  const r = heredar(
+    { modo: 'marcha', marcha: { rango: 0, marcha: 1 }, rpm: 2400 },
+    { rpmRespaldo: TRACTOR_HERENCIA.regimenHabitual }
+  );
+  cercano(r.velocidadKmh, 2.4, 1e-9, 'manda el regimen tecleado');
+});
+
+test('velocidad heredada: sin rpm capturado la marcha gana al reporte viejo', () => {
+  const r = heredar(
+    { modo: 'marcha', marcha: { rango: 0, marcha: 1 }, segundosPorTramo: 139 },
+    { rpmRespaldo: TRACTOR_HERENCIA.regimenHabitual }
+  );
+  cercano(r.velocidadKmh, 1.8, 1e-9, 'la marcha, no los 2.59 km/h del reporte');
+  assert.equal(r.origen, 'marcha-teorica');
+});
+
+test('velocidad heredada: el respaldo del otro modo se declara con un aviso', () => {
+  const respaldo = heredar({ modo: 'reporte', marcha: { rango: 0, marcha: 1 }, rpm: 2400 });
+  assert.equal(respaldo.origen, 'marcha-teorica', 'sin reporte cae a la marcha');
+  assert.ok(
+    respaldo.avisos.some((a) => a.codigo === 'fuente-distinta-al-modo'),
+    'y lo dice, en vez de callarlo'
+  );
+
+  const enSuModo = heredar({ modo: 'reporte', segundosPorTramo: 139 });
+  assert.ok(
+    !enSuModo.avisos.some((a) => a.codigo === 'fuente-distinta-al-modo'),
+    'sin aviso cuando la fuente SI es el modo elegido'
+  );
+});
+
+test('velocidad heredada: la marcha de otro tractor no se hereda', () => {
+  const otro = heredar({
+    modo: 'marcha',
+    marcha: { rango: 0, marcha: 1, tractorId: 'otro-tractor' },
+    rpm: 2400,
+    segundosPorTramo: 139,
+  });
+  cercano(otro.velocidadKmh, 2.59, 0.005, 'cae al reporte en vez de usar la casilla equivalente');
+  assert.equal(otro.origen, 'reporte');
+
+  const propio = heredar({
+    modo: 'marcha',
+    marcha: { rango: 0, marcha: 1, tractorId: TRACTOR_HERENCIA.id },
+    rpm: 2400,
+  });
+  cercano(propio.velocidadKmh, 2.4, 1e-9, 'la del tractor activo si se hereda');
+});
