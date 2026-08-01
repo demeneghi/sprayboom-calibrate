@@ -20,7 +20,8 @@ import {
   pintarResultadoNoVerificado,
 } from '../render.js';
 import { crearCampoNumerico, crearCampoSelect } from '../campos.js';
-import { crearCampoHeredado, fuenteVolumenAplicacion } from '../heredado.js';
+import { crearCampoHeredado } from '../heredado.js';
+import { crearCampoDato } from '../dato.js';
 import { nodosAvanceParaTiempo } from '../marchas.js';
 import { formatear, formatearPorcentaje, formatearTiempo } from '../formato.js';
 import { mostrarToast } from '../toast.js';
@@ -190,32 +191,19 @@ export function render(panel, ctx) {
   // respaldo, dicho con esas palabras. Lo que NO se rellena nunca es la
   // referencia de la literatura: esa es cota de sanidad, no un dato de
   // esta barra.
-  const fuenteVolumen = fuenteVolumenAplicacion(ctx);
-  const campoVolumenAgua = crearCampoHeredado({
-    ctx,
-    tabId: id,
-    clave: 'volumenAguaLha',
-    claveManual: 'volumenAguaManual',
-    etiqueta: 'Volumen de agua',
-    magnitud: 'volumenAplicacion',
+  // El agua del tanque es donde se disuelve el etileno, asi que la
+  // concentracion depende del volumen REAL que sale por la barra, no del
+  // objetivo. Es el MISMO dato que usa Mezcla y que captura el
+  // asistente: se monta desde el registro (domain/datos.js) y vive una
+  // sola vez en la jornada, con el aforo mandando sobre el calculo. Lo
+  // que NO se rellena nunca es la referencia de la literatura: esa es
+  // cota de sanidad, no un dato de esta barra.
+  const campoVolumenAgua = crearCampoDato(ctx, 'volumenAplicacionLha', {
     sistema,
+    etiqueta: 'Volumen de agua',
     ayuda:
       'El agua que de verdad sale por la barra; de ella depende la concentración del tanque. ' +
       'Viene del aforo y, si no lo hay, de Gasto de agua o de Configuración.',
-    fuente: fuenteVolumen.fuente,
-    nombreDato: 'el volumen de agua',
-    heredado: { valor: fuenteVolumen.valor, etiqueta: fuenteVolumen.etiqueta },
-    aCampo: (lha) =>
-      Number.isFinite(lha)
-        ? Number(aSistema('volumenAplicacion', lha, sistema).toPrecision(6))
-        : null,
-    deCampo: (valor) => deSistema('volumenAplicacion', valor, sistema),
-    formatearValor: (valor) => `${formatear(valor, 1)} ${unidadVolAplicacion}`,
-    destino: fuenteVolumen.destino,
-    textoSinDato:
-      'Calcula el gasto de agua, afora la barra en la prueba de captura o captura el volumen ' +
-      'objetivo propio en Configuración; también puedes escribirlo aquí.',
-    guardadoSinMarcaEsManual: true,
     alCambiar: () => {
       recalcularObjetivo();
       recalcularAjuste();
@@ -377,7 +365,7 @@ export function render(panel, ctx) {
     try {
       const p = ctx.estado().parametros;
       const dosisObjetivoGha = campoDosis.obtener();
-      const volumenAguaLha = deSistema('volumenAplicacion', campoVolumenAgua.obtener(), sistema);
+      const volumenAguaLha = campoVolumenAgua.obtenerBase();
       const tiempoPorTablaS = campoTiempo.obtener();
       const scfmDado = campoScfmDado.obtener();
       const psiDado = campoPsiDado.obtener();
@@ -618,11 +606,7 @@ export function render(panel, ctx) {
           );
         } else {
           const dosisObjetivoGha = campoDosis.obtener();
-          const volumenAguaLha = deSistema(
-            'volumenAplicacion',
-            campoVolumenAgua.obtener(),
-            sistema
-          );
+          const volumenAguaLha = campoVolumenAgua.obtenerBase();
           const resultado = forzamientoDesdeAjuste({
             scfm,
             psiManometrica: psi,

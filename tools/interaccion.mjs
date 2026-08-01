@@ -570,32 +570,58 @@ verificar(
   'Ayuda de sección: la advertencia accionable SIGUE a la vista, no se escondió'
 );
 
-// ---------- Guia por objetivo ----------
-// La guia ORDENA las pantallas, no las sustituye: elegir un objetivo
-// pinta sus pasos con el estado de cada uno, y la hoja del final mueve
-// el resultado escribiendo en la pantalla que manda sobre ese dato.
+// ---------- Asistente por objetivo ----------
+// El asistente pide cada dato UNA vez, en orden, y escribe en el mismo
+// sitio que las pestañas. Es lo que sustituyo a la primera version, que
+// ordenaba pantallas y por eso pedia la presion y el objetivo dos y tres
+// veces en la misma calibracion.
 await pagina.goto(`${base}#/calibrar/guia`, { waitUntil: 'networkidle' });
 await pagina.waitForTimeout(300);
 const opcionGasto = pagina.locator('#receta-opcion-gasto-agua');
-verificar((await opcionGasto.count()) === 1, 'Guía: el objetivo «Ajustar el gasto de agua» está');
+verificar((await opcionGasto.count()) === 1, 'Asistente: el objetivo «Ajustar el gasto de agua» está');
 await opcionGasto.click();
-await pagina.waitForTimeout(350);
-texto = await pagina.locator('#panel').innerText();
+await pagina.waitForTimeout(400);
 verificar(
   (await opcionGasto.getAttribute('aria-pressed')) === 'true',
-  'Guía: el objetivo elegido se señala por atributo, no cambiando de variante'
+  'Asistente: el objetivo elegido se señala por atributo, no cambiando de variante'
+);
+// Se entra por el primer dato que FALTA, no por el paso uno: la
+// velocidad ya se capturó arriba en esta misma corrida.
+texto = await pagina.locator('#panel').innerText();
+verificar(
+  /Paso 2 de 5/.test(texto),
+  `Asistente: entra por el primer dato que falta, no por el paso uno (${(texto.match(/Paso \d de \d/) ?? ['sin paso'])[0]})`
+);
+
+// Recorrido completo, juntando las etiquetas de todos los campos que
+// pide. Es LA comprobación del cambio de rumbo: ningún dato se pregunta
+// dos veces en la misma calibración.
+const etiquetasPedidas = [];
+for (let vuelta = 0; vuelta < 6; vuelta += 1) {
+  const etiquetas = await pagina.locator('#panel .campo .etiqueta').allInnerTexts();
+  etiquetasPedidas.push(...etiquetas.map((t) => t.trim()).filter(Boolean));
+  const siguiente = pagina.locator('.nav-paso__siguiente');
+  if ((await siguiente.count()) === 0) break;
+  const rotulo = await siguiente.innerText();
+  await siguiente.click();
+  await pagina.waitForTimeout(350);
+  if (/Ver el resultado/.test(rotulo)) break;
+}
+const repetidas = etiquetasPedidas.filter((t, i) => etiquetasPedidas.indexOf(t) !== i);
+verificar(
+  repetidas.length === 0,
+  `Asistente: ningún dato se pide dos veces en la misma calibración${repetidas.length ? ` (repetidos: ${[...new Set(repetidas)].join(', ')})` : ''}`
 );
 verificar(
-  (await pagina.locator('.paso-receta').count()) === 3,
-  `Guía: la receta pinta sus 3 pasos (se obtuvo ${await pagina.locator('.paso-receta').count()})`
-);
-verificar(/listo/i.test(texto), 'Guía: un paso con dato queda marcado como listo');
-verificar(
-  /de la marcha|reporte de campo|Avance/i.test(texto),
-  'Guía: el paso listo dice de dónde salió su número'
+  etiquetasPedidas.some((t) => /Presión en la boquilla/.test(t)),
+  'Asistente: la presión se pide una vez, en el paso de la boquilla'
 );
 
 // La hoja de resultado recalcula en vivo al mover la perilla.
+verificar(
+  (await pagina.locator('.perilla').count()) > 0,
+  'Asistente: el recorrido termina en la hoja de resultado con sus perillas'
+);
 const cifraPerilla = pagina.locator('.perilla__valor').first();
 const volumenHoja = pagina.locator('.resultado--principal').first();
 const presionAntes = await cifraPerilla.innerText();
@@ -604,45 +630,76 @@ await pagina.getByRole('button', { name: 'Subir Presión en la boquilla' }).clic
 await pagina.waitForTimeout(250);
 verificar(
   (await cifraPerilla.innerText()) !== presionAntes,
-  `Guía: la perilla mueve la presión (${presionAntes.replace(/\n/g, ' ')} → ${(await cifraPerilla.innerText()).replace(/\n/g, ' ')})`
+  `Asistente: la perilla mueve la presión (${presionAntes.replace(/\n/g, ' ')} → ${(await cifraPerilla.innerText()).replace(/\n/g, ' ')})`
 );
 verificar(
   (await volumenHoja.innerText()) !== volumenAntes,
-  'Guía: el volumen de aplicación se recalcula en vivo con la perilla'
+  'Asistente: el volumen de aplicación se recalcula en vivo con la perilla'
 );
 
-// Y lo que movió no es un estado propio de la guía: quedó capturado en
-// Gasto de agua, que es la pantalla que manda sobre la presión.
+// Y lo que movió no es un estado propio del asistente: es EL MISMO dato
+// que ve Gasto de agua, y también el que ve la Prueba de captura.
+await pagina.goto(`${base}#/calibrar/gasto`, { waitUntil: 'networkidle' });
+await pagina.waitForTimeout(350);
+const presionEnGasto = await entradaPresion.inputValue();
+verificar(
+  /^3[.,]1$/.test(presionEnGasto),
+  `Asistente: la perilla escribió en el dato que lee Gasto de agua (se obtuvo ${presionEnGasto})`
+);
+await pagina.goto(`${base}#/registrar/captura`, { waitUntil: 'networkidle' });
+await pagina.waitForTimeout(350);
+const presionEnCaptura = await pagina
+  .getByRole('textbox', { name: 'Presión de trabajo' })
+  .inputValue();
+verificar(
+  presionEnCaptura === presionEnGasto,
+  `Dato único: la Prueba de captura ve la MISMA presión que Gasto de agua (${presionEnCaptura} contra ${presionEnGasto})`
+);
+
+// Y al revés: cambiarla en una pestaña la cambia para el asistente.
+await pagina.getByRole('textbox', { name: 'Presión de trabajo' }).fill('2.6');
+await pagina.waitForTimeout(300);
 await pagina.goto(`${base}#/calibrar/gasto`, { waitUntil: 'networkidle' });
 await pagina.waitForTimeout(350);
 verificar(
-  /^3[.,]1$/.test(await entradaPresion.inputValue()),
-  `Guía: la perilla escribió en Gasto de agua (se obtuvo ${await entradaPresion.inputValue()})`
+  /^2[.,]6$/.test(await entradaPresion.inputValue()),
+  `Dato único: capturarla en la Prueba de captura la cambia en Gasto de agua (se obtuvo ${await entradaPresion.inputValue()})`
 );
 
-// La tira de avance solo aparece en las pantallas que SON paso de la
-// receta activa: en una ajena diría en qué paso vas y estaría mintiendo.
-await pagina.goto(`${base}#/calibrar/avance`, { waitUntil: 'networkidle' });
-await pagina.waitForTimeout(300);
-verificar(
-  /Paso 1 de 3/.test(await pagina.locator('.tira-receta').innerText()),
-  'Guía: la tira dice en qué paso de la receta vas'
-);
-await pagina.goto(`${base}#/sistema/configuracion`, { waitUntil: 'networkidle' });
-await pagina.waitForTimeout(300);
-verificar(
-  (await pagina.locator('.tira-receta').count()) === 0,
-  'Guía: en una pantalla ajena a la receta no se pinta la tira'
-);
+// Los otros tres objetivos recorren completo hasta su hoja: cada uno
+// llama a un dominio distinto (mezcla, forzamiento, rotámetro).
+for (const receta of ['elegir-boquilla', 'mezcla-tanque', 'forzamiento-etileno']) {
+  await pagina.goto(`${base}#/calibrar/guia`, { waitUntil: 'networkidle' });
+  await pagina.waitForTimeout(300);
+  const enUnObjetivo = (await pagina.locator('.cabecera-receta').count()) > 0;
+  if (enUnObjetivo) {
+    await pagina.locator('.cabecera-receta .boton').click();
+    await pagina.waitForTimeout(300);
+  }
+  await pagina.locator(`#receta-opcion-${receta}`).click();
+  await pagina.waitForTimeout(350);
+  for (let vuelta = 0; vuelta < 8; vuelta += 1) {
+    const siguiente = pagina.locator('.nav-paso__siguiente');
+    if ((await siguiente.count()) === 0) break;
+    const rotulo = await siguiente.innerText();
+    await siguiente.click();
+    await pagina.waitForTimeout(350);
+    if (/Ver el resultado/.test(rotulo)) break;
+  }
+  verificar(
+    /Hoja de resultado/.test(await pagina.locator('#panel').innerText()),
+    `Asistente: «${receta}» recorre completo hasta su hoja de resultado`
+  );
+}
 
-// Salir de la guía es volver a pulsar el objetivo: nada queda encerrado.
-await pagina.goto(`${base}#/calibrar/guia`, { waitUntil: 'networkidle' });
-await pagina.waitForTimeout(300);
-await pagina.locator('#receta-opcion-gasto-agua').click();
+// Salir de un objetivo: nada queda encerrado, y las pestañas siguen ahí
+// para el cálculo manual.
+await pagina.locator('.cabecera-receta .boton').click();
 await pagina.waitForTimeout(350);
 verificar(
-  (await pagina.locator('.paso-receta').count()) === 0,
-  'Guía: se sale de la receta con el mismo botón con el que se entró'
+  (await pagina.locator('.nav-paso').count()) === 0 &&
+    (await pagina.locator('#receta-opcion-gasto-agua').count()) === 1,
+  'Asistente: «Cambiar» devuelve a la lista de objetivos'
 );
 
 // ---------- Metodologia ----------

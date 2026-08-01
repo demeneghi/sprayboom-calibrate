@@ -20,7 +20,7 @@ import {
   pintarResultadoNoVerificado,
 } from '../render.js';
 import { crearCampoNumerico, crearCampoSelect } from '../campos.js';
-import { crearCampoHeredado, fuenteVolumenAplicacion } from '../heredado.js';
+import { crearCampoDato } from '../dato.js';
 import { formatear } from '../formato.js';
 import { mostrarToast } from '../toast.js';
 import { aSistema, deSistema, unidad } from '../../domain/units.js';
@@ -91,32 +91,13 @@ export function render(panel, ctx) {
   // de la prueba de captura» sin que hubiera forma de traerlo. Ahora se
   // hereda, con el aforo mandando sobre el calculo y su procedencia a la
   // vista.
-  const fuenteVolumen = fuenteVolumenAplicacion(ctx);
-  const campoAplicacion = crearCampoHeredado({
-    ctx,
-    tabId: id,
-    clave: 'lhaAplicacionLha',
-    claveManual: 'lhaAplicacionManual',
-    etiqueta: 'Volumen de aplicación',
-    magnitud: 'volumenAplicacion',
+  // El volumen de aplicacion es el MISMO dato que usa Forzamiento y que
+  // captura el asistente: se monta desde el registro (domain/datos.js) y
+  // vive una sola vez en la jornada. Antes cada pantalla guardaba su
+  // copia con un nombre distinto —`lhaAplicacionLha` aqui,
+  // `volumenAguaLha` alla— y ninguna se enteraba de la otra.
+  const campoAplicacion = crearCampoDato(ctx, 'volumenAplicacionLha', {
     sistema,
-    ayuda:
-      'El L/ha REAL con el que va a salir la barra: de este número depende toda la mezcla. ' +
-      'Viene del aforo y, si no lo hay, de Gasto de agua.',
-    fuente: fuenteVolumen.fuente,
-    nombreDato: 'el volumen de aplicación',
-    heredado: { valor: fuenteVolumen.valor, etiqueta: fuenteVolumen.etiqueta },
-    aCampo: (lha) =>
-      Number.isFinite(lha)
-        ? Number(aSistema('volumenAplicacion', lha, sistema).toPrecision(6))
-        : null,
-    deCampo: (valor) => deSistema('volumenAplicacion', valor, sistema),
-    formatearValor: (valor) => `${formatear(valor, 1)} ${unidadAplicacion}`,
-    destino: fuenteVolumen.destino,
-    textoSinDato:
-      'Calcula el gasto de agua o afora la barra en la prueba de captura, o escribe aquí el ' +
-      'volumen de aplicación.',
-    guardadoSinMarcaEsManual: true,
     alCambiar: () => recalcular(),
   });
 
@@ -178,7 +159,7 @@ export function render(panel, ctx) {
   function lecturas() {
     return {
       volumenTanqueL: deSistema('volumen', campoTanque.obtener(), sistema),
-      lhaAplicacion: deSistema('volumenAplicacion', campoAplicacion.obtener(), sistema),
+      lhaAplicacion: campoAplicacion.obtenerBase(),
       cantidadDosis: campoDosis.obtener(),
       superficieObjetivoHa: deSistema('superficie', campoSuperficie.obtener(), sistema),
     };

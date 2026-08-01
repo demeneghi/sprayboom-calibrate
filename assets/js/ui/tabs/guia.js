@@ -1,20 +1,26 @@
-// Pestana Guia: "¿que vas a calibrar?".
+// Pestaña Guía: el asistente por objetivo.
 //
-// Es la puerta de entrada de la aplicacion y hace tres cosas:
+// Es la puerta de entrada de la aplicación y funciona así: se elige QUÉ
+// se quiere obtener y el asistente pide, uno por uno, los datos que
+// hacen falta —cada uno UNA sola vez— hasta la hoja de resultado, que se
+// puede seguir moviendo.
 //
-//   1. Ofrece los objetivos reales de campo (las recetas de
-//      domain/recetas.js), no la lista de pantallas.
-//   2. Pinta los PASOS de la receta elegida con su estado —listo, falta,
-//      de otro dia— y su procedencia. Cada paso abre la pantalla que ya
-//      existe; ninguno es obligatorio y ninguno captura aqui.
-//   3. Cierra con la HOJA DE RESULTADO: las cifras de la receta juntas y,
-//      donde tiene sentido, las dos perillas que quien calibra tiene
-//      fisicamente en el tractor —presion y velocidad— recalculando en
-//      vivo.
+// Por qué es un asistente aparte y no una guía que ordena las pestañas:
 //
-// Lo que NO es: un wizard. No hay carril, no hay "siguiente" obligatorio
-// y no se guarda nada propio salvo cual receta esta activa. Los datos
-// siguen viviendo en las pantallas de siempre, y esta solo los lee.
+//   La primera versión de esta pantalla ponía las pestañas en fila y
+//   decía en qué orden abrirlas. Se vio en campo que eso no bastaba: al
+//   recorrer los pasos, la calibración pedía la presión en Gasto de agua
+//   y otra vez en la Prueba de captura, y el espaciamiento y el objetivo
+//   tres veces. La repetición no era de la guía; era que cada pantalla
+//   declara sus campos por su cuenta, porque cada pantalla tiene que
+//   poder usarse sola. La unidad de captura era la PANTALLA y tenía que
+//   ser el DATO.
+//
+//   Las pestañas se quedan tal cual para cálculo manual, para recalibrar
+//   una sola cosa y para ver el desglose completo. El asistente y las
+//   pestañas escriben en el MISMO sitio (`estado.jornada`, ver
+//   domain/datos.js), así que se puede saltar de uno a otro a media
+//   calibración sin recapturar nada.
 
 import { el, reemplazar } from '../dom.js';
 import {
@@ -27,50 +33,135 @@ import {
 import { formatear } from '../formato.js';
 import { iconoSvg } from '../svg.js';
 import { aSistema, deSistema, unidad } from '../../domain/units.js';
-import { volumenConBoquilla } from '../../domain/water.js';
-import { desviacionContraObjetivo } from '../../domain/mix.js';
-import { RECETAS, progresoDeReceta } from '../../domain/recetas.js';
-import { instantaneaDe, recetaActiva, recetaActivaId, fijarRecetaActiva } from '../receta.js';
-import { fuenteEspaciamiento } from '../heredado.js';
+import { desviacionContraObjetivo, mezclaTanque } from '../../domain/mix.js';
+import { forzamientoDesdeObjetivo } from '../../domain/forcing.js';
+import { gPorScfEfectivo } from '../../domain/gas.js';
+import { geometria } from '../../domain/speed.js';
+import { RECETAS, recetaPorId, pasosDeReceta, progresoDeReceta, indiceDelSiguiente } from '../../domain/recetas.js';
+import { valorDeDato, fijarDato, lecturaDeDatos } from '../dato.js';
+import { montarPaso, volumenVigente } from './guia/pasos.js';
 
 export const id = 'guia';
 
-export function render(panel, ctx) {
-  const receta = recetaActiva(ctx);
-  const instantanea = instantaneaDe(ctx);
+// ---------------------------------------------------------------------
+// Estado del asistente
+//
+// Lo único que guarda es dónde va: cuál objetivo, en qué paso y cuáles
+// pasos ya se vieron. Los DATOS no viven aquí; viven donde vive cada
+// dato. Se escribe como 'contexto' porque cambia lo que se pinta.
+// ---------------------------------------------------------------------
+function estadoGuia(ctx) {
+  const borrador = ctx.borrador('guia');
+  return {
+    recetaId: borrador.recetaId ?? null,
+    indice: Number.isInteger(borrador.indice) ? borrador.indice : 0,
+    vistos: Array.isArray(borrador.vistos) ? borrador.vistos : [],
+  };
+}
 
-  panel.append(tarjetaObjetivos(ctx, instantanea));
-  if (receta) {
-    panel.append(tarjetaPasos(ctx, receta, instantanea));
-    panel.append(tarjetaHoja(ctx, receta, ctx.sistema()));
+function fijarEstadoGuia(ctx, parcial) {
+  ctx.almacen.actualizar((estado) => {
+    if (!estado.borradores) estado.borradores = {};
+    estado.borradores.guia = { ...(estado.borradores.guia ?? {}), ...parcial };
+  }, 'contexto');
+}
+
+function instantanea(ctx, receta) {
+  const guia = estadoGuia(ctx);
+  const ids = new Set();
+  for (const paso of pasosDeReceta(receta)) for (const dato of paso.datos) ids.add(dato);
+  return {
+    datos: lecturaDeDatos(ctx, [...ids]),
+    lhaMedido: ctx.resultado('lhaMedido'),
+    vistos: guia.vistos,
+  };
+}
+
+// ---------------------------------------------------------------------
+// Render
+// ---------------------------------------------------------------------
+export function render(panel, ctx) {
+  const guia = estadoGuia(ctx);
+  const receta = recetaPorId(guia.recetaId);
+  const sistema = ctx.sistema();
+
+  if (!receta) {
+    panel.append(tarjetaObjetivos(ctx));
+    return;
   }
+
+  // Dentro de un objetivo, la lista de objetivos se recoge a un renglón.
+  // Con las cuatro tarjetas siempre arriba, el paso que se está
+  // capturando empezaba por debajo del borde de la pantalla y había que
+  // desplazar en CADA paso.
+  panel.append(cabeceraDeReceta(ctx, receta));
+
+  const pasos = pasosDeReceta(receta);
+  const indice = Math.min(Math.max(guia.indice, 0), pasos.length);
+
+  if (indice >= pasos.length) {
+    panel.append(tarjetaHoja(ctx, receta, sistema, pasos.length));
+    return;
+  }
+  panel.append(tarjetaPaso(ctx, receta, pasos, indice, sistema));
 }
 
 // ---------------------------------------------------------------------
 // 1. Los objetivos
 // ---------------------------------------------------------------------
-function tarjetaObjetivos(ctx, instantanea) {
-  const activa = recetaActivaId(ctx);
+function cabeceraDeReceta(ctx, receta) {
+  const avance = progresoDeReceta(receta, instantanea(ctx, receta));
+  return el(
+    'div',
+    { clase: 'cabecera-receta' },
+    el(
+      'span',
+      { clase: 'cabecera-receta__cuerpo' },
+      el('span', { clase: 'cabecera-receta__titulo' }, receta.titulo),
+      el(
+        'span',
+        { clase: `badge ${avance.completa ? 'badge--exito' : 'badge--neutro'}` },
+        avance.completa ? 'lista' : `${avance.resueltos} de ${avance.total}`
+      )
+    ),
+    el(
+      'button',
+      {
+        clase: 'boton boton--contorno boton--sm',
+        id: `receta-opcion-${receta.id}`,
+        'aria-pressed': 'true',
+        alClic: () => fijarEstadoGuia(ctx, { recetaId: null, indice: 0 }),
+      },
+      'Cambiar'
+    )
+  );
+}
 
+function tarjetaObjetivos(ctx) {
   const opciones = RECETAS.map((receta) => {
-    const avance = progresoDeReceta(receta, instantanea);
-    const elegida = receta.id === activa;
+    const avance = progresoDeReceta(receta, instantanea(ctx, receta));
     return el(
       'button',
       {
         clase: 'boton boton--contorno',
         id: `receta-opcion-${receta.id}`,
-        // La seleccion se dice por atributo y la pinta components.css con
-        // el acento del modulo, como cualquier grupo de opciones.
-        'aria-pressed': elegida ? 'true' : 'false',
-        alClic: () => fijarRecetaActiva(ctx, elegida ? null : receta.id),
+        'aria-pressed': 'false',
+        alClic: () => {
+          // Se entra por el primer dato que falta, no por el paso uno:
+          // quien ya capturó la velocidad hoy no tiene por qué volver a
+          // pasar por ella.
+          fijarEstadoGuia(ctx, {
+            recetaId: receta.id,
+            indice: indiceDelSiguiente(receta, instantanea(ctx, receta)),
+          });
+        },
       },
       el('span', { clase: 'receta-opcion__titulo' }, receta.titulo),
       el('span', { clase: 'receta-opcion__objetivo texto-meta' }, receta.objetivo),
       el(
         'span',
         { clase: `badge ${avance.completa ? 'badge--exito' : 'badge--neutro'}` },
-        avance.completa ? 'lista' : `${avance.listos} de ${avance.total}`
+        avance.completa ? 'lista' : `${avance.resueltos} de ${avance.total}`
       )
     );
   });
@@ -78,177 +169,146 @@ function tarjetaObjetivos(ctx, instantanea) {
   return tarjeta(
     {
       titulo: '¿Qué vas a calibrar?',
-      descripcion: 'Elige el objetivo y la guía te dice el orden.',
+      descripcion: 'Elige el objetivo y te voy pidiendo lo que hace falta.',
       ayuda:
-        'Cada objetivo es una lista de pasos sobre las pantallas de siempre: aquí no se captura ' +
-        'nada y ningún paso es obligatorio. Puedes seguir la lista, saltarte un paso o entrar ' +
-        'directo a la pestaña que quieras, como hasta ahora. El chip de cada objetivo dice ' +
-        'cuántos pasos ya tienen su dato. Para salir de la guía, vuelve a pulsar el objetivo ' +
-        'elegido.',
+        'El asistente pregunta cada dato UNA vez y lo guarda donde lo leen todas las pantallas: ' +
+        'si ya capturaste la velocidad hoy, no te la vuelve a pedir. Las pestañas siguen ahí ' +
+        'para calcular a mano, recalibrar una sola cosa o ver el desglose completo, y trabajan ' +
+        'sobre los mismos números. Para salir de un objetivo, el botón «Cambiar» de arriba.',
     },
     el('div', { clase: 'grupo-modo grupo-modo--columna' }, opciones)
   );
 }
 
 // ---------------------------------------------------------------------
-// 2. Los pasos
+// 2. El paso
 // ---------------------------------------------------------------------
-function tarjetaPasos(ctx, receta, instantanea) {
-  const avance = progresoDeReceta(receta, instantanea);
+function tarjetaPaso(ctx, receta, pasos, indice, sistema) {
+  const paso = pasos[indice];
+  const guia = estadoGuia(ctx);
 
-  const filas = avance.pasos.map((paso, i) =>
+  // Entrar en un paso lo marca visto: es lo que deja que un paso de
+  // confirmación —la barra, que ya viene llena de la configuración— se
+  // dé por resuelto sin capturar nada, pero solo después de mirarlo.
+  //
+  // Se guarda como 'borrador' y NO como 'contexto' a propósito: marcar
+  // visto no cambia nada de lo que se está pintando, y un re-render
+  // desde dentro del propio render remontaría la tarjeta que se acaba de
+  // construir.
+  if (!guia.vistos.includes(paso.id)) {
+    ctx.guardarBorrador('guia', { vistos: [...guia.vistos, paso.id] });
+  }
+
+  const zonaEstado = el('div', {});
+  const montado = montarPaso(ctx, {
+    paso,
+    sistema,
+    alCambiar: () => pintarEstado(),
+  });
+
+  function pintarEstado() {
+    const avance = progresoDeReceta(receta, instantanea(ctx, receta));
+    const estado = avance.pasos.find((p) => p.id === paso.id);
+    reemplazar(
+      zonaEstado,
+      estado?.resuelto || paso.opcional
+        ? []
+        : [
+            el(
+              'p',
+              { clase: 'ayuda' },
+              'Puedes seguir sin esto: el resultado saldrá incompleto hasta que lo captures.'
+            ),
+          ]
+    );
+  }
+  pintarEstado();
+
+  const irA = (nuevo) => fijarEstadoGuia(ctx, { indice: nuevo });
+
+  const navegacion = el(
+    'div',
+    { clase: 'nav-paso' },
     el(
       'button',
       {
-        clase: 'paso-receta',
-        dataset: { listo: paso.listo ? 'true' : 'false' },
-        'aria-label': `Paso ${i + 1}, ${paso.titulo}: ${paso.listo ? 'ya tiene dato' : 'falta'}. Abrir.`,
-        alClic: () => ctx.navegarA(paso.seccion, paso.tab),
+        clase: 'boton boton--contorno boton--icono',
+        'aria-label': indice > 0 ? `Paso anterior: ${pasos[indice - 1].titulo}` : 'No hay paso anterior',
+        disabled: indice === 0,
+        alClic: () => irA(indice - 1),
       },
-      el('span', { clase: 'paso-receta__numero mono', 'aria-hidden': 'true' }, String(i + 1)),
-      el(
-        'span',
-        { clase: 'paso-receta__cuerpo' },
-        el(
-          'span',
-          { clase: 'paso-receta__titulo' },
-          paso.titulo,
-          paso.opcional ? el('span', { clase: 'badge badge--contorno' }, 'opcional') : null,
-          chipDePaso(paso)
-        ),
-        // Un paso listo dice SIEMPRE de donde salio su numero: en verde y
-        // sin procedencia se leeria como un dato propio, y entonces nadie
-        // sospecha cuando esta viejo.
-        el(
-          'span',
-          { clase: 'paso-receta__detalle texto-meta' },
-          paso.listo ? paso.detalle ?? paso.porque : paso.detalle
-        )
-      )
+      iconoSvg('flecha-izquierda')
+    ),
+    el(
+      'button',
+      { clase: 'boton nav-paso__siguiente', alClic: () => irA(indice + 1) },
+      indice === pasos.length - 1 ? 'Ver el resultado' : `Siguiente: ${pasos[indice + 1].titulo}`
     )
   );
 
-  const siguiente = avance.siguiente;
-
   return tarjeta(
     {
-      titulo: receta.titulo,
-      // El objetivo NO se repite aqui: ya esta en el boton elegido, tres
-      // dedos mas arriba, y en un telefono de 390px cada renglon de
-      // prosa repetida es un renglon menos de pasos a la vista.
-      ayuda:
-        'El orden no es un capricho: cada paso necesita el número del anterior. La velocidad ' +
-        'manda sobre el volumen por hectárea, y ese manda sobre la dosis del tanque y sobre el ' +
-        'etileno. Si es de otro día, el paso lo dice, porque un aforo de la semana pasada puede ' +
-        'no ser el de la barra de hoy.',
+      titulo: paso.pregunta,
+      descripcion: `Paso ${indice + 1} de ${pasos.length} · ${receta.titulo}`,
+      ayuda: paso.porque,
     },
-    el('div', { clase: 'pila-pasos' }, filas),
-    avance.hayViejos
-      ? el(
-          'p',
-          { clase: 'ayuda' },
-          'Hay pasos con datos de otro día. No están mal por eso, pero revísalos antes de aplicar.'
-        )
-      : null,
-    siguiente
+    montado.nodo,
+    zonaEstado,
+    navegacion,
+    paso.opcional
       ? el(
           'button',
           {
-            clase: 'boton boton--bloque',
-            alClic: () => ctx.navegarA(siguiente.seccion, siguiente.tab),
+            clase: 'boton boton--fantasma boton--bloque',
+            alClic: () => irA(pasos.length),
           },
-          avance.completa ? `Ir a ${siguiente.titulo}` : `Continuar: ${siguiente.titulo}`
+          'Saltar este paso'
         )
-      : el('p', { clase: 'ayuda' }, 'Todos los pasos de esta guía ya tienen su dato.')
+      : null
   );
-}
-
-function chipDePaso(paso) {
-  if (!paso.listo) return el('span', { clase: 'badge badge--advertencia' }, 'falta');
-  if (paso.viejo) return el('span', { clase: 'badge badge--advertencia' }, 'de otro día');
-  return el('span', { clase: 'badge badge--exito' }, 'listo');
 }
 
 // ---------------------------------------------------------------------
 // 3. La hoja de resultado
 //
-// Aqui es donde el resultado se manipula. Las perillas escriben en el
-// BORRADOR DE LA PANTALLA que manda sobre ese dato —la presion y la
-// velocidad son de Gasto de agua—, nunca en un estado propio de la guia:
-// si la hoja guardara su copia, en dos toques la guia y la pantalla
-// estarian diciendo numeros distintos.
+// Aquí es donde el resultado se manipula. Las perillas escriben en el
+// dato compartido —la presión y la velocidad son las mismas que ve Gasto
+// de agua—, nunca en un estado propio del asistente: si la hoja guardara
+// su copia, en dos toques la hoja y la pantalla estarían diciendo
+// números distintos.
 //
 // Las perillas se construyen UNA vez y solo refrescan su cifra. Volver a
-// montarlas en cada toque le quitaria el foco al boton que se acaba de
-// pulsar, y ajustar de dos en dos decimas se hace pulsando varias veces
+// montarlas en cada toque le quitaría el foco al botón que se acaba de
+// pulsar, y ajustar de dos en dos décimas se hace pulsando varias veces
 // seguidas.
 // ---------------------------------------------------------------------
-function tarjetaHoja(ctx, receta, sistema) {
+function tarjetaHoja(ctx, receta, sistema, totalPasos) {
   const ajustable = receta.ajustes.length > 0;
   const zonaCifras = el('div', { clase: 'pila-hoja' });
   const perillasVivas = [];
 
-  const unidadPresion = unidad('presion', sistema);
-  const unidadVelocidad = unidad('velocidad', sistema);
-  const unidadVolumen = unidad('volumenAplicacion', sistema);
-
-  // Todo se lee en cada refresco: la hoja no guarda copias.
-  function lecturas() {
-    const estado = ctx.estado();
-    const borrador = ctx.borrador('gasto');
-    const equipo = ctx.equipoActivo();
-    const heredada = ctx.velocidadDeAvance();
-    const boquillaId = borrador.boquillaId ?? equipo?.boquillaId ?? null;
-    const esp = fuenteEspaciamiento(ctx);
-    return {
-      boquilla: estado.catalogo.find((b) => b.id === boquillaId) ?? null,
-      presionBar: numero(borrador.presionBar ?? equipo?.presionCalibracion),
-      velocidadKmh: borrador.velocidadManual
-        ? numero(borrador.velocidadKmh)
-        : numero(heredada.velocidadKmh),
-      velocidadManual: borrador.velocidadManual === true,
-      heredadaKmh: numero(heredada.velocidadKmh),
-      etiquetaVelocidad: heredada.etiqueta,
-      espaciamientoM: numero(borrador.espaciamientoM ?? esp.valor),
-      anchoBarraM: numero(borrador.anchoBarraM ?? equipo?.anchoBarra),
-      numBoquillas: numero(borrador.numBoquillas ?? equipo?.numBoquillas),
-      densidadRelativa: estado.parametros.caldo.densidadRelativa,
-      umbralDiscrepanciaPct: estado.parametros.umbrales.umbralDiscrepanciaMetodos,
-      lhaObjetivo: numero(ctx.objetivoVolumenLha()),
-    };
-  }
-
-  // Una perilla: menos, cifra y mas. El paso va en la unidad que se lee
-  // en el fierro, no en la interna: en imperial se mueve de psi en psi.
-  function crearPerilla({ etiqueta, magnitud, unidadTexto, salto, minimo, leer, fijar, nota }) {
+  function crearPerilla({ etiqueta, datoId, unidadTexto, salto, minimo, nota }) {
+    const magnitud = magnitudDe(datoId);
     const cifra = el('span', { clase: 'perilla__valor mono', role: 'status' });
     const zonaNota = el('span', { clase: 'perilla__nota' });
 
     const mover = (direccion) => {
-      const actual = leer();
+      const actual = valorDeDato(ctx, datoId).valor;
       if (!Number.isFinite(actual)) return;
       const enSistema = aSistema(magnitud, actual, sistema);
       const nuevo = Math.max(minimo, Number((enSistema + direccion * salto).toFixed(4)));
-      fijar(deSistema(magnitud, nuevo, sistema));
+      fijarDato(ctx, datoId, deSistema(magnitud, nuevo, sistema));
       refrescarHoja();
     };
 
     const menos = el(
       'button',
-      {
-        clase: 'boton boton--contorno boton--icono',
-        'aria-label': `Bajar ${etiqueta}`,
-        alClic: () => mover(-1),
-      },
+      { clase: 'boton boton--contorno boton--icono', 'aria-label': `Bajar ${etiqueta}`, alClic: () => mover(-1) },
       iconoSvg('menos')
     );
     const mas = el(
       'button',
-      {
-        clase: 'boton boton--contorno boton--icono',
-        'aria-label': `Subir ${etiqueta}`,
-        alClic: () => mover(1),
-      },
+      { clase: 'boton boton--contorno boton--icono', 'aria-label': `Subir ${etiqueta}`, alClic: () => mover(1) },
       iconoSvg('mas')
     );
 
@@ -260,15 +320,15 @@ function tarjetaHoja(ctx, receta, sistema) {
       zonaNota
     );
 
-    function refrescar(datos) {
-      const valor = leer();
-      const hay = Number.isFinite(valor);
+    function refrescar() {
+      const vigente = valorDeDato(ctx, datoId);
+      const hay = Number.isFinite(vigente.valor);
       cifra.textContent = hay
-        ? `${formatear(aSistema(magnitud, valor, sistema), 2)} ${unidadTexto}`
+        ? `${formatear(aSistema(magnitud, vigente.valor, sistema), 2)} ${unidadTexto}`
         : '—';
       menos.disabled = !hay;
       mas.disabled = !hay;
-      reemplazar(zonaNota, [nota ? nota(datos) : null].filter(Boolean));
+      reemplazar(zonaNota, [nota ? nota(vigente) : null].filter(Boolean));
     }
 
     return { nodo, refrescar };
@@ -279,24 +339,19 @@ function tarjetaHoja(ctx, receta, sistema) {
     if (receta.ajustes.includes('presion')) {
       const perilla = crearPerilla({
         etiqueta: 'Presión en la boquilla',
-        magnitud: 'presion',
-        unidadTexto: unidadPresion,
+        datoId: 'presionBar',
+        unidadTexto: unidad('presion', sistema),
         salto: sistema === 'metrico' ? 0.1 : 1,
         minimo: sistema === 'metrico' ? 0.1 : 1,
-        leer: () => lecturas().presionBar,
-        fijar: (bar) => ctx.guardarBorrador('gasto', { presionBar: bar }),
-        nota: (datos) => {
+        nota: () => {
+          const { boquilla } = volumenVigente(ctx);
+          const presion = valorDeDato(ctx, 'presionBar').valor;
           const fuera =
-            datos.boquilla &&
-            Number.isFinite(datos.presionBar) &&
-            (datos.presionBar < datos.boquilla.presionMinBar ||
-              datos.presionBar > datos.boquilla.presionMaxBar);
+            boquilla &&
+            Number.isFinite(presion) &&
+            (presion < boquilla.presionMinBar || presion > boquilla.presionMaxBar);
           return fuera
-            ? el(
-                'span',
-                { clase: 'badge badge--advertencia' },
-                'fuera del rango de presión de la ficha'
-              )
+            ? el('span', { clase: 'badge badge--advertencia' }, 'fuera del rango de presión de la ficha')
             : null;
         },
       });
@@ -306,27 +361,21 @@ function tarjetaHoja(ctx, receta, sistema) {
     if (receta.ajustes.includes('velocidad')) {
       const perilla = crearPerilla({
         etiqueta: 'Velocidad de avance',
-        magnitud: 'velocidad',
-        unidadTexto: unidadVelocidad,
+        datoId: 'velocidadKmh',
+        unidadTexto: unidad('velocidad', sistema),
         salto: 0.1,
         minimo: 0.1,
-        leer: () => lecturas().velocidadKmh,
-        // Mover la velocidad aqui es capturarla a mano en Gasto de agua:
-        // esa pantalla ya trata la captura manual como la que manda sobre
-        // lo heredado de Avance, y el boton la devuelve.
-        fijar: (kmh) => ctx.guardarBorrador('gasto', { velocidadKmh: kmh, velocidadManual: true }),
-        nota: (datos) =>
-          datos.velocidadManual
+        nota: (vigente) =>
+          vigente.manual
             ? el(
                 'button',
                 {
                   clase: 'boton boton--fantasma boton--sm',
-                  disabled: !Number.isFinite(datos.heredadaKmh),
+                  disabled: !Number.isFinite(vigente.respaldo?.valor),
                   alClic: () => {
-                    ctx.guardarBorrador('gasto', {
-                      velocidadKmh: datos.heredadaKmh,
-                      velocidadManual: false,
-                    });
+                    // Volver a lo de Avance: se limpia la marca de captura
+                    // manual y el dato vuelve a derivarse solo.
+                    ctx.fijarJornada({ velocidadKmh: vigente.respaldo.valor, velocidadManual: false });
                     refrescarHoja();
                   },
                 },
@@ -335,9 +384,7 @@ function tarjetaHoja(ctx, receta, sistema) {
             : el(
                 'span',
                 { clase: 'texto-meta' },
-                datos.etiquetaVelocidad
-                  ? `Viene de Avance: ${datos.etiquetaVelocidad}.`
-                  : 'Viene de Avance.'
+                vigente.respaldo?.etiqueta ? `Viene de Avance: ${vigente.respaldo.etiqueta}.` : 'Viene de Avance.'
               ),
       });
       perillasVivas.push(perilla);
@@ -349,202 +396,272 @@ function tarjetaHoja(ctx, receta, sistema) {
   const zonaPerillas = ajustable ? el('div', { clase: 'pila-perillas' }, construirPerillas()) : null;
 
   function refrescarHoja() {
-    const datos = lecturas();
-    const nodos = [];
-
-    if (ajustable) {
-      let calculo = null;
-      let error = null;
-      try {
-        calculo = volumenConBoquilla({
-          boquilla: datos.boquilla,
-          presionBar: datos.presionBar,
-          velocidadKmh: datos.velocidadKmh,
-          espaciamientoM: datos.espaciamientoM,
-          anchoBarraM: datos.anchoBarraM,
-          numBoquillas: datos.numBoquillas,
-          densidadRelativa: datos.densidadRelativa,
-          umbralDiscrepanciaPct: datos.umbralDiscrepanciaPct,
-        });
-      } catch (e) {
-        error = e;
-      }
-
-      if (!calculo) {
-        nodos.push(
-          el(
-            'p',
-            { clase: 'texto-suave' },
-            'Todavía no hay con qué calcular el volumen: completa los pasos de arriba y esta hoja ' +
-              'se llena sola.'
-          ),
-          error ? el('p', { clase: 'ayuda' }, String(error.message ?? error)) : null
-        );
-      } else if (!resultadoConfiable(calculo)) {
-        // Regla dura del proyecto: si la verificacion redundante fallo, no
-        // se pinta el numero.
-        nodos.push(pintarResultadoNoVerificado('Volumen de aplicación'));
-      } else {
-        const lha = calculo.valores.lhaPorBoquilla;
-        nodos.push(
-          pintarResultado({
-            etiqueta: `Volumen con ${datos.boquilla.fabricante} ${datos.boquilla.modelo}`,
-            valor: aSistema('volumenAplicacion', lha, sistema),
-            unidad: unidadVolumen,
-            decimales: 1,
-            principal: true,
-          })
-        );
-        if (Number.isFinite(datos.lhaObjetivo)) {
-          nodos.push(
-            el(
-              'div',
-              { clase: 'rejilla-cifras' },
-              pintarResultado({
-                etiqueta: 'Objetivo',
-                valor: aSistema('volumenAplicacion', datos.lhaObjetivo, sistema),
-                unidad: unidadVolumen,
-                decimales: 1,
-              }),
-              pintarResultado({
-                etiqueta: 'Diferencia contra el objetivo',
-                valor: desviacionContraObjetivo({ valor: lha, objetivo: datos.lhaObjetivo }),
-                unidad: '%',
-                decimales: 1,
-              })
-            )
-          );
-        }
-        nodos.push(...pintarAvisos(calculo.avisos));
-      }
-    }
-
-    nodos.push(...cifrasDeCierre(ctx, receta, sistema));
+    const nodos = ajustable ? cifrasDeVolumen(ctx, sistema) : cifrasDeCierre(ctx, receta, sistema);
     reemplazar(zonaCifras, nodos.filter(Boolean));
-    for (const perilla of perillasVivas) perilla.refrescar(datos);
+    for (const perilla of perillasVivas) perilla.refrescar();
   }
-
   refrescarHoja();
+
+  const volver = el(
+    'button',
+    {
+      clase: 'boton boton--contorno boton--bloque',
+      alClic: () => fijarEstadoGuia(ctx, { indice: totalPasos - 1 }),
+    },
+    'Volver al último paso'
+  );
 
   return tarjeta(
     {
       titulo: 'Hoja de resultado',
       descripcion: ajustable
         ? 'Mueve la presión o la velocidad y mira el volumen cambiar.'
-        : 'Las cifras que cierran esta guía.',
+        : 'Las cifras que cierran esta calibración.',
       ayuda: ajustable
         ? 'Las dos perillas son las que de verdad tienes enfrente: el manómetro de la barra y la ' +
-          'marcha. Moverlas aquí es lo mismo que capturarlas en Gasto de agua, y el volumen se ' +
-          'recalcula por la misma ruta verificada, con la corrección por densidad del caldo. La ' +
-          'velocidad queda como captura manual hasta que la devuelvas a la de Avance.'
-        : 'Esta guía no trae perillas porque su número clave no es el volumen por hectárea, sino ' +
-          'una cuenta que depende de él: la dosis del tanque o la masa de etileno. Esa cuenta se ' +
-          've completa —con su desglose y sus advertencias— en su propia pantalla.',
+          'marcha. Moverlas aquí es lo mismo que capturarlas en Gasto de agua —es el mismo dato— ' +
+          'y el volumen se recalcula por la misma ruta verificada, con la corrección por ' +
+          'densidad del caldo.'
+        : 'El desglose paso a paso, las advertencias del dominio y el guardado en bitácora viven ' +
+          'en la pantalla de este cálculo. Aquí queda el número con el que sales al lote.',
     },
     zonaCifras,
     zonaPerillas,
-    ajustable
-      ? el(
-          'p',
-          { clase: 'ayuda' },
-          'Las perillas escriben en Gasto de agua: ahí queda el desglose paso a paso, la clase de ' +
-            'gota y el guardado en bitácora.'
-        )
-      : null,
-    ajustable
-      ? el(
-          'button',
-          {
-            clase: 'boton boton--contorno boton--bloque',
-            alClic: () => ctx.navegarA('calibrar', 'gasto'),
-          },
-          'Ver el desglose en Gasto de agua'
-        )
-      : null
+    volver
   );
 }
 
-// Cifras de cierre: el resultado de la receta que NO se manipula aqui,
-// con el enlace a la pantalla donde se ve la cuenta completa.
-function cifrasDeCierre(ctx, receta, sistema) {
-  const nodos = [];
-  const unidadVolumen = unidad('volumenAplicacion', sistema);
+function magnitudDe(datoId) {
+  return datoId === 'presionBar' ? 'presion' : 'velocidad';
+}
 
-  if (receta.ajustes.length > 0) {
-    const medido = ctx.resultado('lhaMedido');
-    if (Number.isFinite(medido?.valor)) {
-      nodos.push(
-        pintarResultado({
-          etiqueta: 'Aforado en la prueba de captura',
-          valor: aSistema('volumenAplicacion', medido.valor, sistema),
-          unidad: unidadVolumen,
-          decimales: 1,
-        }),
-        el(
-          'p',
-          { clase: 'ayuda' },
-          'El aforo mide la barra como está hoy; el cálculo describe una boquilla nueva. Cuando ' +
-            'difieren mucho, manda el aforo.'
-        )
-      );
-    }
+// Volumen de aplicación, recalculado en vivo con lo que la jornada tiene
+// ahora. Es la ruta verificada de Gasto de agua (domain/water.js).
+function cifrasDeVolumen(ctx, sistema) {
+  const unidadVolumen = unidad('volumenAplicacion', sistema);
+  const nodos = [];
+  const { boquilla, calculo, error } = volumenVigente(ctx);
+
+  if (!calculo) {
+    nodos.push(
+      el(
+        'p',
+        { clase: 'texto-suave' },
+        'Todavía falta algún dato para calcular el volumen. Vuelve al paso que corresponda y esta ' +
+          'hoja se llena sola.'
+      ),
+      error ? el('p', { clase: 'ayuda' }, String(error.message ?? error)) : null
+    );
+    return nodos;
+  }
+  if (!resultadoConfiable(calculo)) {
+    nodos.push(pintarResultadoNoVerificado('Volumen de aplicación'));
     return nodos;
   }
 
-  const vigente = ctx.volumenAplicacionReal();
-  if (Number.isFinite(vigente?.valor)) {
+  const lha = calculo.valores.lhaPorBoquilla;
+  nodos.push(
+    pintarResultado({
+      etiqueta: `Volumen con ${boquilla.fabricante} ${boquilla.modelo}`,
+      valor: aSistema('volumenAplicacion', lha, sistema),
+      unidad: unidadVolumen,
+      decimales: 1,
+      principal: true,
+    })
+  );
+
+  const objetivo = valorDeDato(ctx, 'lhaObjetivo').valor;
+  if (Number.isFinite(objetivo)) {
+    nodos.push(
+      el(
+        'div',
+        { clase: 'rejilla-cifras' },
+        pintarResultado({
+          etiqueta: 'Objetivo',
+          valor: aSistema('volumenAplicacion', objetivo, sistema),
+          unidad: unidadVolumen,
+          decimales: 1,
+        }),
+        pintarResultado({
+          etiqueta: 'Diferencia contra el objetivo',
+          valor: desviacionContraObjetivo({ valor: lha, objetivo }),
+          unidad: '%',
+          decimales: 1,
+        })
+      )
+    );
+  }
+  nodos.push(...pintarAvisos(calculo.avisos));
+
+  const medido = ctx.resultado('lhaMedido');
+  if (Number.isFinite(medido?.valor)) {
     nodos.push(
       pintarResultado({
-        etiqueta: 'Volumen de aplicación vigente',
-        valor: aSistema('volumenAplicacion', vigente.valor, sistema),
+        etiqueta: 'Aforado en la prueba de captura',
+        valor: aSistema('volumenAplicacion', medido.valor, sistema),
         unidad: unidadVolumen,
         decimales: 1,
       }),
-      el('p', { clase: 'ayuda' }, `Viene de ${vigente.detalle ?? 'la última calibración'}.`)
+      el(
+        'p',
+        { clase: 'ayuda' },
+        'El aforo mide la barra como está hoy; el cálculo describe una boquilla nueva. Cuando ' +
+          'difieren mucho, manda el aforo.'
+      )
     );
   }
 
+  nodos.push(
+    el(
+      'button',
+      { clase: 'boton boton--contorno boton--bloque', alClic: () => ctx.navegarA('calibrar', 'gasto') },
+      'Ver el desglose en Gasto de agua'
+    )
+  );
+  return nodos;
+}
+
+// Cierre de las recetas cuyo número clave no es el volumen: la mezcla y
+// el forzamiento. El cálculo es el mismo del dominio que corre su
+// pantalla; lo que no se repite aquí es el desglose ni la bitácora.
+function cifrasDeCierre(ctx, receta, sistema) {
+  const nodos = [];
+  const estado = ctx.estado();
+  const unidadVolumen = unidad('volumen', sistema);
+
+  if (receta.id === 'mezcla-tanque') {
+    const datos = lecturaDeDatos(ctx, [
+      'volumenAplicacionLha',
+      'volumenTanqueL',
+      'dosisCantidad',
+      'modoDosis',
+      'unidadProducto',
+      'superficieObjetivoHa',
+    ]);
+    try {
+      const resultado = mezclaTanque({
+        volumenTanqueL: datos.volumenTanqueL,
+        lhaAplicacion: datos.volumenAplicacionLha,
+        dosis: Number.isFinite(datos.dosisCantidad)
+          ? { modo: datos.modoDosis ?? 'por-ha', cantidad: datos.dosisCantidad }
+          : null,
+        areaObjetivoHa: Number.isFinite(datos.superficieObjetivoHa) ? datos.superficieObjetivoHa : null,
+      });
+      const unidadProducto = datos.unidadProducto ?? 'L';
+      nodos.push(...pintarAvisos(resultado.avisos));
+      if (Number.isFinite(resultado.valores.productoPorCarga)) {
+        nodos.push(
+          pintarResultado({
+            etiqueta: 'Producto por carga',
+            valor: resultado.valores.productoPorCarga,
+            unidad: unidadProducto,
+            decimales: 2,
+            principal: true,
+          })
+        );
+      }
+      nodos.push(
+        el(
+          'div',
+          { clase: 'rejilla-cifras' },
+          pintarResultado({
+            etiqueta: 'Hectáreas por carga',
+            valor: resultado.valores.hectareasPorCarga,
+            unidad: 'ha',
+            decimales: 2,
+          }),
+          Number.isFinite(resultado.valores.aguaPorCarga)
+            ? pintarResultado({
+                etiqueta: 'Agua por carga',
+                valor: aSistema('volumen', resultado.valores.aguaPorCarga, sistema),
+                unidad: unidadVolumen,
+                decimales: 0,
+              })
+            : null
+        )
+      );
+    } catch (error) {
+      nodos.push(
+        el('p', { clase: 'texto-suave' }, 'Faltan el volumen del tanque o la dosis para armar la mezcla.'),
+        el('p', { clase: 'ayuda' }, String(error?.message ?? error))
+      );
+    }
+    nodos.push(
+      el(
+        'button',
+        { clase: 'boton boton--contorno boton--bloque', alClic: () => ctx.navegarA('calibrar', 'mezcla') },
+        'Ver la cuenta completa en Mezcla'
+      )
+    );
+    return nodos;
+  }
+
   if (receta.id === 'forzamiento-etileno') {
-    const masa = ctx.resultado('masaPorTablaG');
-    if (Number.isFinite(masa?.valor)) {
+    const datos = lecturaDeDatos(ctx, ['volumenAplicacionLha', 'dosisObjetivoGha', 'scfm', 'psiManometrica']);
+    const avanceDeAvance = ctx.avanceDeAvance();
+    try {
+      const g = geometria(ctx.parametrosGeometria()).valores;
+      const resultado = forzamientoDesdeObjetivo({
+        dosisObjetivoGha: datos.dosisObjetivoGha,
+        volumenAguaLha: datos.volumenAplicacionLha,
+        hectareasPorTabla: g.hectareasPorTabla,
+        tiempoPorTablaS: avanceDeAvance.avance?.valores.tiempoTotalS ?? null,
+        gPorScf: gPorScfEfectivo({ gas: ctx.gasActivo() }).valores.gPorScf,
+        presionAtmosfericaLocal: ctx.presionAtmosfericaLocal(),
+        presionEstandarCalibracion: ctx.gasActivo()?.presionEstandarPsia,
+        modoDespeje: 'scfm',
+        psiDado: Number.isFinite(datos.psiManometrica) ? datos.psiManometrica : null,
+        rotametro: ctx.rotametroActivo(),
+        dosisReferenciaGha: estado.parametros.agronomicos.dosisEtilenoReferencia,
+        toleranciaAlertaPct: estado.parametros.agronomicos.toleranciaAlerta,
+      });
+      // La masa por tabla queda a disposición de Gas etileno, igual que
+      // la publica la pantalla de Forzamiento.
+      ctx.guardarResultado('masaPorTablaG', {
+        valor: resultado.valores.masaPorTablaG,
+        origen: 'forzamiento',
+        detalle: 'calculada en el asistente de forzamiento',
+      });
       nodos.push(
         pintarResultado({
           etiqueta: 'Masa de etileno por tabla',
-          valor: masa.valor,
+          valor: resultado.valores.masaPorTablaG,
           unidad: 'g',
           decimales: 1,
           principal: true,
         })
       );
+      const scfmRequerido = resultado.valores.ajuste?.scfm ?? null;
+      if (Number.isFinite(scfmRequerido)) {
+        nodos.push(
+          pintarResultado({
+            etiqueta: 'Lectura de flotador requerida',
+            valor: scfmRequerido,
+            unidad: 'SCFM',
+            decimales: 2,
+          })
+        );
+      }
+      nodos.push(...pintarAvisos(resultado.avisos));
+    } catch (error) {
+      nodos.push(
+        el(
+          'p',
+          { clase: 'texto-suave' },
+          'Faltan la dosis de etileno, el volumen de agua o la velocidad para calcular el forzamiento.'
+        ),
+        el('p', { clase: 'ayuda' }, String(error?.message ?? error))
+      );
     }
     nodos.push(
       el(
         'button',
-        {
-          clase: 'boton boton--contorno boton--bloque',
-          alClic: () => ctx.navegarA('calibrar', 'gas'),
-        },
+        { clase: 'boton boton--contorno boton--bloque', alClic: () => ctx.navegarA('calibrar', 'gas') },
         'Ajustar el rotámetro en Gas etileno'
       )
     );
-  }
-
-  if (receta.id === 'mezcla-tanque') {
-    nodos.push(
-      el(
-        'button',
-        {
-          clase: 'boton boton--contorno boton--bloque',
-          alClic: () => ctx.navegarA('calibrar', 'mezcla'),
-        },
-        'Ver la cuenta del tanque en Mezcla'
-      )
-    );
+    return nodos;
   }
 
   return nodos;
-}
-
-function numero(x) {
-  return Number.isFinite(x) ? x : null;
 }

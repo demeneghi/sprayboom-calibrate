@@ -17,8 +17,6 @@ import {
   decodificarEstadoCompartido,
 } from './ui/compartir.js';
 
-import { crearTiraReceta } from './ui/receta.js';
-
 import * as tabGuia from './ui/tabs/guia.js';
 import * as tabAvance from './ui/tabs/avance.js';
 import * as tabGasto from './ui/tabs/gasto.js';
@@ -38,10 +36,12 @@ export const SECCIONES = [
     id: 'calibrar',
     etiqueta: 'Calibrar',
     tabs: [
-      // La guia va primera y es la ruta por defecto: es la unica
-      // pantalla que dice por donde empezar y en que orden se encadenan
-      // las demas. No captura nada, asi que entrar por aqui no cuesta un
-      // paso a quien ya sabe a que pestana va.
+      // El asistente va primero y es la ruta por defecto: pregunta cada
+      // dato UNA vez, en orden de dependencia, y termina en la hoja de
+      // resultado. Las pestañas que siguen son la via manual —recalcular
+      // una sola cosa, ver el desglose completo— y trabajan sobre los
+      // MISMOS datos, asi que se puede saltar de una a otra sin
+      // recapturar nada.
       { id: 'guia', etiqueta: 'Guía', modulo: tabGuia },
       { id: 'avance', etiqueta: 'Avance', modulo: tabAvance },
       { id: 'gasto', etiqueta: 'Gasto de agua', modulo: tabGasto },
@@ -224,6 +224,20 @@ export const ctx = {
   borrador(tabId) {
     return almacen.obtener().borradores?.[tabId] ?? {};
   },
+  // Los datos compartidos de la calibracion de hoy: presion, velocidad,
+  // espaciamiento, boquilla, volumen objetivo, ancho y numero de
+  // boquillas. Viven UNA vez —ver storage.js y domain/datos.js—, no una
+  // copia por pestana, que es lo que hacia que el asistente pidiera la
+  // misma presion tres veces.
+  jornada() {
+    return almacen.obtener().jornada ?? {};
+  },
+  fijarJornada(parcial) {
+    almacen.actualizar((estado) => {
+      if (!estado.jornada) estado.jornada = {};
+      Object.assign(estado.jornada, parcial);
+    }, 'borrador');
+  },
   guardarBorrador(tabId, datos) {
     almacen.actualizar((estado) => {
       estado.borradores[tabId] = { ...(estado.borradores[tabId] ?? {}), ...datos };
@@ -371,13 +385,6 @@ function renderizar({ conservarPosicion = false } = {}) {
   document.documentElement.dataset.seccion = seccion.id;
   limpiar(panel);
   try {
-    // Tira de avance de la guia. Se pinta desde aqui —y no dentro de
-    // cada pestana— porque las diez pantallas no saben nada de las
-    // recetas y no tienen por que saberlo: la guia las ordena, no las
-    // modifica. Solo aparece si hay receta activa y esta pantalla es uno
-    // de sus pasos.
-    const tira = crearTiraReceta(ctx, { seccion: seccion.id, tab: tab.id });
-    if (tira) panel.append(tira);
     tab.modulo.render(panel, ctx);
   } catch (error) {
     panel.append(
