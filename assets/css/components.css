@@ -1777,49 +1777,21 @@ dialog.dialogo::backdrop {
 /* ------------------------------------------------------------------ */
 /* Guia por objetivo: tira de avance, opciones, pasos y perillas       */
 /* ------------------------------------------------------------------ */
-/* Tira de avance de la receta. Va ARRIBA del panel, la pinta `main.js`
-   y solo aparece cuando la pantalla actual es un paso de la receta
-   activa. Es lo que convierte una lista de pestañas en una secuencia
-   sin encerrar a nadie: dice dónde estás y qué sigue, y se puede
-   ignorar. */
-.tira-receta {
+/* Navegación entre pasos del asistente: atrás cabe en un botón de
+   icono y siguiente se lleva el resto del renglón, porque es el que se
+   pulsa en el 90 % de los toques y trae el nombre del paso que viene. */
+.nav-paso {
   display: flex;
   align-items: stretch;
   gap: 0.5rem;
-  padding: 0.4rem 0.5rem;
-  border: 1px solid hsl(var(--acento) / 0.45);
-  border-radius: var(--radius);
-  background-color: hsl(var(--acento) / 0.1);
 }
 
-/* El centro es un botón: lleva de vuelta a la guía completa. Ocupa todo
-   el ancho que dejan las dos flechas para que se pueda pulsar sin
-   apuntar, y su texto parte línea en vez de recortarse. */
-.tira-receta__centro {
+.nav-paso__siguiente {
   flex: 1 1 auto;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 0.1rem;
-  min-height: var(--touch-floor, 2.5rem);
-  padding: 0.25rem 0.35rem;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.tira-receta__paso {
-  color: hsl(var(--muted-foreground));
-}
-
-.tira-receta__titulo {
-  font-weight: 600;
-  color: hsl(var(--acento-texto));
+  white-space: normal;
+  height: auto;
+  padding-block: 0.4rem;
   line-height: 1.2;
 }
 
@@ -1856,8 +1828,10 @@ dialog.dialogo::backdrop {
   color: hsl(var(--muted-foreground));
 }
 
-/* Los pasos de la receta. Cada fila es un botón que abre la pantalla
-   del paso: se pulsa una vez, así que toma el piso táctil. */
+/* Fila de opción larga: una candidata del catálogo con su presión de
+   trabajo y su clase de gota. Se pulsa una vez, así que toma el piso
+   táctil, y la elegida se señala con `aria-pressed`, igual que
+   cualquier grupo de opciones. */
 .pila-pasos {
   display: flex;
   flex-direction: column;
@@ -1882,29 +1856,6 @@ dialog.dialogo::backdrop {
 
 .paso-receta:active {
   background-color: hsl(var(--muted));
-}
-
-/* El número del paso es lo que se lee sin leer: dice el orden. Va
-   monoespaciado como toda cifra de esta aplicación. */
-.paso-receta__numero {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  border: 1px solid hsl(var(--border));
-  background-color: hsl(var(--muted));
-  color: hsl(var(--muted-foreground));
-  font-size: var(--text-meta);
-  font-weight: 600;
-}
-
-.paso-receta[data-listo='true'] .paso-receta__numero {
-  border-color: hsl(var(--acento));
-  background-color: hsl(var(--acento) / 0.16);
-  color: hsl(var(--acento-texto));
 }
 
 .paso-receta__cuerpo {
@@ -1983,4 +1934,33 @@ dialog.dialogo::backdrop {
 
 .perilla__nota:empty {
   display: none;
+}
+
+/* Cabecera del objetivo elegido: con las cuatro tarjetas de objetivos
+   siempre arriba, el paso que se está capturando empezaba por debajo
+   del borde de la pantalla y había que desplazar en CADA paso. Dentro
+   de un objetivo se recoge a este renglón. */
+.cabecera-receta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid hsl(var(--acento) / 0.45);
+  border-radius: var(--radius);
+  background-color: hsl(var(--acento) / 0.1);
+}
+
+.cabecera-receta__cuerpo {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.cabecera-receta__titulo {
+  font-weight: 600;
+  color: hsl(var(--acento-texto));
+  line-height: 1.2;
 }

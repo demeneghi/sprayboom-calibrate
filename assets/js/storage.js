@@ -64,6 +64,18 @@ export function sembrarEstado() {
     bitacora: [],
     pruebasCaptura: [],
     borradores: {},
+    // Los datos que MAS DE UNA pantalla pide: presion, velocidad,
+    // espaciamiento, boquilla, volumen objetivo, ancho y numero de
+    // boquillas. Viven aqui UNA sola vez, no una copia por pestana.
+    //
+    // Antes cada pantalla los guardaba en su propio borrador, con el
+    // MISMO nombre en tres sitios distintos (borradores.gasto.presionBar,
+    // borradores.captura.presionBar). Funcionaba mientras cada pantalla
+    // se usara sola, y se volvio incoherente en cuanto la guia las puso
+    // en fila: la calibracion pedia la presion tres veces. Lo que se
+    // declara aqui se pregunta UNA vez, lo capture el asistente o lo
+    // capture una pestana. Ver domain/datos.js.
+    jornada: {},
     // Lo que una pantalla CALCULO y otra necesita de entrada (volumen de
     // aplicacion, masa por tabla, objetivo de la jornada). Va aparte de
     // los borradores porque no es la captura de una pantalla, sino su
@@ -235,6 +247,46 @@ export function migrarSitioAAltitud(sitioFusionado, sitioGuardado) {
 }
 
 // ---------------------------------------------------------------------
+// Los datos compartidos suben de los borradores a la jornada
+//
+// Un telefono que ya uso la aplicacion tiene la presion, la boquilla y el
+// objetivo repartidos en los borradores de tres pantallas. Sin esto, al
+// abrir la version nueva se quedaria con los campos en blanco y habria
+// que volver a capturar toda la jornada, de pie en el lote.
+//
+// El orden de preferencia es el de autoridad de cada pantalla sobre el
+// dato: Gasto de agua es la pantalla central del volumen, la Prueba de
+// captura es la que afora, y Boquillas solo aporta el objetivo. Una vez
+// migrado, `jornada` manda y los borradores viejos ya no se leen.
+const ORIGEN_JORNADA = [
+  ['gasto', ['presionBar', 'boquillaId', 'anchoBarraM', 'numBoquillas', 'espaciamientoM', 'espaciamientoManual', 'velocidadKmh', 'velocidadManual', 'lhaObjetivo']],
+  ['captura', ['presionBar', 'boquillaId', 'espaciamientoM', 'espaciamientoManual', 'lhaObjetivo']],
+  ['boquillas', ['espaciamientoM', 'espaciamientoManual', 'lhaObjetivo']],
+];
+
+export function migrarJornada(jornadaGuardada, borradores) {
+  // Ya se guardo con el esquema nuevo: manda lo que hay.
+  if (jornadaGuardada && Object.keys(jornadaGuardada).length > 0) return { ...jornadaGuardada };
+  const jornada = {};
+  for (const [tab, claves] of ORIGEN_JORNADA) {
+    const borrador = borradores?.[tab];
+    if (!borrador || typeof borrador !== 'object') continue;
+    for (const clave of claves) {
+      if (jornada[clave] !== undefined) continue;
+      const valor = borrador[clave];
+      if (valor === undefined || valor === null) continue;
+      jornada[clave] = valor;
+    }
+  }
+  // El nombre viejo del objetivo en Gasto de agua, que se siguio leyendo
+  // para no perder lo capturado en un telefono.
+  if (jornada.lhaObjetivo === undefined && Number.isFinite(borradores?.gasto?.lhaObjetivoLha)) {
+    jornada.lhaObjetivo = borradores.gasto.lhaObjetivoLha;
+  }
+  return jornada;
+}
+
+// ---------------------------------------------------------------------
 // Almacen con pub/sub y autosave
 // ---------------------------------------------------------------------
 export function crearAlmacen({ backend = null, alFallarEscritura = null } = {}) {
@@ -292,6 +344,7 @@ export function crearAlmacen({ backend = null, alFallarEscritura = null } = {}) 
             catalogo: corregirBoquillasDeFabrica(
               adoptarBoquillasDeFabrica(cargado.catalogo ?? semilla.catalogo, semilla.catalogo)
             ),
+            jornada: migrarJornada(cargado.jornada, cargado.borradores),
           };
         } else {
           conservarGuardado = true;
@@ -553,6 +606,11 @@ export function importarJSON(texto, estadoActual) {
   if (Array.isArray(importado.bitacora)) nuevo.bitacora = importado.bitacora;
   if (Array.isArray(importado.pruebasCaptura)) nuevo.pruebasCaptura = importado.pruebasCaptura;
   if (importado.preferencias) nuevo.preferencias = { ...nuevo.preferencias, ...importado.preferencias };
+  // Los datos de la jornada viajan en el respaldo; uno exportado antes de
+  // que existieran se reconstruye desde sus borradores, igual que al
+  // cargar lo guardado.
+  const jornadaImportada = migrarJornada(importado.jornada, importado.borradores);
+  if (Object.keys(jornadaImportada).length > 0) nuevo.jornada = jornadaImportada;
   for (const claveActiva of ['tractorActivoId', 'equipoActivoId', 'gasActivoId', 'rotametroActivoId']) {
     if (typeof importado[claveActiva] === 'string') nuevo[claveActiva] = importado[claveActiva];
   }

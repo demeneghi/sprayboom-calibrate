@@ -1,10 +1,10 @@
 // Campo que HEREDA por defecto un valor calculado en otra pantalla.
 //
-// El patron nacio en el campo de velocidad y hoy lo necesitan cuatro
-// mas: el tiempo por tabla de Gas etileno y Forzamiento, el regimen de
-// trabajo de Gasto de agua, el volumen de aplicacion de Mezcla y el
-// espaciamiento de tres pantallas. Cada uno lo resolvia distinto —o no
-// lo resolvia—, asi que vive aqui una sola vez.
+// Hoy lo usan dos consumidores: `ui/dato.js`, que monta asi cualquier
+// dato del registro con marca de captura manual (la velocidad, el
+// espaciamiento, el volumen de aplicacion), y las pantallas que heredan
+// algo que NO es un dato compartido —el regimen del aforo, el tiempo por
+// tabla, la masa objetivo del rotametro—.
 //
 // Las tres piezas del patron, y por que ninguna sobra:
 //
@@ -25,53 +25,6 @@ import { el, reemplazar } from './dom.js';
 import { crearCampoNumerico } from './campos.js';
 import { pintarAvisos } from './render.js';
 import { mostrarToast } from './toast.js';
-import { formatearFecha } from './formato.js';
-import { geometria } from '../domain/speed.js';
-
-// De donde sale el volumen de aplicacion que usan Mezcla y Forzamiento,
-// listo para crearCampoHeredado. Lo comparten las dos porque el criterio
-// es el mismo y es de dominio, no de pantalla:
-//
-//   1. Lo MEDIDO en la prueba de captura, si lo hay. Sale del aforo de
-//      esta barra con las boquillas como estan hoy.
-//   2. Lo CALCULADO en Gasto de agua. Sale de la ficha de una boquilla
-//      nueva, que es lo mejor que hay mientras no se afore.
-//   3. El volumen objetivo propio del rancho, de Configuracion. Es un
-//      objetivo, no una medicion, y el chip lo dice con esas palabras.
-//
-// Cual se esta usando va SIEMPRE a la vista, con su fecha: un aforo de
-// hace un mes puede no ser el de la barra de hoy, y decidir eso es de
-// quien calibra.
-export function fuenteVolumenAplicacion(ctx) {
-  const real = ctx.volumenAplicacionReal();
-  if (real && Number.isFinite(real.valor)) {
-    const fecha = formatearFecha(real.fecha, { vacio: null });
-    return {
-      valor: real.valor,
-      etiqueta: `${real.detalle}${fecha ? ` (${fecha})` : ''}`,
-      fuente: real.origen === 'captura' ? 'la prueba de captura' : 'Gasto de agua',
-      destino:
-        real.origen === 'captura'
-          ? { seccion: 'registrar', tab: 'captura' }
-          : { seccion: 'calibrar', tab: 'gasto' },
-    };
-  }
-  const objetivo = ctx.objetivoVolumenLha();
-  if (Number.isFinite(objetivo)) {
-    return {
-      valor: objetivo,
-      etiqueta: 'de volumen objetivo, todavía sin calcular ni medir',
-      fuente: 'el objetivo configurado',
-      destino: { seccion: 'calibrar', tab: 'gasto' },
-    };
-  }
-  return {
-    valor: null,
-    etiqueta: null,
-    fuente: 'Gasto de agua',
-    destino: { seccion: 'calibrar', tab: 'gasto' },
-  };
-}
 
 export function crearCampoHeredado({
   ctx,
@@ -112,9 +65,16 @@ export function crearCampoHeredado({
   // Solo aplica al borrador viejo: en cuanto el campo se usa una vez, la
   // marca queda escrita y esta bandera deja de intervenir.
   guardadoSinMarcaEsManual = false,
+  // Donde vive el valor. Por defecto, el borrador de la pestaña que
+  // monta el campo; los datos compartidos (domain/datos.js) pasan aqui
+  // el almacen de la JORNADA, porque se preguntan una sola vez y no
+  // pueden tener una copia por pantalla.
+  almacen = null,
   alCambiar = null,
 }) {
-  const borrador = ctx.borrador(tabId);
+  const leer = almacen?.leer ?? (() => ctx.borrador(tabId));
+  const guardar = almacen?.escribir ?? ((parcial) => ctx.guardarBorrador(tabId, parcial));
+  const borrador = leer();
   const hayHeredado = Number.isFinite(heredado?.valor);
   const hayGuardado = Number.isFinite(borrador[clave]);
 
@@ -141,7 +101,7 @@ export function crearCampoHeredado({
     ayuda,
     alCambiar: (valor) => {
       manual = true;
-      ctx.guardarBorrador(tabId, { [clave]: deCampo(valor), [claveManual]: true });
+      guardar({ [clave]: deCampo(valor), [claveManual]: true });
       pintarEstado();
       if (alCambiar) alCambiar(valor);
     },
@@ -151,7 +111,7 @@ export function crearCampoHeredado({
   // lo que se recarga y lo que se guarda en bitacora es el mismo numero
   // que esta en pantalla.
   if (!manual && hayHeredado) {
-    ctx.guardarBorrador(tabId, { [clave]: heredado.valor, [claveManual]: false });
+    guardar({ [clave]: heredado.valor, [claveManual]: false });
   }
 
   const estado = el('div', { clase: 'fila-control' });
@@ -161,7 +121,7 @@ export function crearCampoHeredado({
     if (hayHeredado) {
       manual = false;
       campo.fijar(aCampo(heredado.valor));
-      ctx.guardarBorrador(tabId, { [clave]: heredado.valor, [claveManual]: false });
+      guardar({ [clave]: heredado.valor, [claveManual]: false });
       pintarEstado();
       if (alCambiar) alCambiar(campo.obtener());
       mostrarToast(`${nombreDato} de ${fuente}: ${textoHeredado()}.`);
@@ -238,33 +198,5 @@ export function crearCampoHeredado({
     fijarError: (mensaje) => campo.fijarError(mensaje),
     esManual: () => manual,
     heredado,
-  };
-}
-
-// De donde sale el espaciamiento entre boquillas que precargan Gasto de
-// agua, Boquillas y Prueba de captura, listo para crearCampoHeredado. Lo
-// comparten porque el criterio es de la barra, no de la pantalla: el
-// capturado en la configuracion de la barra si existe, y si no el
-// derivado del ancho entre el numero de boquillas.
-//
-// Antes las tres lo precargaban en silencio y, en cuanto se editaba una
-// vez, ese campo quedaba clavado en el valor viejo aunque la barra
-// cambiara: sin chip no habia forma de notarlo.
-export function fuenteEspaciamiento(ctx) {
-  const destino = { seccion: 'sistema', tab: 'configuracion' };
-  let g = null;
-  try {
-    g = geometria(ctx.parametrosGeometria()).valores;
-  } catch {
-    return { valor: null, etiqueta: null, fuente: 'la barra', destino };
-  }
-  const capturado = Number.isFinite(g.espaciamientoCapturado);
-  return {
-    valor: g.espaciamientoEfectivo,
-    etiqueta: capturado
-      ? 'capturado en la configuración de la barra'
-      : 'derivado del ancho entre el número de boquillas',
-    fuente: 'la barra',
-    destino,
   };
 }

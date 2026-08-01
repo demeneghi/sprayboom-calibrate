@@ -1,106 +1,101 @@
-# Guía por objetivo: por qué no es un wizard
+# Asistente por objetivo: la unidad de captura es el dato, no la pantalla
 
 Fecha: agosto de 2026. Rama: `claude/wizard-steps-adjustable-results-dnkmx1`.
 
-Este documento explica una decisión de producto: la aplicación **no** se convierte en un asistente
-de pasos (*wizard*), pero sí gana la pieza que le faltaba —decir por dónde empezar y en qué orden—
-y una hoja de resultado que se puede mover en el momento.
+Este documento explica una decisión de producto y su **corrección**. La primera versión de esta
+pantalla ordenaba las pestañas; no bastó, y el motivo por el que no bastó es lo más útil que hay
+aquí escrito.
 
 ---
 
-## 1. Qué se pidió y qué se hizo
+## 1. Qué se intentó primero, y por qué falló
 
-La pregunta fue: *¿no debería la app ser una especie de wizard de pasos que vaya guiando al
-usuario según lo que quiera obtener, y al final entregar resultados que se puedan manipular en
-tiempo de ejecución?*
+La primera entrega puso una **guía**: cuatro objetivos de campo, cada uno con la lista ordenada de
+las pantallas que hay que tocar, con el estado de cada paso y una tira de avance en el encabezado.
+No cambiaba ninguna pantalla; solo decía en qué orden abrirlas.
 
-Lo que se hizo:
+Al recorrerla se vio el defecto: **la calibración pedía los mismos datos varias veces**.
 
-| Se pidió | Qué se entregó |
+| Objetivo | Dato pedido más de una vez |
 | --- | --- |
-| Guiar según lo que se quiere obtener | Pantalla **Guía**: cuatro objetivos de campo, cada uno con sus pasos ordenados y el estado de cada paso |
-| Pasos que lleven de la mano | **Tira de avance** en el encabezado de cada pantalla que es paso de la receta activa: «Paso 2 de 4», con anterior y siguiente |
-| Resultados manipulables al final | **Hoja de resultado**: las cifras de la receta juntas y dos perillas —presión y velocidad— que recalculan el volumen en vivo |
-| Un carril cerrado de principio a fin | **No.** Ningún paso es obligatorio, ninguno bloquea al siguiente y se puede entrar directo a cualquier pestaña, como siempre |
+| Ajustar el gasto de agua | presión, velocidad, espaciamiento, volumen objetivo, régimen — **5**, entre Gasto de agua y Prueba de captura |
+| Elegir la boquilla | volumen objetivo, velocidad, espaciamiento — **3**, entre Boquillas y Gasto de agua |
+
+Y no era un defecto de la guía. Cada pantalla declaraba sus campos por su cuenta —**y tiene que
+hacerlo**, porque cada pantalla debe poder usarse sola— y además guardaba su propia copia del
+valor, con la misma clave, en su propio borrador: `borradores.gasto.presionBar` y
+`borradores.captura.presionBar` eran dos presiones distintas con el mismo nombre.
+
+La conclusión: ordenar pantallas no arregla nada, porque **la unidad de captura era la PANTALLA y
+tenía que ser el DATO**.
 
 ---
 
-## 2. Por qué no un wizard
+## 2. Qué hay ahora
 
-Un asistente clásico —pantallas encadenadas, «siguiente» obligatorio, estado propio de la
-sesión— habría empeorado esta aplicación por cuatro motivos concretos.
+Dos piezas, y la segunda es la que importa.
 
-**No hay una sola tarea.** Calibrar el gasto de agua, elegir boquilla, preparar la mezcla y
-dosificar etileno son trabajos distintos que comparten números. Un carril único obliga a pasar
-por pasos que hoy no aplican.
+### El registro de datos (`assets/js/domain/datos.js`)
 
-**El uso real es repetido y parcial.** Se cambia una boquilla y hay que rehacer una pantalla, no
-siete. Un wizard es excelente la primera vez y hostil la décima; en campo, todas son la décima.
+Un **dato** es algo que se pregunta una vez: la presión de trabajo, la velocidad, la boquilla, el
+volumen objetivo. Cada uno se declara **una sola vez**: etiqueta, magnitud, ayuda, de dónde sale su
+valor por defecto y —sobre todo— **dónde vive**.
 
-**Pelea con la arquitectura y con una decisión ya tomada.** Hoy cada pestaña se re-monta al
-entrar y los derivados se recalculan solos; la regla escrita en
-`docs/conexiones-entre-pestanas.md` §9 es **derivar, no copiar**. Un asistente con un estado
-grande de sesión reintroduce exactamente el problema que ese trabajo resolvió: una copia del
-número que se queda vieja sin que nadie lo note.
+- Los datos que usan **varias** pantallas viven en `estado.jornada`, uno solo para toda la
+  aplicación.
+- Los de **una sola** pantalla viven en el borrador de esa pantalla, que ya era un sitio único; el
+  registro solo dice cuál es, para que el asistente escriba exactamente ahí.
 
-**El riesgo no está en la interfaz, está en los números.** Rehacer la navegación y los borradores
-toca código de cálculo ya verificado. Ordenar las pantallas se puede hacer **sin tocar ni una
-fórmula**, y eso fue lo que se hizo.
+De ese registro construyen **las dos** superficies: el asistente y las pestañas
+(`ui/dato.js::crearCampoDato`). Capturar la presión en la Prueba de captura la cambia en Gasto de
+agua y en el asistente, porque es el mismo número.
 
-### Lo que sí faltaba
+Un teléfono que ya venía usando la aplicación no pierde nada: `storage.js::migrarJornada` sube los
+datos repartidos por los borradores a la jornada la primera vez que abre.
 
-Buena parte de lo que un wizard promete, la aplicación ya lo tenía:
+### El asistente (`assets/js/ui/tabs/guia.js`)
 
-- **Recálculo en vivo.** Cada campo dispara el recálculo al teclear; no hay botón «calcular».
-- **Cálculo inverso.** Gasto de agua ya resuelve del objetivo hacia el ajuste (variable libre:
-  presión, velocidad o boquilla).
-- **Encadenado entre pantallas.** `ui/heredado.js` precarga el dato de la pantalla anterior, dice
-  de dónde salió con un chip y deja que la captura manual mande.
+Un paso = un dato (o el puñado que no se entiende por separado, como la boquilla y su presión). Se
+elige el objetivo y el asistente pide lo que falta, en orden de dependencia, hasta la hoja de
+resultado.
 
-Lo que faltaba era **el orden**: diez pestañas sin jerarquía visible sobre una cadena de
-dependencias real —Avance manda sobre Gasto de agua, y ese manda sobre Mezcla y sobre
-Forzamiento— que en pantalla no se veía por ningún lado. Quien abría la aplicación por primera
-vez no tenía forma de saberlo.
-
----
-
-## 3. Las cuatro recetas
-
-Viven en `assets/js/domain/recetas.js` como datos puros, y se prueban en `tests/recetas.test.js`.
-Son cuatro **por trabajo real**, no una por pantalla: una receta por pestaña sería la misma lista
-de tabs con otro nombre.
-
-| Receta | Pasos | Perillas |
+| Objetivo | Pasos | Perillas |
 | --- | --- | --- |
-| Ajustar el gasto de agua | Avance → Gasto de agua → *(opcional)* Prueba de captura | presión, velocidad |
-| Elegir la boquilla | Avance → Boquillas → Gasto de agua | presión, velocidad |
-| Preparar la mezcla | Gasto de agua → Mezcla | — |
-| Forzar con etileno | Avance → Gasto de agua → Forzamiento → Gas etileno | — |
+| Ajustar el gasto de agua | velocidad → barra → boquilla y presión → objetivo → *(opcional)* aforo | presión, velocidad |
+| Elegir la boquilla | velocidad → barra → objetivo → candidatas del catálogo | presión, velocidad |
+| Preparar la mezcla | volumen de aplicación → tanque y dosis | — |
+| Forzar con etileno | velocidad → volumen de aplicación → dosis de etileno → rotámetro | — |
 
-Reglas que siguen los pasos:
+Reglas que sigue:
 
-- **Un paso listo dice de dónde salió su número**, nunca solo «listo». Un chip verde sin
-  procedencia se lee como un dato propio, y entonces nadie sospecha cuando está viejo. Es la misma
-  regla del chip de `ui/heredado.js`.
-- **Un dato de otro día se marca, no se invalida.** Un aforo de la semana pasada puede seguir
-  siendo el bueno; decidir eso es de quien calibra. Lo que no puede pasar es que no se note.
-- **Un paso opcional no cuenta para el total.** El aforo verifica, no habilita: la receta está
-  completa sin él, y aun así se sigue ofreciendo.
+- **Se entra por el primer dato que falta**, no por el paso uno: quien ya capturó la velocidad hoy
+  no vuelve a pasar por ella.
+- **Ningún paso es obligatorio.** Se puede seguir sin capturar; el resultado sale incompleto y lo
+  dice.
+- **Ningún paso guarda un estado propio ni calcula nada.** Escribe en el sitio único del dato y
+  llama al dominio ya probado, igual que la pestaña equivalente.
+- Un paso de **confirmación** —la barra, que ya viene llena de la configuración— no se da por
+  resuelto hasta haberlo mirado; si no, el asistente lo saltaría sin que nadie lo revisara.
+
+### Y las pestañas se quedan
+
+Siguen siendo la vía para calcular a mano, recalibrar una sola cosa, ver el desglose paso a paso y
+guardar en bitácora. Como escriben en los mismos datos, **se puede saltar del asistente a una
+pestaña y volver a media calibración** sin recapturar nada.
 
 ---
 
-## 4. La hoja de resultado
+## 3. La hoja de resultado
 
-Es la parte que se manipula en el momento, y tiene tres decisiones que conviene dejar escritas.
+Tres decisiones que conviene dejar escritas.
 
-**Perillas, no deslizadores.** Un deslizador da precisión falsa —2.73 bar cuando el manómetro
-marca 2.8— y con guantes, de pie, sobre un tractor que vibra, es incontrolable. Son dos botones
-grandes con el paso del fierro real: 0.1 bar en métrico, 1 psi en imperial, 0.1 en la velocidad.
+**Perillas, no deslizadores.** Un deslizador da precisión falsa —2.73 bar cuando el manómetro marca
+2.8— y con guantes, de pie, sobre un tractor que vibra, es incontrolable. Son dos botones grandes
+con el paso del fierro real: 0.1 bar en métrico, 1 psi en imperial, 0.1 en la velocidad.
 
-**Las perillas escriben en la pantalla que manda sobre ese dato**, no en un estado propio de la
-guía. Mover la presión es capturarla en Gasto de agua. Si la hoja guardara su copia, en dos toques
-la guía y la pantalla estarían diciendo números distintos. Mover la velocidad la vuelve captura
-manual —igual que teclearla en Gasto de agua—, y un botón la devuelve a la de Avance.
+**Las perillas escriben en el dato compartido**, no en un estado propio del asistente. Mover la
+presión ahí es lo mismo que capturarla en Gasto de agua. Mover la velocidad la vuelve captura
+manual —igual que teclearla— y un botón la devuelve a la de Avance.
 
 **El número se recalcula por la misma ruta verificada.** `volumenConBoquilla` (en
 `domain/water.js`) es la cadena de Gasto de agua sin desglose: caudal a la presión de trabajo,
@@ -108,36 +103,29 @@ corrección por densidad del caldo y los dos métodos, con su verificación redu
 fija que el atajo y la cadena larga dan **el mismo** L/ha; si la verificación falla, no se pinta el
 número, igual que en el resto de la aplicación.
 
-**Solo dos recetas traen perillas**, y es a propósito: son aquellas cuyo resultado *es* el volumen
-por hectárea. En Mezcla y en Forzamiento el volumen es una **entrada**; moverlo desde la hoja
-cambiaría la dosis del tanque o la masa de etileno sin que se vea la cuenta, y esa cuenta —con su
-desglose y sus advertencias— se ve completa en su propia pantalla.
+**Solo dos objetivos traen perillas**, y es a propósito: son aquellos cuyo resultado *es* el
+volumen por hectárea. En la mezcla y en el forzamiento el volumen es una **entrada**; moverlo desde
+la hoja cambiaría la dosis del tanque o la masa de etileno sin que se vea la cuenta, y esa cuenta
+—con su desglose y sus advertencias— se ve completa en su propia pantalla.
 
 ---
 
-## 5. Qué cambió en la navegación
+## 4. Qué se retiró
 
-- **Guía es la primera pestaña de Calibrar y la ruta por defecto** (`#/calibrar/guia`). No captura
-  nada, así que entrar por ahí no le cuesta un paso a quien ya sabe a qué pestaña va; y a quien no,
-  le da lo único que la aplicación no decía.
-- **Sigue habiendo tres secciones y tres acentos.** La guía no inventa un color: es una pestaña de
-  Calibrar, no un cuarto módulo. La regla de que el color identifica al módulo se conserva.
-- **La tira de avance la pinta `main.js`**, no cada pantalla. Las diez pestañas no saben nada de
-  las recetas y no tienen por qué saberlo: la guía las ordena, no las modifica. La tira solo
-  aparece si hay receta activa **y** la pantalla actual es uno de sus pasos; en una pantalla ajena
-  diría «paso 2 de 4» y estaría mintiendo sobre dónde estás.
-- **Se sale de la guía con el mismo botón con el que se entró.** No hay estado del que haya que
-  escapar.
+- **La lista de pasos por pantalla y la tira de avance del encabezado.** Existían para secuenciar
+  pestañas; con el asistente sobran, y la tira además obligaba a `main.js` a saber de recetas.
+- **`ui/velocidad.js` y las funciones `fuenteVelocidad` / `fuenteEspaciamiento` /
+  `fuenteVolumenAplicacion` de `ui/heredado.js`.** Eran tres versiones del mismo patrón —«de dónde
+  sale este valor por defecto»— repartidas por la interfaz. Ahora es una línea del registro
+  (`respaldo`) y una sola resolución en `ui/dato.js`.
 
----
+## 5. Qué quedó fuera, y por qué
 
-## 6. Lo que quedó fuera, y por qué
-
-- **La hoja no recalcula la dosis del tanque ni la masa de etileno.** Ver arriba: son cuentas con
-  advertencias propias (solubilidad del etileno, equivalencia de dosis) que no se pueden mostrar
-  a medias detrás de una perilla.
-- **No hay «receta sugerida» automática.** Adivinar el objetivo a partir de lo capturado sería
-  acertar a veces y estorbar el resto; elegirlo es un toque.
+- **Las pestañas no se reescribieron enteras sobre el registro.** Solo los datos que se repetían.
+  Un campo que vive en una sola pantalla y no lo pide el asistente no gana nada con mudarse, y
+  tocar código de cálculo verificado sin motivo es el riesgo que este proyecto no corre.
+- **La hoja no recalcula la dosis del tanque ni la masa de etileno con perillas.** Ver arriba.
+- **No hay «objetivo sugerido» automático.** Adivinarlo a partir de lo capturado sería acertar a
+  veces y estorbar el resto; elegirlo es un toque.
 - **La marcha no es una perilla.** Subir o bajar de marcha no es un ajuste continuo: cambia el
-  régimen y la velocidad a saltos, y esa elección se hace en Avance, con las marchas del tractor
-  a la vista.
+  régimen y la velocidad a saltos, y esa elección se hace con las marchas del tractor a la vista.

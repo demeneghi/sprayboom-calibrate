@@ -1,7 +1,7 @@
 // Como se LOGRA un tiempo por tabla: a que velocidad hay que ir y con
 // que marchas se consigue.
 //
-// Es el sentido inverso del campo de velocidad heredado (ui/velocidad.js).
+// Es el sentido inverso del campo de velocidad heredado (ui/dato.js).
 // Cuando el rotametro despeja el TIEMPO DE INYECCION —los segundos que
 // hay que tener abierta la valvula para soltar la masa objetivo—, ese
 // numero solo se cumple si la barra cruza la tabla en ese mismo rato.

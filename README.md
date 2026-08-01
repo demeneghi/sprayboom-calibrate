@@ -8,10 +8,15 @@ Cubre tres dominios de cálculo encadenados, todos resolubles en ambos sentidos 
 2. **Gasto de agua**: calibración de volumen de aplicación en L/ha a partir de boquillas, presión, ancho de barra y velocidad, con selección de boquillas por catálogo y verificación por aforo.
 3. **Gas etileno**: dosificación por rotámetro para forzamiento por percolación, encadenada con los otros dos dominios.
 
-La pantalla de entrada es la **Guía**: se elige qué se quiere obtener y ella dice qué pantallas
-tocar y en qué orden, con el estado de cada paso y una hoja de resultado que se ajusta en el
-momento. No es un asistente cerrado —ningún paso es obligatorio y se puede entrar directo a
-cualquier pestaña—; el porqué de esa decisión está en `docs/guia-por-objetivo.md`.
+La pantalla de entrada es la **Guía**: un asistente por objetivo. Se elige qué se quiere obtener
+y va pidiendo, uno por uno, los datos que hacen falta —**cada uno una sola vez**— hasta una hoja de
+resultado que se ajusta en el momento. Ningún paso es obligatorio.
+
+Las pestañas siguen siendo la vía para calcular a mano, recalibrar una sola cosa y ver el desglose
+completo. Asistente y pestañas escriben en los **mismos datos** (`estado.jornada`, declarados en
+`assets/js/domain/datos.js`), así que se puede saltar de uno a otro a media calibración sin
+recapturar nada. El porqué de este diseño —y por qué la primera versión, que solo ordenaba
+pantallas, no bastó— está en `docs/guia-por-objetivo.md`.
 
 ## Publicación en GitHub Pages
 

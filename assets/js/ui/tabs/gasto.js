@@ -18,14 +18,14 @@ import {
   resultadoConfiable,
   pintarResultadoNoVerificado,
 } from '../render.js';
-import { crearCampoNumerico, crearCampoSelect } from '../campos.js';
-import { crearCampoVelocidad } from '../velocidad.js';
-import { crearCampoHeredado, fuenteEspaciamiento } from '../heredado.js';
+import { crearCampoSelect } from '../campos.js';
+import { crearCampoDato, valorDeDato, fijarDato } from '../dato.js';
+import { crearCampoHeredado } from '../heredado.js';
 import { formatear } from '../formato.js';
 import { mostrarToast } from '../toast.js';
 import { crearCombobox } from '../combobox.js';
 import { estiloBadgeIso } from '../color.js';
-import { aSistema, deSistema, unidad } from '../../domain/units.js';
+import { aSistema, unidad } from '../../domain/units.js';
 import { redondeoLegible, geometria, calibrarMarcha } from '../../domain/speed.js';
 import {
   caudalAPresionDetallado,
@@ -60,7 +60,7 @@ export function render(panel, ctx) {
 
   // Seleccion de boquilla: el borrador gana; si no hay, la instalada en
   // el equipo activo.
-  let boquillaId = borrador.boquillaId ?? equipo?.boquillaId ?? null;
+  let boquillaId = valorDeDato(ctx, 'boquillaId').valor;
   let variableLibre = borrador.variableLibre ?? 'presion';
   let ultimoCalculo = null; // resultado central listo para bitacora
 
@@ -124,7 +124,7 @@ export function render(panel, ctx) {
     placeholder: 'Buscar en el catálogo…',
     alSeleccionar: (opcion) => {
       boquillaId = opcion.valor;
-      ctx.guardarBorrador(id, { boquillaId });
+      fijarDato(ctx, 'boquillaId', boquillaId);
       pintarBoquilla();
       recalcular();
     },
@@ -173,89 +173,48 @@ export function render(panel, ctx) {
   }
 
   // ---------------- Captura de trabajo ----------------
-  const campoPresion = crearCampoNumerico({
-    etiqueta: 'Presión en la boquilla',
-    magnitud: 'presion',
+  // Los cinco datos que esta pantalla comparte con el asistente y con
+  // la Prueba de captura los monta `ui/dato.js` a partir del registro
+  // (domain/datos.js): la etiqueta, la unidad, la ayuda y —sobre todo—
+  // el SITIO donde se guardan salen de ahi. Antes cada pantalla los
+  // declaraba por su cuenta y guardaba su propia copia en su borrador,
+  // asi que una calibracion guiada pedia la misma presion tres veces.
+  const campoPresion = crearCampoDato(ctx, 'presionBar', {
     sistema,
-    // Se precarga la presion de la ultima calibracion de la barra, igual
-    // que hace la Prueba de captura: arrancar en blanco obligaba a
-    // teclear un numero que la aplicacion ya conoce.
-    valorInicial: precarga('presion', borrador.presionBar ?? equipo?.presionCalibracion ?? null),
-    ayuda:
-      'La que marca el manómetro trabajando. Viene la de la última calibración de esta barra; ' +
-      'cámbiala por la de hoy.',
-    alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { presionBar: deSistema('presion', valor, sistema) });
-      recalcular();
-    },
-  });
-
-  // La velocidad de trabajo se hereda de Avance por defecto; escribir
-  // aqui la vuelve captura manual y esa manda (ver ui/velocidad.js).
-  const campoVelocidad = crearCampoVelocidad({
-    ctx,
-    tabId: id,
-    sistema,
-    etiqueta: 'Velocidad de avance',
     alCambiar: () => recalcular(),
   });
 
-  const campoAncho = crearCampoNumerico({
-    etiqueta: 'Ancho de la barra',
-    magnitud: 'distancia',
+  // La velocidad de trabajo se hereda de Avance por defecto; escribir
+  // aqui la vuelve captura manual y esa manda.
+  const campoVelocidad = crearCampoDato(ctx, 'velocidadKmh', {
     sistema,
-    valorInicial: precarga('distancia', borrador.anchoBarraM ?? equipo?.anchoBarra),
+    alCambiar: () => recalcular(),
+  });
+
+  const campoAncho = crearCampoDato(ctx, 'anchoBarraM', {
+    sistema,
     ayuda: `Viene de la barra «${equipo?.nombre ?? 'sin barra'}». Cambiarlo aquí no toca la configuración.`,
-    alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { anchoBarraM: deSistema('distancia', valor, sistema) });
-      recalcular();
-    },
+    alCambiar: () => recalcular(),
   });
-  const campoNumBoquillas = crearCampoNumerico({
-    etiqueta: 'Número de boquillas',
-    unidad: '',
-    valorInicial: borrador.numBoquillas ?? equipo?.numBoquillas,
-    ayuda: 'Viene de la barra activa. Cuéntalas antes de confiar en el número.',
-    alCambiar: (valor) => {
-      ctx.guardarBorrador(id, { numBoquillas: valor });
-      recalcular();
-    },
-  });
-  const fuenteEsp = fuenteEspaciamiento(ctx);
-  const campoEspaciamiento = crearCampoHeredado({
-    ctx,
-    tabId: id,
-    clave: 'espaciamientoM',
-    claveManual: 'espaciamientoManual',
-    etiqueta: 'Espaciamiento entre boquillas',
-    magnitud: 'distanciaCorta',
+  const campoNumBoquillas = crearCampoDato(ctx, 'numBoquillas', {
     sistema,
-    ayuda:
-      'Sale de la barra activa: el capturado o, si no lo hay, el ancho entre el número de ' +
-      'boquillas. Cambiarlo aquí no toca la configuración.',
-    fuente: fuenteEsp.fuente,
-    nombreDato: 'el espaciamiento',
-    heredado: { valor: fuenteEsp.valor, etiqueta: fuenteEsp.etiqueta },
-    aCampo: (m) =>
-      Number.isFinite(m) ? Number(aSistema('distanciaCorta', m, sistema).toPrecision(6)) : null,
-    deCampo: (valor) => deSistema('distanciaCorta', valor, sistema),
-    formatearValor: (valor) => `${formatear(valor, 3)} ${unidadEspaciamiento}`,
-    destino: fuenteEsp.destino,
-    textoSinDato:
-      'Captura el ancho y el número de boquillas de la barra en Sistema, Configuración, o ' +
-      'escribe aquí el espaciamiento.',
-    guardadoSinMarcaEsManual: true,
+    alCambiar: () => recalcular(),
+  });
+  const campoEspaciamiento = crearCampoDato(ctx, 'espaciamientoM', {
+    sistema,
     alCambiar: () => recalcular(),
   });
 
   function lecturas() {
     return {
-      presionBar: deSistema('presion', campoPresion.obtener(), sistema),
-      velocidadKmh: deSistema('velocidad', campoVelocidad.obtener(), sistema),
-      anchoBarraM: deSistema('distancia', campoAncho.obtener(), sistema),
-      numBoquillas: campoNumBoquillas.obtener(),
-      espaciamientoM: deSistema('distanciaCorta', campoEspaciamiento.obtener(), sistema),
-      lhaObjetivo: deSistema('volumenAplicacion', campoObjetivo.obtener(), sistema),
+      // Los campos de dato devuelven el valor en base metrica: la
+      // conversion vive dentro del campo, no repetida en cada lectura.
+      presionBar: campoPresion.obtenerBase(),
+      velocidadKmh: campoVelocidad.obtenerBase(),
+      anchoBarraM: campoAncho.obtenerBase(),
+      numBoquillas: campoNumBoquillas.obtenerBase(),
+      espaciamientoM: campoEspaciamiento.obtenerBase(),
+      lhaObjetivo: campoObjetivo.obtenerBase(),
       rpmTrabajo: campoRpmTrabajo.obtener(),
     };
   }
@@ -564,24 +523,9 @@ export function render(panel, ctx) {
   });
 
   // ---------------- Modo inverso ----------------
-  const campoObjetivo = crearCampoNumerico({
-    etiqueta: 'Volumen objetivo',
-    magnitud: 'volumenAplicacion',
+  const campoObjetivo = crearCampoDato(ctx, 'lhaObjetivo', {
     sistema,
-    // Mismo objetivo de jornada que Boquillas y Prueba de captura. El
-    // nombre viejo del borrador se sigue leyendo para no perder lo que ya
-    // este capturado en un telefono.
-    valorInicial: precarga(
-      'volumenAplicacion',
-      borrador.lhaObjetivo ?? borrador.lhaObjetivoLha ?? ctx.objetivoVolumenLha()
-    ),
-    ayuda: 'El volumen que quieres aplicar. Viene el último que capturaste.',
-    alCambiar: (valor) => {
-      const lha = deSistema('volumenAplicacion', valor, sistema);
-      ctx.guardarBorrador(id, { lhaObjetivo: lha });
-      ctx.guardarResultado('lhaObjetivo', { valor: lha, origen: id, detalle: 'objetivo de la jornada' });
-      recalcularInverso();
-    },
+    alCambiar: () => recalcularInverso(),
   });
   const selectVariable = crearCampoSelect({
     etiqueta: 'Variable libre a despejar',

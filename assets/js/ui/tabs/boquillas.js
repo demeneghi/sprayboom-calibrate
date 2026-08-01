@@ -27,13 +27,12 @@ import {
   resultadoConfiable,
   pintarResultadoNoVerificado,
 } from '../render.js';
-import { crearCampoNumerico, crearCampoSelect } from '../campos.js';
-import { crearCampoVelocidad } from '../velocidad.js';
-import { crearCampoHeredado, fuenteEspaciamiento } from '../heredado.js';
+import { crearCampoSelect } from '../campos.js';
+import { crearCampoDato } from '../dato.js';
 import { formatear, formatearPorcentaje } from '../formato.js';
 import { mostrarToast } from '../toast.js';
 import { estiloBadgeIso } from '../color.js';
-import { aSistema, deSistema, unidad } from '../../domain/units.js';
+import { aSistema, unidad } from '../../domain/units.js';
 import { seleccionDeBoquilla } from '../../domain/index.js';
 import { volumenEquivalenteEnAgua } from '../../domain/nozzles.js';
 import { geometria, paso, redondeoLegible } from '../../domain/speed.js';
@@ -72,59 +71,28 @@ export function render(panel, ctx) {
   }
 
   // ---------------- Captura del objetivo ----------------
-  const campoVolumen = crearCampoNumerico({
-    etiqueta: 'Volumen de aplicación objetivo',
-    magnitud: 'volumenAplicacion',
+  // Los tres datos que esta pantalla comparte con el asistente y con
+  // Gasto de agua los monta `ui/dato.js` desde el registro
+  // (domain/datos.js), y se guardan en el sitio unico de cada uno: el
+  // objetivo de la jornada es UNO, no uno por pantalla. Capturarlo tres
+  // veces era capturarlo tres veces distinto.
+  const campoVolumen = crearCampoDato(ctx, 'lhaObjetivo', {
     sistema,
-    // El objetivo de la jornada es UNO: se precarga lo ultimo capturado
-    // en cualquiera de las tres pantallas que lo piden (aqui, Gasto de
-    // agua y Prueba de captura) y, si no hay, el objetivo propio del
-    // rancho de Configuracion. Capturarlo tres veces era capturarlo tres
-    // veces distinto.
-    valorInicial: aCampo('volumenAplicacion', borrador.lhaObjetivo ?? ctx.objetivoVolumenLha()),
+    etiqueta: 'Volumen de aplicación objetivo',
     ayuda:
       'Primero el objetivo: de él sale el caudal que debe dar cada boquilla. Viene el último ' +
       'que capturaste.',
-    alCambiar: (valor) => {
-      const lha = deSistema('volumenAplicacion', valor, sistema);
-      ctx.guardarBorrador(id, { lhaObjetivo: lha });
-      ctx.guardarResultado('lhaObjetivo', { valor: lha, origen: id, detalle: 'objetivo de la jornada' });
-      recalcular();
-    },
+    alCambiar: () => recalcular(),
   });
   // Hereda por defecto la velocidad capturada en Avance: la teorica sin
-  // verificar sesga la seleccion, y el numero se captura una sola vez.
-  const campoVelocidad = crearCampoVelocidad({
-    ctx,
-    tabId: id,
+  // verificar sesga la seleccion.
+  const campoVelocidad = crearCampoDato(ctx, 'velocidadKmh', {
     sistema,
     etiqueta: 'Velocidad de trabajo',
     alCambiar: () => recalcular(),
   });
-  const fuenteEsp = fuenteEspaciamiento(ctx);
-  const campoEspaciamiento = crearCampoHeredado({
-    ctx,
-    tabId: id,
-    clave: 'espaciamientoM',
-    claveManual: 'espaciamientoManual',
-    etiqueta: 'Espaciamiento entre boquillas',
-    magnitud: 'distanciaCorta',
+  const campoEspaciamiento = crearCampoDato(ctx, 'espaciamientoM', {
     sistema,
-    ayuda:
-      'Sale de la barra activa: el capturado o, si no lo hay, el ancho entre el número de ' +
-      'boquillas. Cambiarlo aquí no toca la configuración.',
-    fuente: fuenteEsp.fuente,
-    nombreDato: 'el espaciamiento',
-    heredado: { valor: fuenteEsp.valor, etiqueta: fuenteEsp.etiqueta },
-    aCampo: (m) =>
-      Number.isFinite(m) ? Number(aSistema('distanciaCorta', m, sistema).toPrecision(6)) : null,
-    deCampo: (valor) => deSistema('distanciaCorta', valor, sistema),
-    formatearValor: (valor) => `${formatear(valor, 3)} ${unidadEspaciamiento}`,
-    destino: fuenteEsp.destino,
-    textoSinDato:
-      'Captura el ancho y el número de boquillas de la barra en Sistema, Configuración, o ' +
-      'escribe aquí el espaciamiento.',
-    guardadoSinMarcaEsManual: true,
     alCambiar: () => recalcular(),
   });
   const selectClase = crearCampoSelect({
@@ -311,9 +279,11 @@ export function render(panel, ctx) {
     const nodosResultado = [];
     const nodosCandidatas = [];
 
-    const lhaObjetivo = deSistema('volumenAplicacion', campoVolumen.obtener(), sistema);
-    const velocidadKmh = deSistema('velocidad', campoVelocidad.obtener(), sistema);
-    const espaciamientoM = deSistema('distanciaCorta', campoEspaciamiento.obtener(), sistema);
+    // Los campos de dato devuelven base metrica: la conversion vive
+    // dentro del campo, no repetida aqui.
+    const lhaObjetivo = campoVolumen.obtenerBase();
+    const velocidadKmh = campoVelocidad.obtenerBase();
+    const espaciamientoM = campoEspaciamiento.obtenerBase();
     const claseDeseada = selectClase.obtener() || null;
     const edicionEstandar = selectEdicion.obtener() || null;
 
