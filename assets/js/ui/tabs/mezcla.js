@@ -211,6 +211,9 @@ export function render(panel, ctx) {
               unidad: `${unidadProducto}/ha`,
               decimales: 3,
               principal: modoDosis === 'por-ha',
+              ayuda:
+                'Cuánto producto lleva una hectárea. Es la dosis que fija la etiqueta ' +
+                'agronómica y no cambia aunque cambie el volumen de caldo.',
             }),
             pintarResultado({
               etiqueta: 'Por cada 100 L de caldo',
@@ -218,6 +221,10 @@ export function render(panel, ctx) {
               unidad: `${unidadProducto}/100 L`,
               decimales: 3,
               principal: modoDosis === 'por-100L',
+              ayuda:
+                'La misma dosis contada por cada 100 litros de caldo, como vienen algunas ' +
+                'etiquetas. Esta sí depende del volumen de aplicación: con menos litros por ' +
+                'hectárea, el caldo va más concentrado.',
             })
           ),
           el(
@@ -259,24 +266,35 @@ export function render(panel, ctx) {
           valor: aSistema('volumen', plan.caldoTotalL, sistema),
           unidad: unidadVolumen,
           decimales: 0,
+          ayuda:
+            'Todo el caldo que hay que preparar para cubrir la superficie objetivo: la ' +
+            'superficie por el volumen de aplicación.',
         }),
         pintarResultado({
           etiqueta: 'Cargas completas',
           valor: plan.cargasCompletas,
           unidad: '',
           decimales: 0,
+          ayuda: 'Cuántas veces se llena el tanque hasta arriba, sin contar la carga parcial.',
         }),
         pintarResultado({
           etiqueta: 'Tanques necesarios',
           valor: plan.tanquesNecesarios,
           unidad: '',
           decimales: 0,
+          ayuda:
+            'Cuántas veces hay que ir a cargar en total, contando la carga parcial del final. ' +
+            'Es el número para planear el día y el agua.',
         }),
         pintarResultado({
           etiqueta: 'Superficie por carga',
           valor: aSistema('superficie', resultado.valores.hectareasPorCarga, sistema),
           unidad: unidadSuperficie,
           decimales: 2,
+          ayuda:
+            'Cuánto alcanza a cubrir un tanque lleno: el volumen del tanque entre el volumen ' +
+            'de aplicación. Si el tanque se vacía antes, el volumen real es mayor que el ' +
+            'capturado.',
         })
       ),
     ];
@@ -289,6 +307,9 @@ export function render(panel, ctx) {
           unidad: unidadVolumen,
           decimales: 0,
           principal: true,
+          ayuda:
+            'Lo que hay que preparar en el último tanque, que no va lleno. Preparar de más ' +
+            'deja sobrante que hay que desechar.',
         }),
         el(
           'div',
@@ -300,6 +321,9 @@ export function render(panel, ctx) {
                   valor: plan.productoParcial,
                   unidad: unidadProducto,
                   decimales: 2,
+                  ayuda:
+                    'Cuánto producto va en ese último tanque incompleto. Va en proporción al ' +
+                    'caldo que se prepara, no la dosis de una carga completa.',
                 })
               : pintarResultadoNoVerificado('Producto en la carga parcial')
             : null,
@@ -308,6 +332,7 @@ export function render(panel, ctx) {
             valor: aSistema('superficie', plan.hectareasParciales, sistema),
             unidad: unidadSuperficie,
             decimales: 2,
+            ayuda: 'Lo que queda por aplicar después de las cargas completas.',
           })
         ),
         el(
@@ -368,6 +393,9 @@ export function render(panel, ctx) {
           unidad: unidadSuperficie,
           decimales: 2,
           principal: dosis === null,
+          ayuda:
+            'Cuánto alcanza a cubrir un tanque lleno: el volumen del tanque entre el volumen ' +
+            'de aplicación. De aquí sale cuánto producto lleva la carga.',
         })
       );
 
@@ -383,6 +411,9 @@ export function render(panel, ctx) {
                 unidad: unidadProducto,
                 decimales: 2,
                 principal: true,
+                ayuda:
+                  'Cuánto producto se echa en un tanque lleno. Es la cifra que se lleva al ' +
+                  'lote: la dosis por hectárea por las hectáreas que cubre la carga.',
               })
             : pintarResultadoNoVerificado('Producto por carga'),
           pintarResultado({
@@ -390,6 +421,10 @@ export function render(panel, ctx) {
             valor: aSistema('volumen', resultado.valores.aguaPorCarga, sistema),
             unidad: unidadVolumen,
             decimales: 1,
+            ayuda:
+              'El agua que se pone en el tanque. Con producto líquido se le resta al volumen ' +
+              'del tanque, porque el producto también ocupa lugar; con producto en polvo se ' +
+              'desprecia y es el tanque completo.',
           }),
           el(
             'div',
@@ -399,12 +434,18 @@ export function render(panel, ctx) {
               valor: resultado.valores.dosisPorHa,
               unidad: `${unidadProducto}/ha`,
               decimales: 3,
+              ayuda:
+                'La dosis agronómica que se está aplicando de verdad. Es la que hay que ' +
+                'comparar contra la etiqueta del producto.',
             }),
             pintarResultado({
               etiqueta: 'Dosis por cada 100 L',
               valor: resultado.valores.dosisPor100L,
               unidad: `${unidadProducto}/100 L`,
               decimales: 3,
+              ayuda:
+                'La concentración del caldo en el tanque. Sirve cuando la etiqueta viene ' +
+                'escrita así y para revisar que no quede demasiado cargado.',
             })
           ),
           pintarVerificacion(resultado.verificacion)

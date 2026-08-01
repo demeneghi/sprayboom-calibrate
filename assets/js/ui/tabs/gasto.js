@@ -331,6 +331,10 @@ export function render(panel, ctx) {
               unidad: unidadCaudal,
               decimales: 3,
               principal: true,
+              ayuda:
+                'Lo que entrega una boquilla nueva de este modelo a la presión capturada, según ' +
+                'la curva de su ficha. Es un valor de catálogo: para saber lo que da la barra ' +
+                'hoy hay que aforarla en Captura por boquilla.',
             }),
             pintarDesglose(q.desglose)
           );
@@ -344,6 +348,9 @@ export function render(panel, ctx) {
                 valor: aSistema('caudal', q.agua, sistema),
                 unidad: unidadCaudal,
                 decimales: 3,
+                ayuda:
+                  'Lo que marca la ficha de la boquilla a esta presión. Las fichas se miden con ' +
+                  'agua limpia, así que este es el número que verías si aforas con agua.',
               }),
               pintarResultado({
                 etiqueta: 'Caudal con el caldo',
@@ -351,6 +358,10 @@ export function render(panel, ctx) {
                 unidad: unidadCaudal,
                 decimales: 3,
                 principal: true,
+                ayuda:
+                  'Lo que sale de verdad con el caldo cargado: más denso que el agua, sale más ' +
+                  'despacio por el mismo orificio. Es el caudal con el que se calcula el volumen ' +
+                  'por hectárea.',
               })
             ),
             pintarDesglose(q.desglose),
@@ -434,6 +445,9 @@ export function render(panel, ctx) {
                 unidad: unidadVolumen,
                 decimales: 1,
                 principal: true,
+                ayuda:
+                  'Los litros por hectárea calculados con UNA boquilla y la distancia que hay ' +
+                  'entre ellas. Mira la franja que moja una sola boquilla.',
               }),
               pintarResultado({
                 etiqueta: 'Método por barra',
@@ -441,6 +455,10 @@ export function render(panel, ctx) {
                 unidad: unidadVolumen,
                 decimales: 1,
                 principal: true,
+                ayuda:
+                  'Los mismos litros por hectárea, pero con el caudal de TODA la barra y su ' +
+                  'ancho completo. Son dos caminos distintos al mismo número: si coinciden, la ' +
+                  'geometría capturada cuadra.',
               })
             ),
             el(
@@ -451,12 +469,19 @@ export function render(panel, ctx) {
                 valor: resultado.valores.discrepanciaPct,
                 unidad: '%',
                 decimales: 2,
+                ayuda:
+                  'Qué tanto se separan los dos métodos. Cerca de cero es lo normal. Si se abre, ' +
+                  'el espaciamiento por el número de boquillas no da el ancho de barra: hay un ' +
+                  'dato mal capturado o la barra no es como está configurada.',
               }),
               pintarResultado({
                 etiqueta: 'Caudal total de la barra',
                 valor: aSistema('caudal', resultado.valores.caudalTotalLmin, sistema),
                 unidad: unidadCaudal,
                 decimales: 2,
+                ayuda:
+                  'Todo lo que sale por la barra junta: el caudal de una boquilla por el número ' +
+                  'de boquillas. Sirve para saber si la bomba alcanza a surtirla.',
               })
             ),
             pintarVerificacion(resultado.verificacion),
@@ -592,6 +617,10 @@ export function render(panel, ctx) {
             valor: aSistema('volumenAplicacion', objetivoAgua, sistema),
             unidad: unidadVolumen,
             decimales: 1,
+            ayuda:
+              'El objetivo traducido a agua limpia. Las curvas de las fichas están medidas con ' +
+              'agua, así que los despejes de abajo trabajan contra este número y no contra el ' +
+              'objetivo de caldo.',
           }),
           el(
             'p',
@@ -649,12 +678,19 @@ export function render(panel, ctx) {
                 unidad: unidadPresion,
                 decimales: 2,
                 principal: true,
+                ayuda:
+                  'A cuánto hay que poner el manómetro de la barra para que esta boquilla, a ' +
+                  'esta velocidad, deje el volumen objetivo. Si el número cae fuera del rango de ' +
+                  'la ficha, cambiar de tamaño de boquilla es mejor que forzar la presión.',
               }),
               pintarResultado({
                 etiqueta: 'Caudal requerido por boquilla (en agua)',
                 valor: aSistema('caudal', resultado.valores.caudalRequeridoLmin, sistema),
                 unidad: unidadCaudal,
                 decimales: 3,
+                ayuda:
+                  'El caudal que hay que lograr por boquilla, y del que sale la presión de ' +
+                  'arriba. Va en agua porque así está medida la curva de la ficha.',
               }),
               nodoClaseGota(b, resultado.valores.presionRequeridaBar, 'Clase de gota a la presión requerida'),
               pintarVerificacion(resultado.verificacion),
@@ -701,6 +737,10 @@ export function render(panel, ctx) {
                 unidad: unidadVelocidad,
                 decimales: 2,
                 principal: true,
+                ayuda:
+                  'A qué velocidad hay que ir para dejar el volumen objetivo sin tocar la ' +
+                  'presión ni cambiar de boquilla. En Avance ves qué marcha y qué régimen la ' +
+                  'reproducen.',
               }),
               pintarVerificacion(resultado.verificacion),
               pintarDesglose(resultado.desglose),
@@ -851,12 +891,19 @@ export function render(panel, ctx) {
                     valor: aSistema('presion', contraste.valores.presionEstimadaBar, sistema),
                     unidad: unidadPresion,
                     decimales: 2,
+                    ayuda:
+                      'A cuánto queda la presión de la barra al régimen de trabajo, partiendo de ' +
+                      'la que tenía cuando se calibró. Es un modelo del comportamiento de la ' +
+                      'bomba: el manómetro en el lote manda sobre esta estimación.',
                   }),
                   pintarResultado({
                     etiqueta: 'Caudal estimado por boquilla',
                     valor: aSistema('caudal', contraste.valores.caudalEstimadoLmin, sistema),
                     unidad: unidadCaudal,
                     decimales: 3,
+                    ayuda:
+                      'Lo que saldría por boquilla con esa presión estimada. También es modelo, ' +
+                      'no medición: el aforo al régimen real manda.',
                   })
                 )
               );
@@ -875,12 +922,19 @@ export function render(panel, ctx) {
                       valor: aSistema('volumenAplicacion', contraste.valores.volumenCalibracionLha, sistema),
                       unidad: unidadVolumen,
                       decimales: 1,
+                      ayuda:
+                        'Los litros por hectárea que dejaba la barra el día que se calibró, con ' +
+                        'aquel régimen de motor. Es el punto de partida de la comparación.',
                     }),
                     pintarResultado({
                       etiqueta: 'Volumen al régimen de trabajo',
                       valor: aSistema('volumenAplicacion', contraste.valores.volumenTrabajoLha, sistema),
                       unidad: unidadVolumen,
                       decimales: 1,
+                      ayuda:
+                        'Los litros por hectárea estimados con el régimen al que estás ' +
+                        'trabajando hoy. Cambian dos cosas a la vez: la bomba da otra presión y ' +
+                        'el tractor va a otra velocidad.',
                     })
                   ),
                   pintarResultado({
@@ -889,6 +943,10 @@ export function render(panel, ctx) {
                     unidad: '%',
                     decimales: 1,
                     principal: true,
+                    ayuda:
+                      'Cuánto se movió el volumen por hectárea por trabajar a un régimen distinto ' +
+                      'al de la calibración. Es la cifra que dice si vale la pena volver a ' +
+                      'calibrar o ajustar la presión antes de entrar al lote.',
                   }),
                   pintarVerificacion(contraste.verificacion),
                   pintarDesglose(contraste.desglose)
@@ -921,12 +979,19 @@ export function render(panel, ctx) {
                     valor: aSistema('presion', bomba.valores.presionEstimadaBar, sistema),
                     unidad: unidadPresion,
                     decimales: 2,
+                    ayuda:
+                      'A cuánto queda la presión de la barra al régimen de trabajo, partiendo de ' +
+                      'la que tenía cuando se calibró. Es un modelo del comportamiento de la ' +
+                      'bomba: el manómetro en el lote manda sobre esta estimación.',
                   }),
                   pintarResultado({
                     etiqueta: 'Caudal estimado por boquilla',
                     valor: aSistema('caudal', bomba.valores.caudalEstimadoLmin, sistema),
                     unidad: unidadCaudal,
                     decimales: 3,
+                    ayuda:
+                      'Lo que saldría por boquilla con esa presión estimada. También es modelo, ' +
+                      'no medición: el aforo al régimen real manda.',
                   })
                 ),
                 pintarDesglose(bomba.desglose),

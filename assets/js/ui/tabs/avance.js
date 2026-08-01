@@ -357,9 +357,17 @@ export function render(panel, ctx) {
               valor: aSistema('velocidad', velocidadTeorica, sistema),
               unidad: unidadVelocidad,
               decimales: 2,
+              ayuda:
+                'La velocidad que daría esta marcha con las ruedas sin resbalar: la nominal de ' +
+                'la marcha reescalada al régimen que capturaste. Es la del papel, no la del ' +
+                'lote.',
             }),
             pintarResultado({
               etiqueta: `Velocidad corregida (${etiquetaFactor})`,
+              ayuda:
+                'La teórica multiplicada por el factor de desviación medido en campo, que ' +
+                'recoge el patinaje y el radio real de la llanta. Es la velocidad con la que ' +
+                'calculan las demás pantallas.',
               valor:
                 corregida.valores.velocidadCorregidaKmh === null
                   ? null
@@ -387,6 +395,10 @@ export function render(panel, ctx) {
               unidad: unidadVelocidad,
               decimales: 2,
               principal: true,
+              ayuda:
+                `El tramo de ${tramoTexto} entre los segundos que tardaste. Ya trae dentro el ` +
+                'patinaje y todo lo demás, así que no se le aplica ningún factor: es la ' +
+                'velocidad de verdad.',
             })
           );
         }
@@ -413,12 +425,17 @@ export function render(panel, ctx) {
               valor: resultadoAvance.valores.segundosPorTramo,
               unidad: 's',
               decimales: 1,
+              ayuda:
+                `Lo que debe tardar en cruzar el tramo de ${tramoTexto} a esta velocidad. Sirve ` +
+                'para comprobar en campo con el cronómetro: si el tiempo real no se parece, la ' +
+                'velocidad no es la que dice.',
             }),
             pintarResultado({
               etiqueta: 'Tramos por tabla',
               valor: resultadoAvance.valores.tramosPorTabla,
               unidad: '',
               decimales: 2,
+              ayuda: `Cuántos tramos de ${tramoTexto} caben en el largo de la tabla.`,
             })
           ),
           pintarResultado({
@@ -426,6 +443,9 @@ export function render(panel, ctx) {
             valor: resultadoAvance.valores.tiempoTotalS,
             unidad: 's',
             decimales: 0,
+            ayuda:
+              'Lo que dura un pase completo de la tabla a esta velocidad. Es el tiempo que ' +
+              'Forzamiento usa como ventana de inyección del gas.',
           }),
           pintarDesglose(resultadoAvance.desglose)
         );
@@ -540,12 +560,19 @@ export function render(panel, ctx) {
             valor: resultado.valores.tdfRpm,
             unidad: 'rpm',
             decimales: 0,
+            ayuda:
+              'A cuántas vueltas gira la toma de fuerza con el régimen de motor capturado. La ' +
+              'bomba de la barra va colgada de ella: si baja la TDF, baja la presión.',
           }),
           pintarResultado({
             etiqueta: 'Porcentaje del nominal',
             valor: resultado.valores.porcentajeNominal,
             unidad: '%',
             decimales: 1,
+            ayuda:
+              'Qué tanto de las vueltas nominales de la toma de fuerza estás dando. En 100 % la ' +
+              'bomba trabaja como en su ficha; muy por debajo, la presión de la barra ya no es ' +
+              'la de la calibración.',
           })
         ),
         pintarDesglose(resultado.desglose)
@@ -591,24 +618,33 @@ export function render(panel, ctx) {
           valor: aSistema('areaChica', g.valores.areaM2, sistema),
           unidad: unidad('areaChica', sistema),
           decimales: 2,
+          ayuda: 'El largo de la tabla por el ancho de la barra: lo que cubre un pase completo.',
         }),
         pintarResultado({
           etiqueta: 'Superficie por tabla',
           valor: aSistema('superficie', g.valores.hectareasPorTabla, sistema),
           unidad: unidad('superficie', sistema),
           decimales: 4,
+          ayuda:
+            'La misma área en hectáreas. Es la que multiplica a la dosis por hectárea para ' +
+            'saber cuánto producto o cuánto gas lleva una tabla.',
         }),
         pintarResultado({
           etiqueta: 'Tramos por tabla',
           valor: g.valores.tramosPorTabla,
           unidad: '',
           decimales: 2,
+          ayuda: `Cuántos tramos de ${tramoTexto} caben en el largo de la tabla.`,
         }),
         pintarResultado({
           etiqueta: 'Espaciamiento efectivo',
           valor: aSistema('distanciaCorta', g.valores.espaciamientoEfectivo, sistema),
           unidad: unidad('distanciaCorta', sistema),
           decimales: 4,
+          ayuda:
+            'La distancia entre boquillas que se está usando en los cálculos: la capturada si ' +
+            'la hay, o el ancho de barra dividido entre el número de boquillas. Entra en toda ' +
+            'la fórmula de litros por hectárea.',
         })
       ),
       ...pintarAvisos(g.avisos)
