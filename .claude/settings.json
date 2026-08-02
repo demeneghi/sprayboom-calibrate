@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Si el límite de uso ya está agotado, revisa /usage para conocer la hora exacta de reinicio y programa un recordatorio único (no recurrente) para esa hora que continúe con el trabajo pendiente.'"
+          }
+        ]
+      }
+    ]
+  }
+}
