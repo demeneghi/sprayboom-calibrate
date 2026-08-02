@@ -1208,6 +1208,37 @@ dialog.dialogo::backdrop {
   color: hsl(var(--muted-foreground));
 }
 
+/* La misma cifra en el sistema que NO esta elegido.
+ *
+ * Va debajo del dato y en letra chica porque es apoyo de lectura, no un
+ * segundo resultado: quien calibra mezcla unidades —el manometro lo
+ * piensa en bar y la ficha de la boquilla la lee en GPM— y sin esto
+ * termina convirtiendo a mano con la calculadora del mismo telefono.
+ * Un solo componente lo pinta en todas las superficies (resultado,
+ * perilla, fila de captura, instrumento): asi nadie inventa su propio
+ * tamaño y la equivalencia se reconoce siempre igual. */
+.alterna {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-meta);
+  color: hsl(var(--muted-foreground));
+  line-height: 1.3;
+}
+
+/* Donde la cifra que califica va centrada —la perilla, la fila de
+   captura de un instrumento—, la equivalencia se centra con ella. */
+.alterna--centrada {
+  display: block;
+  text-align: center;
+}
+
+/* Una equivalencia que se refresca en vivo se queda vacia mientras no
+   hay cifra: sin esto dejaria un renglon en blanco moviendo todo lo de
+   abajo cada vez que aparece o desaparece el dato. */
+.alterna:empty {
+  display: none;
+}
+
 .resultado--principal {
   border-color: hsl(var(--acento) / 0.45);
   border-left-color: hsl(var(--acento));

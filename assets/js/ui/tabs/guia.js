@@ -31,6 +31,7 @@ import {
   resultadoConfiable,
 } from '../render.js';
 import { formatear } from '../formato.js';
+import { textoAlterno } from '../alterna.js';
 import { iconoSvg } from '../svg.js';
 import { aSistema, deSistema, unidad } from '../../domain/units.js';
 import { desviacionContraObjetivo, mezclaTanque } from '../../domain/mix.js';
@@ -318,6 +319,10 @@ function tarjetaHoja(ctx, receta, sistema, totalPasos) {
   function crearPerilla({ etiqueta, datoId, unidadTexto, salto, minimo, nota }) {
     const magnitud = magnitudDe(datoId);
     const cifra = el('span', { clase: 'perilla__valor mono', role: 'status' });
+    // La equivalencia se mueve con la perilla: subir la presion de dos
+    // en dos decimas sin ver a donde va en la otra unidad es justo lo
+    // que obliga a sacar la calculadora a media calibracion.
+    const equivalencia = el('span', { clase: 'alterna alterna--centrada' });
     const zonaNota = el('span', { clase: 'perilla__nota' });
 
     const mover = (direccion) => {
@@ -345,15 +350,18 @@ function tarjetaHoja(ctx, receta, sistema, totalPasos) {
       { clase: 'perilla' },
       el('span', { clase: 'perilla__etiqueta texto-meta' }, etiqueta),
       el('div', { clase: 'perilla__control' }, menos, cifra, mas),
+      equivalencia,
       zonaNota
     );
 
     function refrescar() {
       const vigente = valorDeDato(ctx, datoId);
       const hay = Number.isFinite(vigente.valor);
-      cifra.textContent = hay
-        ? `${formatear(aSistema(magnitud, vigente.valor, sistema), 2)} ${unidadTexto}`
-        : '—';
+      const enSistema = hay ? aSistema(magnitud, vigente.valor, sistema) : null;
+      cifra.textContent = hay ? `${formatear(enSistema, 2)} ${unidadTexto}` : '—';
+      equivalencia.textContent = hay
+        ? (textoAlterno(enSistema, unidadTexto, { magnitud, decimales: 2 }) ?? '')
+        : '';
       menos.disabled = !hay;
       mas.disabled = !hay;
       reemplazar(zonaNota, [nota ? nota(vigente) : null].filter(Boolean));

@@ -49,6 +49,7 @@ self.SPRAYBOOM_PRECACHE = [
   './assets/js/main.js',
   './assets/js/storage.js',
   './assets/js/ui/actualizar.js',
+  './assets/js/ui/alterna.js',
   './assets/js/ui/campos.js',
   './assets/js/ui/color.js',
   './assets/js/ui/combobox.js',
