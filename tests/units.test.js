@@ -8,7 +8,9 @@ import {
   aSistema,
   deSistema,
   entreSistemas,
+  equivalenteAlterno,
   esConvertible,
+  magnitudDeUnidad,
   otroSistema,
   unidad,
   barAKpa,
@@ -109,6 +111,80 @@ test('entreSistemas con el mismo sistema no toca el valor', () => {
 test('entreSistemas deja pasar el campo vacio', () => {
   assert.equal(entreSistemas('presion', null, 'metrico', 'imperial'), null);
   assert.equal(entreSistemas('presion', undefined, 'metrico', 'imperial'), undefined);
+});
+
+// ---------------------------------------------------------------------
+// La equivalencia que se pinta bajo cada cifra: la misma cantidad en el
+// sistema que NO esta elegido.
+// ---------------------------------------------------------------------
+
+test('toda unidad declarada se reconoce y devuelve su magnitud', () => {
+  for (const [magnitud, def] of Object.entries(MAGNITUDES)) {
+    for (const sistema of ['metrico', 'imperial']) {
+      const encontrada = magnitudDeUnidad(def[sistema], magnitud);
+      assert.deepEqual(encontrada, { magnitud, sistema }, `${magnitud} en ${sistema}`);
+    }
+  }
+});
+
+test("la unidad 'm' repetida se resuelve como tramo, y la magnitud desempata", () => {
+  assert.deepEqual(magnitudDeUnidad('m'), { magnitud: 'distancia', sistema: 'metrico' });
+  assert.deepEqual(magnitudDeUnidad('m', 'distanciaCorta'), {
+    magnitud: 'distanciaCorta',
+    sistema: 'metrico',
+  });
+  // Un espaciamiento en metros sale en pulgadas; un tramo, en pies.
+  assert.equal(equivalenteAlterno(1, 'm').unidad, 'ft');
+  assert.equal(equivalenteAlterno(1, 'm', 'distanciaCorta').unidad, 'in');
+});
+
+test('la equivalencia es la misma cantidad, escrita en el otro sistema', () => {
+  const presion = equivalenteAlterno(2.07, 'bar');
+  assert.equal(presion.unidad, 'psi');
+  cercano(presion.valor, 30.022, 1e-3);
+
+  const volumen = equivalenteAlterno(3118.2, 'L/ha');
+  assert.equal(volumen.unidad, 'gal/acre');
+  cercano(volumen.valor, 333.35, 1e-2);
+
+  // Y de regreso: con el rancho en imperial, la equivalencia es metrica.
+  const enMetrico = equivalenteAlterno(30.022, 'psi');
+  assert.equal(enMetrico.unidad, 'bar');
+  cercano(enMetrico.valor, 2.07, 1e-4);
+
+  // La dosis de un solido y la presion absoluta del gas tambien.
+  cercano(equivalenteAlterno(1, 'kg/ha').valor, 0.892179, 1e-6);
+  assert.equal(equivalenteAlterno(1, 'kg/ha').unidad, 'lb/acre');
+  assert.equal(equivalenteAlterno(14.7, 'psia').unidad, 'bar abs');
+});
+
+test('la equivalencia no inventa un factor: es el mismo de la magnitud', () => {
+  const gen = generadorDeterminista(20260802);
+  for (const [magnitud, def] of Object.entries(MAGNITUDES)) {
+    if (magnitud === 'distanciaCorta') continue; // 'm' lo resuelve `distancia`
+    for (let i = 0; i < 20; i += 1) {
+      const valor = uniforme(gen, 0.001, 10000);
+      const ida = equivalenteAlterno(valor, def.metrico, magnitud);
+      cercanoRel(ida.valor, aImperial(magnitud, valor), 1e-12, `magnitud ${magnitud}`);
+      const vuelta = equivalenteAlterno(ida.valor, ida.unidad, magnitud);
+      cercanoRel(vuelta.valor, valor, 1e-12, `magnitud ${magnitud} (vuelta)`);
+    }
+  }
+});
+
+test('lo que no tiene otro sistema no lleva equivalencia', () => {
+  // Segundos, rpm, por ciento y las unidades propias del rotametro.
+  for (const texto of ['s', 'rpm', '%', 'SCFM', 'g/SCF', 'L/100 L', '', null, undefined]) {
+    assert.equal(magnitudDeUnidad(texto), null, `unidad ${texto}`);
+    assert.equal(equivalenteAlterno(1, texto), null, `unidad ${texto}`);
+  }
+});
+
+test('sin cifra no hay equivalencia (campo vacio o calculo sin resolver)', () => {
+  assert.equal(equivalenteAlterno(null, 'bar'), null);
+  assert.equal(equivalenteAlterno(undefined, 'bar'), null);
+  assert.equal(equivalenteAlterno(Number.NaN, 'bar'), null);
+  assert.equal(equivalenteAlterno(Number.POSITIVE_INFINITY, 'bar'), null);
 });
 
 test('valores de control del boton, tal como los ve quien calibra', () => {

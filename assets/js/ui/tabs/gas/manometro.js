@@ -13,6 +13,7 @@
 import { el } from '../../dom.js';
 import { nodoSvg, textoSvg, lineaSvg, poligonoSvg, puntoEnSvg } from '../../svg.js';
 import { formatear } from '../../formato.js';
+import { textoAlterno } from '../../alterna.js';
 import { pasoLegible, ajustar } from './escala.js';
 
 // ---------------------------------------------------------------------
@@ -157,8 +158,20 @@ export function nodosManometro({ maxPsi, resPsi, presion, capturable, alCapturar
   const capaAguja = nodoSvg('g', { class: 'instrumento__movil' });
   svg.append(capaAguja);
 
+  // La lectura en bar, debajo de la caratula y en letra chica. La
+  // caratula esta rotulada en psi porque asi viene el manometro del
+  // regulador, pero quien calibra piensa la presion en bar: sin esto
+  // hay que convertir a mano justo mientras se gira la aguja.
+  //
+  // Va FUERA del dibujo a proposito: dentro de la pastilla no cabe un
+  // segundo renglon sin salirse de la caratula, y ademas asi la
+  // equivalencia toma el escalon de la escala tipografica del sistema en
+  // vez de un tamaño en unidades del viewBox.
+  const equivalencia = el('p', { clase: 'alterna alterna--centrada', role: 'status' });
+
   function pintarAguja(valor) {
     capaAguja.replaceChildren();
+    equivalencia.textContent = textoAlterno(valor, 'psi', { decimales: 2 }) ?? '';
     const fuera = valor !== null && (valor < 0 || valor > maxPsi);
     svg.setAttribute('data-fuera', fuera ? 'true' : 'false');
     svg.setAttribute('aria-label', etiquetaDe(valor));
@@ -285,7 +298,7 @@ export function nodosManometro({ maxPsi, resPsi, presion, capturable, alCapturar
       if (valor !== null) alCapturar(valor);
     });
   }
-  nodos.push(svg);
+  nodos.push(svg, equivalencia);
 
   if (!capturable) {
     if (presion === null) {

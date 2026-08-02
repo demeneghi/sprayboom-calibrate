@@ -15,6 +15,7 @@ import { tarjeta, pintarAvisos } from '../render.js';
 import { crearAyuda, crearCampoNumerico, crearCampoSelect, crearInterruptor } from '../campos.js';
 import { crearTrioBarra } from '../trio-barra.js';
 import { formatear } from '../formato.js';
+import { nodoAlterno } from '../alterna.js';
 import { confirmar } from '../dialog.js';
 import { mostrarToast } from '../toast.js';
 import { buscarActualizacion, reinstalar, versionInstalada } from '../actualizar.js';
@@ -81,7 +82,16 @@ let consecutivoDerivado = 0;
    un escalón más chica: son decenas de campos apilados y no el número
    que se lee a distancia de brazo, y el consumidor no puede pedirle ese
    tamaño. La estructura y la ayuda sí son las mismas. */
-function cifraDerivada({ etiqueta, texto, ayuda, tamano = 'var(--text-lg)' }) {
+function cifraDerivada({
+  etiqueta,
+  texto,
+  ayuda,
+  tamano = 'var(--text-lg)',
+  valor = null,
+  unidadTexto = '',
+  magnitud = null,
+  decimales = 2,
+}) {
   consecutivoDerivado += 1;
   const idCifra = `derivado-${consecutivoDerivado}`;
   const rotulo = el('span', { clase: 'resultado__etiqueta', id: idCifra }, etiqueta);
@@ -91,6 +101,10 @@ function cifraDerivada({ etiqueta, texto, ayuda, tamano = 'var(--text-lg)' }) {
     { clase: 'resultado' },
     el('div', { clase: 'resultado__cabecera' }, rotulo, ayudaCifra.boton),
     el('span', { clase: 'resultado__valor', estilo: { fontSize: tamano } }, texto),
+    // La equivalencia en el otro sistema, igual que en `pintarResultado`.
+    // Aqui hay que pasarle el numero aparte porque esta cifra llega ya
+    // compuesta con su unidad.
+    nodoAlterno(valor, unidadTexto, { magnitud, decimales }),
     ayudaCifra.globo
   );
 }
@@ -199,11 +213,15 @@ export function render(panel, ctx) {
     try {
       const g = geometria(ctx.parametrosGeometria());
       const sistema = ctx.sistema();
-      const fila = (etiqueta, valor, unidadTexto, decimales, ayuda) =>
+      const fila = (etiqueta, valor, unidadTexto, decimales, ayuda, magnitud = null) =>
         cifraDerivada({
           etiqueta,
           texto: `${formatear(valor, decimales)} ${unidadTexto}`,
           ayuda,
+          valor,
+          unidadTexto,
+          magnitud,
+          decimales,
         });
       // No se imprime el área en m2: es la MISMA cifra que la superficie
       // en hectáreas dividida entre 10000, y la aplicación dosifica por
@@ -235,7 +253,11 @@ export function render(panel, ctx) {
           4,
           'La distancia entre boquillas que sale del ancho de barra entre el número de ' +
             'boquillas. Si mides otra cosa con el flexómetro, captúrala: la capturada gana ' +
-            'sobre esta.'
+            'sobre esta.',
+          // En metros la unidad es ambigua: 'm' es tramo largo y también
+          // espaciamiento. Aquí es lo corto, así que la equivalencia va
+          // en pulgadas y no en pies.
+          'distanciaCorta'
         )
       );
       reemplazar(zonaAvisosGeometria, ...pintarAvisos(g.avisos));
@@ -265,6 +287,8 @@ export function render(panel, ctx) {
         cifraDerivada({
           etiqueta: 'Presión atmosférica local en uso',
           texto: `${formatear(atmosfera.valores.presionPsia, 2)} psia`,
+          valor: atmosfera.valores.presionPsia,
+          unidadTexto: 'psia',
           ayuda:
             'La presión del aire en el rancho. Se suma a lo que marca el manómetro del gas ' +
             'para llegar a la presión absoluta con la que se corrige el rotámetro: en el ' +

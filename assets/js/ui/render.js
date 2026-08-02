@@ -5,6 +5,7 @@
 import { el } from './dom.js';
 import { formatear } from './formato.js';
 import { crearAyuda } from './campos.js';
+import { nodoAlterno } from './alterna.js';
 
 export function pintarAviso(aviso) {
   const clase =
@@ -109,7 +110,16 @@ let consecutivoResultado = 0;
    de donde sale, con que compararla—, y se sigue imprimiendo lo que
    cambia con el calculo: la cifra misma, el aviso accionable y el estado
    de lo capturado. Sin `ayuda` el resultado se pinta igual que antes,
-   con la etiqueta pelada y sin envoltorio de mas. */
+   con la etiqueta pelada y sin envoltorio de mas.
+
+   Bajo la cifra va SIEMPRE la misma cifra en el otro sistema, en letra
+   chica, cuando la unidad se convierte (`ui/alterna.js`). No hay que
+   pedirla: quien calibra mezcla unidades porque asi aprendio, y tener
+   que sacar la calculadora del telefono a media calibracion es de donde
+   salen los errores de factor. `magnitud` solo hace falta cuando el
+   texto de la unidad es ambiguo —'m' es metro de tramo y de
+   espaciamiento—, y `alterna: false` la apaga donde la cifra ya se pinta
+   en las dos unidades. */
 export function pintarResultado({
   etiqueta,
   valor,
@@ -117,6 +127,8 @@ export function pintarResultado({
   decimales = 2,
   principal = false,
   ayuda = null,
+  magnitud = null,
+  alterna = true,
 }) {
   consecutivoResultado += 1;
   const idResultado = `resultado-${consecutivoResultado}`;
@@ -136,6 +148,7 @@ export function pintarResultado({
       formatear(valor, decimales),
       unidad ? el('span', { clase: 'resultado__unidad' }, ` ${unidad}`) : null
     ),
+    alterna ? nodoAlterno(valor, unidad, { magnitud, decimales }) : null,
     ayudaResultado ? ayudaResultado.globo : null
   );
 }

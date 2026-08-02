@@ -339,6 +339,43 @@ Son cinco, y ninguna es cosmética.
   qué pasa al pulsarlo (`Presión de trabajo en bar. Convertir a psi.`), y el input apunta al botón
   con `aria-describedby` porque la unidad ya no está en su etiqueta.
 
+## Equivalencia bajo la cifra (la unidad que NO se eligió)
+
+- **Toda cifra que se pinta lleva debajo la misma cantidad en el otro sistema, en letra chica.**
+  No se pide: `pintarResultado` la monta sola a partir del texto de la unidad. Quien calibra
+  aprendió empíricamente y **mezcla unidades** —el manómetro de la barra lo piensa en bar, la
+  ficha de la boquilla la lee en GPM y el tanque está rotulado en galones—, así que sin esto la
+  conversión se hace a mano, de pie en el lote, con la calculadora del mismo teléfono. Es de donde
+  salen los errores de factor que después nadie encuentra.
+- **Es apoyo de lectura, no un segundo sistema.** El sistema activo sigue siendo uno solo y vive
+  en Sistema, Configuración. La equivalencia no se captura, no se guarda y no entra a ningún
+  cálculo. **Prohibido** leerla como dato o convertirla en un segundo selector de unidades.
+- **La produce un solo componente**, `.alterna` (`assets/js/ui/alterna.js`), y lo usan todas las
+  superficies: el resultado, la cifra derivada de Configuración, la perilla de la hoja de
+  resultado, la fila de captura de un instrumento y la lectura del manómetro. **Prohibido**
+  escribir a mano la conversión en una pantalla: el factor sale de la magnitud declarada en
+  `domain/units.js`, que es el mismo de la ida y de la vuelta.
+- **Va con el signo de igual delante** (`= 30.02 psi`): dice que es LA MISMA cifra escrita de otro
+  modo, no un segundo dato del cálculo.
+- **Lo que no tiene otro sistema no imprime nada** —segundos, rpm, por ciento, los SCFM del
+  rotámetro, los g/SCF—. Una equivalencia vacía **no ocupa lugar** (`.alterna:empty`): en una
+  cifra que se refresca en vivo, un renglón que aparece y desaparece movería todo lo de abajo.
+- **Los decimales del dato son el piso, no el techo.** El otro sistema mueve la coma de sitio, así
+  que se suben los que hagan falta para conservar **tres dígitos significativos** —el aumento se
+  topa en cuatro decimales; el piso del dato se conserva siempre—. Sin eso, los 30 psi que la
+  fila del gas cuenta de uno en uno saldrían como «2 bar» y 5 mL como «0.2 oz fl»: eso no es un
+  dato, es un redondeo.
+- **Se mueve con lo que califica.** En la perilla, en la fila de más y menos y en el manómetro, la
+  equivalencia se refresca en el mismo paso que la cifra —también durante el arrastre de la
+  aguja—: ver el número en una sola unidad mientras se ajusta es justo lo que obliga a convertir
+  a mano.
+- **En el manómetro va FUERA del dibujo**, bajo el SVG. Dentro de la pastilla de lectura no cabe
+  un segundo renglón sin salirse de la carátula, y fuera toma un escalón de la escala tipográfica
+  del sistema en vez de un tamaño en unidades del `viewBox`.
+- **Cuando el texto de una unidad es ambiguo, la pantalla declara su magnitud.** Hoy solo pasa con
+  `m`, que es metro de tramo (sale en `ft`) y de espaciamiento (sale en `in`): sin `magnitud`
+  gana el tramo largo, y el espaciamiento derivado de Configuración pasa `distanciaCorta`.
+
 ## Selección dentro de un grupo de opciones
 
 - **El estado lo dice el atributo, no una clase de variante que el consumidor intercambia.** Un
@@ -464,6 +501,9 @@ suelto. Lo mismo con cada color ISO sembrado.
   no se sabe si convierte a psi o avisa que el número ya viene en psi.
 - Poner el peso del rótulo en la unidad ajena: al ojear el campo, «psi» queda junto a un número que
   está en bar.
+- Pintar una cifra sin su equivalencia en el otro sistema, o escribir esa conversión a mano en la
+  pantalla en vez de dejarla en `.alterna`: cada factor suelto es un error de factor esperando.
+- Leer la equivalencia como un dato: no se captura, no se guarda y no entra a ningún cálculo.
 - Devolver el globo de ayuda al flujo (o anclarlo con `position: absolute` dentro del campo): abrir
   una ayuda volvería a empujar los campos de abajo, y dentro de una tarjeta el globo se recorta.
 - Declarar `touch-action: none` sobre el SVG entero de un instrumento: deja al dedo sin forma de

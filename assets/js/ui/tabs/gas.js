@@ -33,6 +33,7 @@ import { crearCampoNumerico } from '../campos.js';
 import { crearCampoHeredado } from '../heredado.js';
 import { nodosAvanceParaTiempo } from '../marchas.js';
 import { formatear, formatearTiempo } from '../formato.js';
+import { textoAlterno } from '../alterna.js';
 import { nodosTubo } from './gas/tubo.js';
 import { nodosManometro } from './gas/manometro.js';
 import { decimalesDe, ajustar } from './gas/escala.js';
@@ -260,14 +261,22 @@ export function render(panel, ctx) {
     menos.addEventListener('click', () => mover(-1));
     mas.addEventListener('click', () => mover(1));
     const raiz = el('div', { clase: 'captura' }, menos, cifra, unidadNodo, mas);
+    // La misma cifra en el otro sistema, bajo la fila: al subir la
+    // presion de un escalon se ve moverse tambien el valor en bar, que
+    // es como se piensa la presion aunque el manometro este en psi.
+    // La lectura del flotador va en SCFM y no tiene equivalente: ahi la
+    // linea se queda vacia y no ocupa lugar.
+    const equivalencia = el('span', { clase: 'alterna alterna--centrada' });
+    const bloque = el('div', {}, raiz, equivalencia);
     return {
-      elemento: raiz,
+      elemento: bloque,
       refrescar(activo) {
         const actual = campo.obtener();
         cifra.textContent = Number.isFinite(actual) ? formatear(actual, decimales) : '—';
+        equivalencia.textContent = textoAlterno(actual, unidad, { decimales }) ?? '';
         menos.disabled = !activo;
         mas.disabled = !activo;
-        raiz.classList.toggle('oculto', !activo);
+        bloque.classList.toggle('oculto', !activo);
       },
     };
   }
