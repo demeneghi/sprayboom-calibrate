@@ -19,8 +19,6 @@ import { formatear } from './formato.js';
 import { aSistema, unidad } from '../domain/units.js';
 import { velocidadParaTiempoPorTabla, marchasParaVelocidad } from '../domain/speed.js';
 
-const GRID_2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' };
-
 // Nodos del bloque, listos para colgar bajo el resultado que despejo el
 // tiempo. Nunca lanza: una geometria invalida o un tiempo imposible
 // devuelven la lista vacia, porque esto acompana a un resultado y no
@@ -49,19 +47,27 @@ export function nodosAvanceParaTiempo({ ctx, sistema, tiempoTotalS }) {
     el('h3', { clase: 'etiqueta' }, 'Cómo se logra ese tiempo'),
     el(
       'div',
-      { estilo: GRID_2 },
+      { clase: 'rejilla-2' },
       pintarResultado({
         etiqueta: 'Velocidad de avance',
         valor: aSistema('velocidad', derivado.valores.velocidadKmh, sistema),
         unidad: unidadVelocidad,
         decimales: 2,
         principal: true,
+        ayuda:
+          'A qué velocidad hay que ir para que la barra cruce la tabla en el tiempo que pide el ' +
+          'rotámetro. Es el sentido inverso del avance: el tiempo de inyección solo se cumple ' +
+          'si el tractor va a esta velocidad.',
       }),
       pintarResultado({
         etiqueta: `Segundos por tramo de ${tramoTexto}`,
         valor: derivado.valores.segundosPorTramo,
         unidad: 's',
         decimales: 1,
+        ayuda:
+          'Lo que debe tardar en cruzar el tramo de referencia a esa velocidad. Es lo que se ' +
+          'comprueba con el cronómetro en campo: si el tiempo real no se parece, la velocidad ' +
+          'no es la que dice.',
       })
     ),
   ];

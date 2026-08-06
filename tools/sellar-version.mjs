@@ -30,6 +30,7 @@
 //
 // Uso: node tools/sellar-version.mjs <sello>
 import { writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 const sello = process.argv[2];
 if (!sello || !/^[A-Za-z0-9._-]+$/.test(sello)) {
@@ -38,7 +39,8 @@ if (!sello || !/^[A-Za-z0-9._-]+$/.test(sello)) {
   process.exit(1);
 }
 
-const raiz = new URL('..', import.meta.url).pathname;
+// fileURLToPath y no `.pathname`: este ultimo viene percent-encoded.
+const raiz = fileURLToPath(new URL('..', import.meta.url));
 const contenido = `// Version de la cache del service worker: la ESTAMPA el despliegue.
 //
 // No se edita a mano y no hace falta subirla en un pull request: lo hace

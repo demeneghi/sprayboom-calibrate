@@ -5,7 +5,7 @@
 // confundirlas es un error caro.
 
 import { BASE_DOSIS_100L, PORCIENTO } from './constants.js';
-import { aviso, requierePositivo, requiereNoNegativo } from './validate.js';
+import { aviso, requierePositivo, requiereNoNegativo, ErrorDeDominio } from './validate.js';
 import { paso, redondeoLegible } from './speed.js';
 import { compararRutas } from './verify.js';
 
@@ -37,7 +37,7 @@ export function mezclaTanque({ volumenTanqueL, lhaAplicacion, dosis = null, area
   if (dosis !== null && dosis !== undefined) {
     requierePositivo('la dosis de producto', dosis.cantidad);
     if (!MODOS_DOSIS.includes(dosis.modo)) {
-      throw new Error(`No se puede calcular: modo de dosis desconocido (${dosis.modo}).`);
+      throw new ErrorDeDominio(`No se puede calcular: modo de dosis desconocido (${dosis.modo}).`);
     }
 
     if (dosis.modo === 'por-ha') {
@@ -201,7 +201,7 @@ export function equivalenciaDosis({ modo, cantidad, lhaAplicacion }) {
   if (modo === 'por-100L') {
     return { porHa: (cantidad * lhaAplicacion) / BASE_DOSIS_100L, por100L: cantidad };
   }
-  throw new Error(`No se puede calcular: modo de dosis desconocido (${modo}).`);
+  throw new ErrorDeDominio(`No se puede calcular: modo de dosis desconocido (${modo}).`);
 }
 
 // Porcentaje de desviacion generico entre un valor y su objetivo.

@@ -503,6 +503,10 @@ function cifrasDeVolumen(ctx, sistema) {
       unidad: unidadVolumen,
       decimales: 1,
       principal: true,
+      ayuda:
+        'Los litros por hectárea con los que va a salir la barra si mueves las perillas hasta ' +
+        'aquí. Se recalcula por la misma ruta verificada de Gasto de agua, con la corrección ' +
+        'por densidad del caldo. Es cálculo de catálogo: el aforo mide la barra de hoy.',
     })
   );
 
@@ -517,12 +521,19 @@ function cifrasDeVolumen(ctx, sistema) {
           valor: aSistema('volumenAplicacion', objetivo, sistema),
           unidad: unidadVolumen,
           decimales: 1,
+          ayuda:
+            'El volumen que capturaste como meta de la jornada. Es contra lo que se compara ' +
+            'todo lo demás; se cambia en el paso del objetivo o en Gasto de agua.',
         }),
         pintarResultado({
           etiqueta: 'Diferencia contra el objetivo',
           valor: desviacionContraObjetivo({ valor: lha, objetivo }),
           unidad: '%',
           decimales: 1,
+          ayuda:
+            'Qué tanto se aparta el volumen calculado del objetivo. En positivo estás aplicando ' +
+            'de más y en negativo de menos; se corrige con las perillas de presión y velocidad ' +
+            'de aquí abajo, o cambiando de boquilla.',
         })
       )
     );
@@ -537,6 +548,9 @@ function cifrasDeVolumen(ctx, sistema) {
         valor: aSistema('volumenAplicacion', medido.valor, sistema),
         unidad: unidadVolumen,
         decimales: 1,
+        ayuda:
+          'Lo que dejó la barra medido con probetas, con sus boquillas como están hoy. Cuando ' +
+          'difiere mucho del calculado, manda este: el cálculo describe una boquilla nueva.',
       }),
       el(
         'p',
@@ -575,15 +589,19 @@ function cifrasDeCierre(ctx, receta, sistema) {
       'superficieObjetivoHa',
     ]);
     try {
+      const unidadProducto = datos.unidadProducto ?? 'L';
       const resultado = mezclaTanque({
         volumenTanqueL: datos.volumenTanqueL,
         lhaAplicacion: datos.volumenAplicacionLha,
+        // La unidad del producto NO se omite: sin ella el dominio supone
+        // liquido y le resta al agua del tanque la MASA de un producto
+        // solido, asi que esta hoja daba otro agua por carga que la pestana
+        // Mezcla para la misma captura.
         dosis: Number.isFinite(datos.dosisCantidad)
-          ? { modo: datos.modoDosis ?? 'por-ha', cantidad: datos.dosisCantidad }
+          ? { modo: datos.modoDosis ?? 'por-ha', cantidad: datos.dosisCantidad, unidad: unidadProducto }
           : null,
         areaObjetivoHa: Number.isFinite(datos.superficieObjetivoHa) ? datos.superficieObjetivoHa : null,
       });
-      const unidadProducto = datos.unidadProducto ?? 'L';
       nodos.push(...pintarAvisos(resultado.avisos));
       if (Number.isFinite(resultado.valores.productoPorCarga)) {
         nodos.push(
@@ -593,6 +611,10 @@ function cifrasDeCierre(ctx, receta, sistema) {
             unidad: unidadProducto,
             decimales: 2,
             principal: true,
+            ayuda:
+              'Cuánto producto se echa en un tanque lleno. Es la cifra que se lleva al lote: ' +
+              'la dosis por hectárea por las hectáreas que cubre la carga. La cuenta completa, ' +
+              'con su desglose, está en la pestaña Mezcla.',
           })
         );
       }
@@ -601,10 +623,13 @@ function cifrasDeCierre(ctx, receta, sistema) {
           'div',
           { clase: 'rejilla-cifras' },
           pintarResultado({
-            etiqueta: 'Hectáreas por carga',
-            valor: resultado.valores.hectareasPorCarga,
-            unidad: 'ha',
+            etiqueta: 'Superficie por carga',
+            valor: aSistema('superficie', resultado.valores.hectareasPorCarga, sistema),
+            unidad: unidad('superficie', sistema),
             decimales: 2,
+            ayuda:
+              'Cuánto alcanza a cubrir un tanque lleno: el volumen del tanque entre el volumen ' +
+              'de aplicación. De aquí sale cuánto producto lleva la carga.',
           }),
           Number.isFinite(resultado.valores.aguaPorCarga)
             ? pintarResultado({
@@ -612,6 +637,10 @@ function cifrasDeCierre(ctx, receta, sistema) {
                 valor: aSistema('volumen', resultado.valores.aguaPorCarga, sistema),
                 unidad: unidadVolumen,
                 decimales: 0,
+                ayuda:
+                  'El agua que se pone en el tanque. Con producto líquido se le resta al ' +
+                  'volumen del tanque, porque el producto también ocupa lugar; con producto en ' +
+                  'polvo se desprecia y es el tanque completo.',
               })
             : null
         )
@@ -661,10 +690,14 @@ function cifrasDeCierre(ctx, receta, sistema) {
       nodos.push(
         pintarResultado({
           etiqueta: 'Masa de etileno por tabla',
-          valor: resultado.valores.masaPorTablaG,
-          unidad: 'g',
-          decimales: 1,
+          valor: aSistema('masa', resultado.valores.masaPorTablaG, sistema),
+          unidad: unidad('masa', sistema),
+          decimales: sistema === 'imperial' ? 2 : 1,
           principal: true,
+          ayuda:
+            'Los gramos de etileno que le tocan a una tabla: la dosis por hectárea por las ' +
+            'hectáreas de la tabla. Es masa INYECTADA, no masa que se queda disuelta en el ' +
+            'agua: para saber lo que de verdad se fue, pesa el cilindro.',
         })
       );
       const scfmRequerido = resultado.valores.ajuste?.scfm ?? null;
@@ -675,6 +708,10 @@ function cifrasDeCierre(ctx, receta, sistema) {
             valor: scfmRequerido,
             unidad: 'SCFM',
             decimales: 2,
+            ayuda:
+              'Dónde hay que dejar el flotador del rotámetro para inyectar esa masa en el ' +
+              'tiempo que dura el pase. Si cae fuera de la escala del aparato, ajusta la ' +
+              'presión o el tiempo en Gas etileno hasta que entre.',
           })
         );
       }

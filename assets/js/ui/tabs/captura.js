@@ -18,6 +18,7 @@ import {
   pintarVerificacion,
   resultadoConfiable,
   pintarResultadoNoVerificado,
+  alertaDeError,
 } from '../render.js';
 import { crearCampoNumerico, crearEtiquetaConAyuda } from '../campos.js';
 import { crearCampoDato, valorDeDato, fijarDato } from '../dato.js';
@@ -26,6 +27,7 @@ import { crearCombobox } from '../combobox.js';
 import { crearCronometro } from '../cronometro.js';
 import { formatear, formatearPorcentaje } from '../formato.js';
 import { mostrarToast } from '../toast.js';
+import { idRegistro } from '../id.js';
 import { filaIso } from '../../data/iso-colors.js';
 import { aSistema, deSistema, unidad } from '../../domain/units.js';
 import { estadisticaCaptura } from '../../domain/capture.js';
@@ -33,12 +35,6 @@ import { caudalAPresionDetallado } from '../../domain/nozzles.js';
 import { geometria } from '../../domain/speed.js';
 
 export const id = 'captura';
-
-function idPrueba() {
-  return globalThis.crypto?.randomUUID
-    ? globalThis.crypto.randomUUID()
-    : `captura-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
 
 export function render(panel, ctx) {
   const borrador = ctx.borrador(id);
@@ -49,7 +45,6 @@ export function render(panel, ctx) {
   const unidadVolChico = unidad('volumenChico', sistema);
   const unidadCaudal = unidad('caudal', sistema);
   const unidadPresion = unidad('presion', sistema);
-  const unidadEspaciamiento = unidad('distanciaCorta', sistema);
   const unidadVolumen = unidad('volumenAplicacion', sistema);
   const decimalesPresion = sistema === 'imperial' ? 1 : 2;
   const decimalesVolumenAplicacion = sistema === 'imperial' ? 1 : 0;
@@ -67,7 +62,7 @@ export function render(panel, ctx) {
   function grid2(...hijos) {
     return el(
       'div',
-      { estilo: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' } },
+      { clase: 'rejilla-2' },
       ...hijos
     );
   }
@@ -201,7 +196,7 @@ export function render(panel, ctx) {
   }
 
   const cuadriculaRenglones = el('div', {
-    estilo: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' },
+    clase: 'rejilla-2',
   });
   const botonAgregar = el('button', { clase: 'boton boton--contorno' }, 'Agregar renglón');
   const botonQuitar = el('button', { clase: 'boton boton--contorno' }, 'Quitar último renglón');
@@ -257,7 +252,7 @@ export function render(panel, ctx) {
 
   // ---------------- Resultados ----------------
   const zonaResultados = el('div', {
-    estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' },
+    clase: 'pila',
   });
   let ultimoCalculo = null;
 
@@ -553,13 +548,7 @@ export function render(panel, ctx) {
           },
         };
       } catch (error) {
-        nodos.push(
-          el(
-            'div',
-            { clase: 'alerta alerta--destructiva', role: 'alert' },
-            el('p', { clase: 'alerta__descripcion' }, String(error.message ?? error))
-          )
-        );
+        nodos.push(alertaDeError(error));
       }
     }
 
@@ -583,7 +572,7 @@ export function render(panel, ctx) {
     }
     const { resultado, entradas } = ultimoCalculo;
     const prueba = {
-      id: idPrueba(),
+      id: idRegistro('captura'),
       fecha: new Date().toISOString(),
       equipoId: ctx.equipoActivo()?.id ?? null,
       boquillaId: entradas.boquillaId,
@@ -641,7 +630,7 @@ export function render(panel, ctx) {
       // salia de la tarjeta y quedaba cortado contra el borde.
       el(
         'div',
-        { estilo: { display: 'flex', gap: '0.5rem', flexWrap: 'wrap' } },
+        { clase: 'fila-acciones' },
         botonAgregar,
         botonQuitar
       )

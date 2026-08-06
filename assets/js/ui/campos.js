@@ -2,7 +2,7 @@
 // ayuda contextual bajo demanda (boton "?" en la etiqueta) y error de
 // validacion en sitio.
 import { el } from './dom.js';
-import { aNumero } from './formato.js';
+import { aNumero, esGrupoAmbiguo } from './formato.js';
 import { nodoSvg } from './svg.js';
 import { entreSistemas, esConvertible, otroSistema, unidad as unidadDe } from '../domain/units.js';
 
@@ -394,13 +394,31 @@ export function crearCampoNumerico({
   // El campo esta SIEMPRE en las unidades del sistema activo: el boton
   // convierte hacia ellas, nunca al contrario. Por eso lo capturado sale
   // tal cual, sin conversion de salida.
+  //
+  // «2,000» a secas es ambiguo —dos mil o dos, con mil veces de
+  // diferencia— y el campo NO adivina: devuelve null y lo dice. Un numero
+  // plausible equivocado entra dentro de las cotas y nadie lo detecta;
+  // un campo vacio con su mensaje se corrige en el momento.
   function obtener() {
     return aNumero(entrada.value);
   }
 
-  if (alCambiar) {
-    entrada.addEventListener('input', () => alCambiar(obtener(), entrada.value));
+  function avisarSiAmbiguo() {
+    if (!esGrupoAmbiguo(entrada.value)) return;
+    const sinComa = entrada.value.trim().replace(/,/g, '');
+    nodoError.textContent =
+      `Así escrito no se sabe si son miles o decimales. Escribe ${sinComa} sin la coma, o usa ` +
+      'el punto para los decimales.';
+    nodoError.classList.remove('oculto');
+    entrada.setAttribute('aria-invalid', 'true');
+    sincronizarDescripcion();
   }
+
+  entrada.addEventListener('input', () => {
+    if (alCambiar) alCambiar(obtener(), entrada.value);
+    // Despues del consumidor: si el tiene un mensaje mas especifico, gana.
+    avisarSiAmbiguo();
+  });
 
   return {
     elemento: raiz,

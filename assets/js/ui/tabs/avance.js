@@ -18,7 +18,14 @@
 // desglose auditable, avisos tipados y edicion de estado via dialogo.
 
 import { el, reemplazar } from '../dom.js';
-import { tarjeta, pintarAvisos, pintarDesglose, pintarResultado } from '../render.js';
+import {
+  tarjeta,
+  tarjetaSinContexto,
+  pintarAvisos,
+  pintarDesglose,
+  pintarResultado,
+  alertaDeError,
+} from '../render.js';
 import { crearCampoNumerico } from '../campos.js';
 import { crearCronometro } from '../cronometro.js';
 import { formatear, formatearTiempo, formatearPorcentaje, formatearFecha } from '../formato.js';
@@ -58,6 +65,13 @@ const MARCA_ORIGEN = {
 export function render(panel, ctx) {
   const borrador = ctx.borrador(id);
   const tractor = ctx.tractorActivo();
+  // Sin tractor no hay marchas, ni regimen nominal, ni velocidad: esta
+  // pantalla lo usa en la primera linea que sigue. Es la misma cortesia
+  // que ya tenia Forzamiento cuando falta el gas o el rotametro.
+  if (!tractor) {
+    panel.append(tarjetaSinContexto('Avance', ['un tractor']));
+    return;
+  }
   let modo = borrador.modo ?? 'marcha';
   // La marcha guardada es de UN tractor: las marchas se identifican por
   // posicion, asi que sin este filtro cambiar de tractor en el encabezado
@@ -253,7 +267,7 @@ export function render(panel, ctx) {
 
   const zonaMarcha = el(
     'div',
-    { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } },
+    { clase: 'pila' },
     cuadricula,
     campoRpm.elemento,
     botonCalibrarMarcha,
@@ -292,15 +306,15 @@ export function render(panel, ctx) {
   const zonaMarchasQueReproducen = el('div', {});
   const zonaReporte = el(
     'div',
-    { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } },
+    { clase: 'pila' },
     campoSegundos.elemento,
     zonaCronometro,
     zonaMarchasQueReproducen
   );
 
   // ---------------- Resultados ----------------
-  const zonaResultados = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } });
-  const zonaTdf = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } });
+  const zonaResultados = el('div', { clase: 'pila' });
+  const zonaTdf = el('div', { clase: 'pila' });
 
   function recalcular() {
     const estado = ctx.estado();
@@ -457,7 +471,7 @@ export function render(panel, ctx) {
         nodos.push(
           el(
             'div',
-            { estilo: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' } },
+            { clase: 'rejilla-2' },
             pintarResultado({
               etiqueta: `Segundos por tramo de ${tramoTexto}`,
               valor: resultadoAvance.valores.segundosPorTramo,
@@ -495,13 +509,7 @@ export function render(panel, ctx) {
         reemplazar(zonaMarchasQueReproducen);
       }
     } catch (error) {
-      nodos.push(
-        el(
-          'div',
-          { clase: 'alerta alerta--destructiva', role: 'alert' },
-          el('p', { clase: 'alerta__descripcion' }, String(error.message ?? error))
-        )
-      );
+      nodos.push(alertaDeError(error));
     }
 
     reemplazar(zonaResultados, nodos);
@@ -591,7 +599,7 @@ export function render(panel, ctx) {
       nodos.push(
         el(
           'div',
-          { estilo: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' } },
+          { clase: 'rejilla-2' },
           pintarResultado({
             etiqueta: 'TDF resultante',
             valor: resultado.valores.tdfRpm,

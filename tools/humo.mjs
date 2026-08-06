@@ -8,9 +8,12 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
-const RAIZ = new URL('..', import.meta.url).pathname;
+// fileURLToPath y no `.pathname`: este ultimo viene percent-encoded, asi
+// que con una ruta con espacios el servidor daba 404 para todo.
+const RAIZ = fileURLToPath(new URL('..', import.meta.url));
 const SUBDIRECTORIO = '/sprayboom-calibrate';
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -198,7 +201,7 @@ for (const [ancho, alto, nombre] of [[390, 844, 'iphone'], [360, 740, 'gama-baja
     }
     if (capturas && nombre === 'iphone') {
       await pagina.screenshot({
-        path: new URL(`../capturas/${seccion}-${tab}.png`, import.meta.url).pathname,
+        path: fileURLToPath(new URL(`../capturas/${seccion}-${tab}.png`, import.meta.url)),
         fullPage: false,
       });
     }

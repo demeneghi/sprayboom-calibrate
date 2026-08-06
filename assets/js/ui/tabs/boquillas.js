@@ -26,9 +26,10 @@ import {
   pintarVerificacion,
   resultadoConfiable,
   pintarResultadoNoVerificado,
+  alertaDeError,
 } from '../render.js';
 import { crearCampoSelect } from '../campos.js';
-import { crearCampoDato } from '../dato.js';
+import { crearCampoDato, fijarDato } from '../dato.js';
 import { formatear, formatearPorcentaje } from '../formato.js';
 import { mostrarToast } from '../toast.js';
 import { estiloBadgeIso } from '../color.js';
@@ -55,7 +56,6 @@ export function render(panel, ctx) {
   const borrador = ctx.borrador(id);
   const sistema = ctx.sistema();
   const unidadVolumen = unidad('volumenAplicacion', sistema);
-  const unidadEspaciamiento = unidad('distanciaCorta', sistema);
   const unidadPresion = unidad('presion', sistema);
   const unidadCaudal = unidad('caudal', sistema);
   const decimalesPresion = sistema === 'imperial' ? 1 : 2;
@@ -123,8 +123,8 @@ export function render(panel, ctx) {
   });
 
   // ---------------- Zonas de resultado ----------------
-  const zonaResultado = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } });
-  const zonaCandidatas = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } });
+  const zonaResultado = el('div', { clase: 'pila' });
+  const zonaCandidatas = el('div', { clase: 'pila' });
 
   function badgeIso(boquilla) {
     const fila = boquilla.tamanoIso ? filaIso(boquilla.tamanoIso) : null;
@@ -151,11 +151,15 @@ export function render(panel, ctx) {
     return `${formatear(aSistema('presion', bar, sistema), decimalesPresion)} ${unidadPresion}`;
   }
 
+  // La boquilla y la presion son DATOS COMPARTIDOS: viven una sola vez en
+  // `estado.jornada` (domain/datos.js) y de ahi los lee Gasto de agua.
+  // Escribirlos en `borradores.gasto` —como se hacia— dejaba de precargar
+  // nada en cuanto la jornada existio: el toast decia que si, la pantalla
+  // seguia con la presion anterior y se calibraba con el numero viejo. Es
+  // la misma llamada que hace el paso de candidatas del asistente.
   function usarEnGasto(candidata) {
-    ctx.guardarBorrador('gasto', {
-      boquillaId: candidata.boquilla.id,
-      presionBar: candidata.presionRequeridaBar,
-    });
+    fijarDato(ctx, 'boquillaId', candidata.boquilla.id);
+    fijarDato(ctx, 'presionBar', candidata.presionRequeridaBar);
     mostrarToast(
       `${candidata.boquilla.modelo} a ${presionTextoDe(candidata.presionRequeridaBar)} precargada en Gasto de agua.`
     );
@@ -440,13 +444,7 @@ export function render(panel, ctx) {
           }
         }
       } catch (error) {
-        nodosResultado.push(
-          el(
-            'div',
-            { clase: 'alerta alerta--destructiva', role: 'alert' },
-            el('p', { clase: 'alerta__descripcion' }, String(error.message ?? error))
-          )
-        );
+        nodosResultado.push(alertaDeError(error));
         nodosCandidatas.push(
           el('p', { clase: 'texto-suave' }, 'Corrige la captura para poder evaluar el catálogo.')
         );

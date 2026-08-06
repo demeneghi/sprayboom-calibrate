@@ -697,7 +697,7 @@
   background: transparent;
   color: hsl(var(--muted-foreground));
   padding: 0.5rem 0.8rem;
-  min-height: var(--touch-floor, 2.5rem);
+  min-height: var(--touch-floor);
   border-radius: var(--radius-md);
   font-weight: 500;
   font-size: var(--text-base);
@@ -1097,7 +1097,7 @@ dialog.dialogo::backdrop {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  min-height: var(--touch-floor, 2.5rem);
+  min-height: var(--touch-floor);
 }
 
 /* ------------------------------------------------------------------ */
@@ -1130,7 +1130,7 @@ dialog.dialogo::backdrop {
   padding: 0.55rem 0.6rem;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  min-height: var(--touch-floor, 2.5rem);
+  min-height: var(--touch-floor);
   font-size: var(--text-base);
 }
 
@@ -1276,7 +1276,7 @@ dialog.dialogo::backdrop {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: var(--touch-floor, 2.5rem);
+  min-height: var(--touch-floor);
 }
 
 .desglose summary::after {
@@ -1423,7 +1423,7 @@ dialog.dialogo::backdrop {
   border: 1px solid transparent;
   background: transparent;
   color: hsl(var(--muted-foreground));
-  min-height: var(--touch-floor, 3.15rem);
+  min-height: var(--touch-floor);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-weight: 500;
@@ -1767,6 +1767,45 @@ dialog.dialogo::backdrop {
 /* ------------------------------------------------------------------ */
 /* El layout vive aqui y no en `cronometro.js`: el consumidor solo
    declara las clases, igual que con `.grupo-modo`. */
+/* ------------------------------------------------------------------ */
+/* Apilado y rejilla de una pantalla
+ *
+ * El ritmo vive AQUI, no repetido en cada consumidor. Habia ~60 objetos
+ * `estilo` en linea con estos mismos tres pares —y cuatro constantes
+ * locales (`COLUMNA`, `GRID_2`, `CUADRICULA_2`, `rejilla`) que eran
+ * copias de lo mismo en cuatro pestañas—, asi que cambiar la densidad de
+ * la aplicacion obligaba a tocar doce archivos en vez de tres reglas.
+ *
+ * `.pila` es el ritmo entre bloques de una tarjeta; `.pila--compacta`
+ * el de una lista de controles pegados; `.rejilla-2` el par de cifras
+ * lado a lado que usan casi todos los resultados.
+ */
+/* ------------------------------------------------------------------ */
+.pila {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pila--compacta {
+  gap: 0.5rem;
+}
+
+.rejilla-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+/* Fila de botones que ENVUELVE: en un telefono de 360px dos acciones con
+   etiqueta larga se salian de la tarjeta y quedaban cortadas contra el
+   borde. */
+.fila-acciones {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 .cronometro {
   padding: 0.75rem;
   display: flex;
@@ -1777,6 +1816,15 @@ dialog.dialogo::backdrop {
 .cronometro__pantalla {
   font-size: var(--text-cifra-xl);
   text-align: center;
+}
+
+/* Cuenta regresiva cumplida: se retiran las probetas. El estado lo marca
+   `cronometro.js` con el atributo y el color sale del token, como
+   cualquier otro estado del sistema; antes se escribia en linea desde el
+   consumidor, que es justo lo que la regla dura prohibe. El par
+   warning/card ya esta en la compuerta de contraste. */
+.cronometro__pantalla[data-cumplido='true'] {
+  color: hsl(var(--warning));
 }
 
 /* La fila de acciones ENVUELVE. Con los tres botones en una sola fila
@@ -1874,7 +1922,7 @@ dialog.dialogo::backdrop {
   align-items: flex-start;
   gap: 0.65rem;
   width: 100%;
-  min-height: var(--touch-floor, 2.5rem);
+  min-height: var(--touch-floor);
   padding: 0.55rem 0.65rem;
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius);

@@ -7,7 +7,7 @@
 // corrige con factores MEDIDOS en campo, nunca con formula inventada.
 
 import { KMH_A_MS, M2_POR_HA, PORCIENTO, TOLERANCIA_RPM_COINCIDENCIA } from './constants.js';
-import { aviso, requierePositivo, requiereFinito } from './validate.js';
+import { aviso, requierePositivo } from './validate.js';
 
 // Redondeo solo para las sustituciones legibles del desglose; los
 // valores numericos del resultado conservan precision completa.

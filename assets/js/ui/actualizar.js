@@ -30,6 +30,25 @@ const LIMITE_REINSTALACION_MS = 45000;
 // limpia. No toca los datos del usuario, que viven en localStorage.
 const MARCA_REINSTALACION = 'sprayboom:reinstalacion';
 
+// Alcance del borrado de «Reinstalar desde cero». `caches.keys()` y
+// `getRegistrations()` son de ORIGEN, no de aplicacion: en un sitio de
+// proyecto de GitHub Pages el origen es usuario.github.io, compartido con
+// todos los demas proyectos publicados de esa cuenta. Sin filtrar, el
+// boton desregistraba el service worker y borraba el precache de otras
+// aplicaciones que nadie habia tocado.
+//
+// El prefijo es el mismo que ya usa sw.js en su evento `activate`; el
+// alcance es el directorio del que cuelga esta copia.
+const PREFIJO_CACHE = 'sprayboom-';
+
+function alcancePropio() {
+  try {
+    return new URL('./', location.href).href;
+  } catch {
+    return null;
+  }
+}
+
 function leerMarca() {
   try {
     return sessionStorage.getItem(MARCA_REINSTALACION);
@@ -154,9 +173,17 @@ export async function buscarActualizacion() {
   buscandoAMano = true;
   try {
     await registro.update();
-  } catch {
+  } catch (error) {
     buscandoAMano = false;
-    return { estado: 'sin-conexion' };
+    // `update()` rechaza por varias causas: sin red, pero tambien 404 o
+    // 5xx sirviendo sw.js, un script que no parsea, o el navegador
+    // bloqueando el registro. Colapsarlas todas en «sin conexion»
+    // prescribia buscar señal —que no arregla ninguna de las otras—
+    // mientras el consejo correcto («reinstalar desde cero») estaba en el
+    // mensaje de `error`, que nunca se alcanzaba.
+    return navigator.onLine === false
+      ? { estado: 'sin-conexion' }
+      : { estado: 'error', detalle: String(error?.message ?? error) };
   }
   const resultado = await esperarInstalacion();
   buscandoAMano = false;
@@ -200,12 +227,17 @@ export async function reinstalar() {
   try {
     if (conServiceWorker) {
       const registros = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(registros.map((uno) => uno.unregister()));
+      const mio = alcancePropio();
+      await Promise.all(
+        registros.filter((uno) => !mio || uno.scope === mio).map((uno) => uno.unregister())
+      );
       registro = null;
     }
     if ('caches' in self) {
       const nombres = await caches.keys();
-      await Promise.all(nombres.map((nombre) => caches.delete(nombre)));
+      await Promise.all(
+        nombres.filter((nombre) => nombre.startsWith(PREFIJO_CACHE)).map((nombre) => caches.delete(nombre))
+      );
     }
   } catch (error) {
     escribirMarca(null);

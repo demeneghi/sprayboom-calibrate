@@ -13,8 +13,11 @@
 // Uso: node tools/generar-precache.mjs
 import { writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-const raiz = new URL('..', import.meta.url).pathname;
+// fileURLToPath y no `.pathname`: este ultimo viene percent-encoded, asi
+// que una ruta con espacios o acentos daba un directorio inexistente.
+const raiz = fileURLToPath(new URL('..', import.meta.url));
 const archivos = execSync(
   "find assets -type f \\( -name '*.js' -o -name '*.css' -o -name '*.woff2' -o -name '*.svg' -o -name '*.png' -o -name '*.txt' \\) | sort",
   { cwd: raiz, encoding: 'utf8' }

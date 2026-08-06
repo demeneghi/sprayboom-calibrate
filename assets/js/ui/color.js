@@ -40,7 +40,15 @@ export function textoSobreColor(hexFondo) {
 }
 
 // Estilo en linea para un badge de color ISO.
+//
+// Sin hex no hay estilo que dar: la tabla ISO trae filas con el color
+// PENDIENTE a proposito (el tamano 20 vive en la Tabla 2 de la norma, que
+// no esta en la vista previa disponible, y no se rellena por
+// extrapolacion). Devolver {} en vez de reventar es lo que evita que una
+// ficha con ese tamano tumbe la pantalla que la pinta: el consumidor
+// elige entonces el chip de contorno.
 export function estiloBadgeIso(hexFondo) {
+  if (!hexFondo) return {};
   return {
     backgroundColor: hexFondo,
     color: textoSobreColor(hexFondo),
