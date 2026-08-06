@@ -17,6 +17,7 @@ import {
   pintarVerificacion,
   resultadoConfiable,
   pintarResultadoNoVerificado,
+  alertaDeError,
 } from '../render.js';
 import { crearCampoSelect } from '../campos.js';
 import { crearCampoDato, valorDeDato, fijarDato, respaldoDeDato, DATOS } from '../dato.js';
@@ -24,10 +25,11 @@ import { crearCampoHeredado } from '../heredado.js';
 import { crearTrioBarra } from '../trio-barra.js';
 import { formatear } from '../formato.js';
 import { mostrarToast } from '../toast.js';
+import { idRegistro } from '../id.js';
 import { crearCombobox } from '../combobox.js';
 import { estiloBadgeIso } from '../color.js';
 import { aSistema, unidad } from '../../domain/units.js';
-import { redondeoLegible, calibrarMarcha, modoGeometriaDe } from '../../domain/speed.js';
+import { calibrarMarcha, modoGeometriaDe } from '../../domain/speed.js';
 import {
   caudalAPresionDetallado,
   caudalConDensidadDetallado,
@@ -69,14 +71,6 @@ export function render(panel, ctx) {
     return catalogo.find((b) => b.id === boquillaId) ?? null;
   }
 
-  // Valor inicial de un campo: el borrador vive en base metrica y se
-  // muestra convertido al sistema vigente, con redondeo legible para no
-  // pintar colas de flotante en el input.
-  function precarga(magnitud, valorMetrico) {
-    if (valorMetrico === null || valorMetrico === undefined) return null;
-    return redondeoLegible(aSistema(magnitud, valorMetrico, sistema));
-  }
-
   // Caudal de la boquilla a una presion dada: con agua y con el caldo
   // (un caldo mas denso sale mas despacio por la misma boquilla). Se usan
   // las variantes detalladas del dominio para regresar tambien el
@@ -99,14 +93,6 @@ export function render(panel, ctx) {
       caldo: conCaldo.valores.caudalCaldoLmin,
       desglose: [...conAgua.desglose, ...conCaldo.desglose],
     };
-  }
-
-  function alertaDestructiva(error) {
-    return el(
-      'div',
-      { clase: 'alerta alerta--destructiva', role: 'alert' },
-      el('p', { clase: 'alerta__descripcion' }, String(error?.message ?? error))
-    );
   }
 
   // ---------------- Combobox de boquilla ----------------
@@ -354,7 +340,7 @@ export function render(panel, ctx) {
   }
 
   // ---------------- Caudal de la boquilla ----------------
-  const zonaCaudal = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } });
+  const zonaCaudal = el('div', { clase: 'pila' });
 
   function pintarCaudal() {
     const nodos = [];
@@ -408,7 +394,7 @@ export function render(panel, ctx) {
           nodos.push(
             el(
               'div',
-              { estilo: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' } },
+              { clase: 'rejilla-2' },
               pintarResultado({
                 etiqueta: 'Caudal con agua',
                 valor: aSistema('caudal', q.agua, sistema),
@@ -443,13 +429,13 @@ export function render(panel, ctx) {
         nodos.push(nodoClaseGota(b, presionBar, 'Clase de gota a esta presión'));
       }
     } catch (error) {
-      nodos.push(alertaDestructiva(error));
+      nodos.push(alertaDeError(error));
     }
     reemplazar(zonaCaudal, nodos);
   }
 
   // ---------------- Resultado central: los dos metodos ----------------
-  const zonaCentral = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } });
+  const zonaCentral = el('div', { clase: 'pila' });
 
   function pintarCentral() {
     const nodos = [];
@@ -500,7 +486,7 @@ export function render(panel, ctx) {
           nodos.push(
             el(
               'div',
-              { estilo: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' } },
+              { clase: 'rejilla-2' },
               pintarResultado({
                 etiqueta: 'Método por boquilla',
                 valor: aSistema('volumenAplicacion', resultado.valores.lhaPorBoquilla, sistema),
@@ -525,7 +511,7 @@ export function render(panel, ctx) {
             ),
             el(
               'div',
-              { estilo: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' } },
+              { clase: 'rejilla-2' },
               pintarResultado({
                 etiqueta: 'Discrepancia entre métodos',
                 valor: resultado.valores.discrepanciaPct,
@@ -584,7 +570,7 @@ export function render(panel, ctx) {
         }
       }
     } catch (error) {
-      nodos.push(alertaDestructiva(error));
+      nodos.push(alertaDeError(error));
     }
     reemplazar(zonaCentral, nodos);
   }
@@ -599,7 +585,7 @@ export function render(panel, ctx) {
     }
     const c = ultimoCalculo;
     const registroBase = {
-      id: `gasto-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      id: idRegistro('gasto'),
       tipo: 'gasto-agua',
       fecha: new Date().toISOString(),
       titulo: `Gasto de agua: ${c.fabricante} ${c.modeloBoquilla}`,
@@ -644,7 +630,7 @@ export function render(panel, ctx) {
       recalcularInverso();
     },
   });
-  const zonaInverso = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } });
+  const zonaInverso = el('div', { clase: 'pila' });
 
   function recalcularInverso() {
     const nodos = [];
@@ -803,7 +789,7 @@ export function render(panel, ctx) {
         }
       }
     } catch (error) {
-      nodos.push(alertaDestructiva(error));
+      nodos.push(alertaDeError(error));
     }
     reemplazar(zonaInverso, nodos);
   }
@@ -839,7 +825,7 @@ export function render(panel, ctx) {
     guardadoSinMarcaEsManual: true,
     alCambiar: () => recalcularBomba(),
   });
-  const zonaBomba = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } });
+  const zonaBomba = el('div', { clase: 'pila' });
 
   const ETIQUETAS_ESCENARIO = {
     [ESCENARIOS_BOMBA.PRESION_SOSTENIDA]: 'Presión sostenida por el regulador',
@@ -855,8 +841,21 @@ export function render(panel, ctx) {
   function recalcularBomba() {
     const nodos = [];
     try {
-      if (!equipo) {
-        nodos.push(el('p', { clase: 'texto-suave' }, 'Sin barra de aplicación configurada.'));
+      // El tractor hace falta tanto como la barra: `contrasteVolumenPorRegimen`
+      // usa su regimen nominal, y sin la guarda salia un TypeError que la
+      // pantalla mostraba como «Cannot read properties of undefined».
+      if (!equipo || !tractor) {
+        const faltan = [];
+        if (!equipo) faltan.push('una barra de aplicación');
+        if (!tractor) faltan.push('un tractor');
+        nodos.push(
+          el(
+            'p',
+            { clase: 'texto-suave' },
+            `Falta ${faltan.join(' y ')} en la configuración: sin eso no se puede estimar el ` +
+              'efecto del régimen sobre la bomba.'
+          )
+        );
       } else {
         if (equipo.rpmCalibracion === null || equipo.rpmCalibracion === undefined) {
           nodos.push(
@@ -932,7 +931,7 @@ export function render(panel, ctx) {
                 el('p', { clase: 'ayuda' }, EXPLICACION_ESCENARIO[escenario] ?? ''),
                 el(
                   'div',
-                  { estilo: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' } },
+                  { clase: 'rejilla-2' },
                   pintarResultado({
                     etiqueta: 'Presión estimada',
                     valor: aSistema('presion', contraste.valores.presionEstimadaBar, sistema),
@@ -963,7 +962,7 @@ export function render(panel, ctx) {
                 nodos.push(
                   el(
                     'div',
-                    { estilo: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' } },
+                    { clase: 'rejilla-2' },
                     pintarResultado({
                       etiqueta: 'Volumen al régimen de calibración',
                       valor: aSistema('volumenAplicacion', contraste.valores.volumenCalibracionLha, sistema),
@@ -1020,7 +1019,7 @@ export function render(panel, ctx) {
                 el('p', { clase: 'ayuda' }, EXPLICACION_ESCENARIO[escenario] ?? ''),
                 el(
                   'div',
-                  { estilo: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' } },
+                  { clase: 'rejilla-2' },
                   pintarResultado({
                     etiqueta: 'Presión estimada',
                     valor: aSistema('presion', bomba.valores.presionEstimadaBar, sistema),
@@ -1053,7 +1052,7 @@ export function render(panel, ctx) {
         }
       }
     } catch (error) {
-      nodos.push(alertaDestructiva(error));
+      nodos.push(alertaDeError(error));
     }
     // Aviso SIEMPRE visible, con o sin calculo.
     nodos.push(

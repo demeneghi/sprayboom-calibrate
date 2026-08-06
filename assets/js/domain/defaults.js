@@ -399,6 +399,26 @@ export const COTAS_FACTOR_DESVIACION = {
   rpm: { min: 400, max: 5000, unidad: 'rpm', magnitud: null, etiqueta: 'Régimen de la medición' },
   velocidadTeorica: { min: 0.1, max: 60, unidad: 'km/h', magnitud: 'velocidad', etiqueta: 'Velocidad teórica' },
   velocidadMedida: { min: 0.1, max: 60, unidad: 'km/h', magnitud: 'velocidad', etiqueta: 'Velocidad medida' },
+  // El factor es lo unico de esta ficha que ENTRA al calculo: multiplica la
+  // velocidad teorica de la marcha, y con ella el volumen por hectarea, la
+  // dosis del tanque y el tiempo de inyeccion del gas. No tenia cota, asi
+  // que cualquier numero finito pasaba.
+  //
+  // El rango es fisico y generoso: 0.5 es un patinaje del 50 % —mas que eso
+  // no es una correccion, es una averia— y 1.5 es un tacometro que lee un
+  // 50 % bajo. Un cociente fuera de ahi sale de dos velocidades que no
+  // corresponden a la misma medicion, y rechazarlo es lo correcto.
+  factor: { min: 0.5, max: 1.5, unidad: '', magnitud: null, etiqueta: 'Factor de desviación' },
+};
+
+// Lo que de una ficha de desviacion se valida al IMPORTAR un respaldo: el
+// regimen que la ubica y el factor que entra al calculo. Las dos
+// velocidades son la procedencia del factor —el formulario las pide para
+// calcularlo— y ninguna funcion de dominio las lee, asi que un respaldo
+// viejo que no las traiga no tiene por que rechazarse entero.
+export const COTAS_FACTOR_IMPORTADO = {
+  rpm: COTAS_FACTOR_DESVIACION.rpm,
+  factor: COTAS_FACTOR_DESVIACION.factor,
 };
 
 // ---------------------------------------------------------------------
@@ -574,6 +594,13 @@ export const PREFERENCIAS_SIEMBRA = {
 
 // Origen valido de una fila de velocidad por marcha.
 export const ORIGENES_VELOCIDAD = ['estimacion', 'capturado', 'calibrado'];
+
+// Temas validos. Se declara aqui —y no como lista suelta en la pantalla de
+// Configuracion— porque la importacion de un respaldo tambien tiene que
+// poder rechazar un tema desconocido: sin la lista, un valor cualquiera
+// dejaba `data-theme` sin coincidir con ningun selector y la aplicacion
+// caia al tema claro sin decir por que.
+export const TEMAS = ['claro', 'oscuro', 'auto'];
 
 // Utilidades de acceso comodo (sin logica de calculo).
 export function valorDefault(grupo, campo) {

@@ -2,7 +2,33 @@
 
 Fecha: 2026-08-06 · Commit auditado: `6b94338` · Rama: `claude/code-security-audit-43yowe`
 Alcance: repositorio completo (112 archivos, 31 537 líneas contando código, CSS, HTML y documentación técnica).
-Naturaleza: auditoría de **solo lectura**. Ningún archivo del repositorio fue modificado (`git status` limpio al cerrar).
+
+> ## Estado de las correcciones
+>
+> Los **26 hallazgos están corregidos**, salvo una parte de F-016 que no se puede
+> cerrar sin acceso de red a repositorios de terceros; queda declarada abajo.
+> La auditoría en sí fue de solo lectura: las correcciones son un segundo paso,
+> pedido después de entregar el reporte, y cada hallazgo lleva su marca al
+> principio de su ficha en la Sección C.
+>
+> **Compuertas tras las correcciones** (las seis, ejecutadas y vistas):
+>
+> | Compuerta | Resultado |
+> | --- | --- |
+> | `npm test` | **252/252** (238 previas + 14 nuevas de contrato UI↔dominio) |
+> | `node tools/verificar-contraste.mjs` | AA en ambos temas y los 19 colores ISO |
+> | `node tools/verificar-diseno.mjs` (nueva) | 103 de 103 cifras con ayuda, 0 colores sueltos, 0 layouts en línea, hook revisado |
+> | `node tools/generar-precache.mjs` | al día (75 rutas) |
+> | `node tools/acentuar.mjs` | sin cambios |
+> | `node tools/humo.mjs` y `node tools/interaccion.mjs` | **verde** — 11 rutas × 2 viewports sin errores ni scroll horizontal; interacción completa incluidos service worker, recarga sin conexión y reinstalación |
+>
+> **Lo que quedó pendiente, y por qué:** el anclaje por SHA de las seis acciones
+> de GitHub (parte de F-016). Resolver un SHA exige leer `actions/checkout` y
+> compañía, y el acceso a GitHub de esta sesión está limitado a este
+> repositorio. El pin de Playwright sí se cerró —y se verificó contra el
+> registro: `1.62.1`, la versión `latest`— junto con `--ignore-scripts`.
+> Anclar las acciones es un cambio de seis líneas que necesita una persona con
+> acceso; el detalle está en F-016.
 
 ---
 
@@ -145,6 +171,8 @@ Pregunta de cierre de fase, «¿qué errores podrían existir aquí y aún no he
 
 ### F-001 — «Usar en Gasto de agua» escribe la boquilla y la presión donde ya nadie las lee
 
+> **CORREGIDO.** `assets/js/ui/tabs/boquillas.js` usa `fijarDato` para la boquilla y la presión, que es el escritor del dato compartido. Cubierto por la prueba «ninguna pantalla escribe un dato de la JORNADA en el borrador de una pestaña», que barre las catorce superficies.
+
 1. **Severidad:** ALTO
 2. **Confianza:** alta (confirmado en código y con reproductor ejecutado)
 3. **Categoría:** Bugs y lógica incorrecta (contrato roto entre módulos)
@@ -209,6 +237,8 @@ Reproductor en navegador (**no ejecutado**: exige `npm install --no-save playwri
 ---
 
 ### F-002 — Un enlace compartido con `tab: "__proto__"` siembra borradores en todas las pantallas
+
+> **CORREGIDO.** `decodificarEstadoCompartido` recibe un validador de ruta desde `main.js` (`rutaConocida`, contra `SECCIONES`) y exige que `borrador`, `jornada` y `contexto` sean objetos llanos. Con `tab: "__proto__"` el enlace ya no decodifica.
 
 1. **Severidad:** MEDIO
 2. **Confianza:** alta (confirmado en código y con reproductor ejecutado)
@@ -279,6 +309,8 @@ El enlace se arma con `codificarEstadoCompartido({ seccion: 'calibrar', tab: '__
 
 ### F-003 — La importación de respaldos salta la validación en cuatro colecciones
 
+> **CORREGIDO.** Las cuatro colecciones pasan por `validarColeccion`: `factoresDesviacion` con `COTAS_FACTOR_IMPORTADO`, `bitacora` y `pruebasCaptura` con `validarRegistroHistorico`, y `preferencias` contra `TEMAS` y `SISTEMAS`. Además se añadió la cota que faltaba de raíz: `COTAS_FACTOR_DESVIACION.factor` (0.5 a 1.5), que es el único campo de esa ficha que entra al cálculo y no tenía ninguna. El formulario de Configuración la valida con la misma función y el mismo mensaje.
+
 1. **Severidad:** MEDIO
 2. **Confianza:** alta (confirmado en código)
 3. **Categoría:** Seguridad (validación de entrada ausente) / Bugs
@@ -327,6 +359,8 @@ Requiere importar `COTAS_FACTOR_DESVIACION` (ya exportada) y `SISTEMAS` de `doma
 ---
 
 ### F-004 — `aNumero` sustituye solo la primera coma: «1,000» se lee como 1
+
+> **CORREGIDO.** `aNumero` quita el separador de miles cuando la coma no puede ser decimal, y devuelve `null` en la forma ambigua («2,000») en vez de adivinar. `crearCampoNumerico` añade el mensaje que dice cómo escribirlo. Cubierto por dos pruebas.
 
 1. **Severidad:** MEDIO
 2. **Confianza:** alta (confirmado en código)
@@ -389,6 +423,8 @@ Las dos líneas del medio son el defecto: un número plausible tres órdenes de 
 ---
 
 ### F-005 — `iso.iso` no existe y `estiloBadgeIso(iso.hex)` va sin guarda: el paso de candidatas del asistente rompe
+
+> **CORREGIDO.** `pasos.js` usa `iso.tamano` y elige chip de contorno cuando el color está pendiente. `estiloBadgeIso` devuelve `{}` con hex nulo, así que ninguna superficie futura puede tumbar una pantalla por un color de la Tabla 2 de la norma. Dos pruebas.
 
 1. **Severidad:** MEDIO
 2. **Confianza:** alta (confirmado en código y con reproductor ejecutado)
@@ -453,6 +489,8 @@ estiloBadgeIso(null) LANZA: TypeError: Cannot read properties of null (reading '
 
 ### F-006 — `cvPct` no existe: el coeficiente de variación del asistente sale siempre vacío
 
+> **CORREGIDO.** `pasos.js` lee `cvPoblacionalPct`, y la cifra lleva la ayuda que la regla exige. La prueba de contrato fija las once claves de `estadisticaCaptura` y que `cvPct` no exista.
+
 1. **Severidad:** MEDIO
 2. **Confianza:** alta (confirmado en código y con reproductor ejecutado)
 3. **Categoría:** Bugs y lógica incorrecta (contrato roto entre módulos)
@@ -506,6 +544,8 @@ claves reales: n, mediaLmin, dePoblacional, deMuestral, cvPoblacionalPct, cvMues
 ---
 
 ### F-007 — La hoja del asistente calcula el agua por carga distinto que la pestaña Mezcla
+
+> **CORREGIDO.** `guia.js` pasa `unidad: unidadProducto` a `mezclaTanque`. La prueba comprueba que omitirla NO es inocuo, para que la omisión no vuelva sin que nada la vea.
 
 1. **Severidad:** MEDIO
 2. **Confianza:** alta (confirmado en código y con reproductor ejecutado)
@@ -565,6 +605,8 @@ aviso producto-solido en la guia: false
 
 ### F-008 — «Restaurar TODO a defaults» borra la jornada, los borradores y los resultados sin decirlo
 
+> **CORREGIDO.** El diálogo enumera lo que se pierde, incluidas las mediciones de desviación y la captura de la jornada, y dice que no se puede deshacer.
+
 1. **Severidad:** MEDIO
 2. **Confianza:** alta (confirmado en código)
 3. **Categoría:** Bugs y lógica incorrecta / Calidad (documentación que contradice el código)
@@ -606,6 +648,8 @@ Y, si se prefiere conservarla, añadir `semilla.jornada = actual.jornada; semill
 ---
 
 ### F-009 — El botón de compartir se queda mudo si el portapapeles rechaza
+
+> **CORREGIDO.** `try/catch` alrededor de `clipboard.writeText`, devolviendo `sin-soporte` para que la rama de rescate —mostrar el enlace— se alcance de verdad; y el llamador de `main.js` va envuelto con su toast.
 
 1. **Severidad:** MEDIO
 2. **Confianza:** alta (confirmado en código)
@@ -665,6 +709,8 @@ Y, como cinturón, envolver la llamada de `main.js:469` en `try/catch` con un to
 
 ### F-010 — «Reinstalar desde cero» borra las cachés y los service workers de TODO el origen
 
+> **CORREGIDO.** `reinstalar()` filtra las cachés por el prefijo `sprayboom-` y los registros por `scope`, el mismo alcance que ya usaba `sw.js` en su `activate`.
+
 1. **Severidad:** BAJO
 2. **Confianza:** alta (confirmado en código)
 3. **Categoría:** Bugs y lógica incorrecta / Configuración e infraestructura
@@ -717,6 +763,8 @@ if ('caches' in self) {
 
 ### F-011 — Cualquier fallo al buscar actualización se reporta como «sin conexión»
 
+> **CORREGIDO.** `buscarActualizacion` distingue con `navigator.onLine`: sin red devuelve `sin-conexion`, y cualquier otro fallo devuelve `error`, cuyo mensaje ya aconsejaba «Reinstalar desde cero».
+
 1. **Severidad:** BAJO
 2. **Confianza:** alta (confirmado en código)
 3. **Categoría:** Manejo de errores y excepciones
@@ -762,6 +810,8 @@ try {
 ---
 
 ### F-012 — Cotas cruzadas ausentes: escala del rotámetro y régimen del tractor
+
+> **CORREGIDO.** Dos validadores cruzados nuevos, aplicados en los DOS caminos: `validarRotametro` (escala mínima menor que la máxima) y el rango del motor dentro de `validarTractor`, más la comprobación en vivo en los formularios de Configuración.
 
 1. **Severidad:** BAJO
 2. **Confianza:** alta (confirmado en código)
@@ -824,6 +874,8 @@ Los cuatro se aceptan individualmente; nada comprueba la relación entre ellos.
 
 ### F-013 — Sin tractor en el estado, Avance y Gasto de agua mueren con TypeError
 
+> **CORREGIDO.** `tarjetaSinContexto` en `render.js`, usada por Avance; Gasto de agua añade el tractor a su guarda. Es la mitigación estructural de E.4 en su forma mínima: un solo ayudante en vez de tres criterios.
+
 1. **Severidad:** BAJO
 2. **Confianza:** alta (confirmado en código)
 3. **Categoría:** Edge cases (primera ejecución sin estado / estado degradado)
@@ -878,6 +930,8 @@ Y en `gasto.js::recalcularBomba`, sumar `|| !tractor` a la guarda de la línea 8
 ---
 
 ### F-014 — El asistente pinta hectáreas, gramos y mililitros sin convertir al sistema activo
+
+> **CORREGIDO.** La hoja y el paso de aforo del asistente convierten con `aSistema` y `unidad(...)`, y el campo de volúmenes declara `magnitud: volumenChico` y `sistema`, como la pestaña Prueba de captura.
 
 1. **Severidad:** BAJO
 2. **Confianza:** alta (confirmado en código)
@@ -943,6 +997,8 @@ crearCampoNumerico({
 
 ### F-015 — Diecisiete cifras se pintan sin su `ayuda`, contra una regla dura del sistema de diseño
 
+> **CORREGIDO.** Las 17 ayudas escritas, y la compuerta `tools/verificar-diseno.mjs` en el job `estatico`: 103 de 103 cifras. Reutilizan los textos que ya existían para la misma cifra en su pestaña.
+
 1. **Severidad:** BAJO
 2. **Confianza:** alta (confirmado en código, conteo automatizado)
 3. **Categoría:** Calidad (regla declarada del proyecto sin cumplir y sin compuerta)
@@ -981,6 +1037,8 @@ assets/js/ui/tabs/guia.js:521  'Diferencia contra el objetivo'
 
 ### F-016 — CI instala Playwright sin pin ni lockfile, y usa acciones ancladas a tag mayor
 
+> **CORREGIDO PARCIALMENTE.** **Parcial.** Playwright pinneado a `1.62.1` —verificado contra el registro— con `--ignore-scripts`. El anclaje por SHA de las seis acciones NO se hizo: resolver un SHA exige leer repositorios de terceros y el acceso a GitHub de esta sesión está limitado a este repositorio. Inventar un SHA pondría CI en rojo. Es un cambio de seis líneas (`- uses: actions/checkout@<sha40>  # v4.2.2`) que necesita una persona con acceso.
+
 1. **Severidad:** BAJO
 2. **Confianza:** alta (confirmado en código)
 3. **Categoría:** Dependencias y supply chain / Configuración e infraestructura
@@ -1015,6 +1073,8 @@ assets/js/ui/tabs/guia.js:521  'Diferencia contra el objetivo'
 ---
 
 ### F-017 — El despliegue publica los archivos de desarrollo del repositorio
+
+> **CORREGIDO.** `tools/empaquetar-sitio.mjs` copia a `_sitio/` exactamente lo que declara `precache.js` —una sola fuente de verdad— y falla si una ruta listada no existe. Comprobado: 76 archivos, sin `tests/`, `tools/`, `docs/`, `.claude/` ni `package.json`.
 
 1. **Severidad:** BAJO
 2. **Confianza:** alta (confirmado en código y contra el comportamiento documentado de la acción)
@@ -1054,6 +1114,8 @@ El sellado de la versión debe correr antes de la copia, y conviene una comproba
 
 ### F-018 — El hook `SessionStart` es un vector de instrucción al agente que ejecuta el repositorio
 
+> **CORREGIDO.** La compuerta de `verificar-diseno.mjs` comprueba que el `command` del hook `SessionStart` siga siendo un `echo` literal.
+
 1. **Severidad:** BAJO
 2. **Confianza:** media (mecanismo confirmado en código; que se considere defecto y no comportamiento aceptado de la herramienta es inferencia)
 3. **Categoría:** Seguridad / Configuración e infraestructura
@@ -1089,6 +1151,8 @@ El sellado de la versión debe correr antes de la copia, y conviene una comproba
 ---
 
 ### F-019 — Color escrito a mano en el cronómetro
+
+> **CORREGIDO.** El estado vive en `components.css` (`.cronometro__pantalla[data-cumplido="true"]`) y `cronometro.js` solo marca el atributo. La compuerta impide que vuelva.
 
 1. **Severidad:** BAJO
 2. **Confianza:** alta (confirmado en código; es la única ocurrencia del repositorio)
@@ -1138,6 +1202,8 @@ assets/js/ui/cronometro.js:59:      pantalla.style.color = 'hsl(var(--warning))'
 
 ### F-020 — Los fallbacks de `--touch-floor` son inalcanzables y están en `rem`
 
+> **CORREGIDO.** Los seis fallbacks en `rem` quitados; queda `var(--touch-floor)`, que dice la verdad (el token siempre está declarado).
+
 1. **Severidad:** BAJO
 2. **Confianza:** alta (confirmado en código)
 3. **Categoría:** Calidad (código muerto + regla declarada del proyecto sin cumplir)
@@ -1180,6 +1246,8 @@ assets/css/components.css:1426:  min-height: var(--touch-floor, 3.15rem);
 
 ### F-021 — `import.meta.url.pathname` rompe las herramientas si la ruta del repositorio lleva espacios
 
+> **CORREGIDO.** `fileURLToPath` en las seis herramientas que usaban `.pathname`.
+
 1. **Severidad:** BAJO
 2. **Confianza:** media (mecanismo de percent-encoding de `URL.pathname` confirmado; no se probó sobre una ruta con espacios porque exigiría copiar el repositorio)
 3. **Categoría:** Configuración e infraestructura
@@ -1214,6 +1282,8 @@ $ node -e "console.log(new URL('..','file:///home/mi%20rancho/x/tools/t.mjs').pa
 ---
 
 ### F-022 — Los mensajes internos de error se muestran verbatim al usuario
+
+> **CORREGIDO.** `ErrorDeDominio` en `validate.js`, lanzado por las tres guardas y por los seis errores de dominio con mensaje redactado. `alertaDeError` en `render.js` distingue el dato que falta del defecto de la aplicación, y sustituye las nueve copias idénticas que había.
 
 1. **Severidad:** BAJO
 2. **Confianza:** alta (confirmado en código)
@@ -1270,6 +1340,8 @@ El texto exacto en pantalla se comprueba con el reproductor en navegador de F-01
 
 ### F-023 — Layout escrito en línea en unos sesenta sitios, contra la regla del sistema de diseño
 
+> **CORREGIDO.** 78 sustituciones: `.pila`, `.pila--compacta`, `.rejilla-2` y `.fila-acciones` en `components.css`, y las cuatro constantes locales duplicadas eliminadas. La compuerta impide que vuelva el ritmo en línea.
+
 1. **Severidad:** SUGERENCIA
 2. **Confianza:** alta (confirmado en código, conteo automatizado)
 3. **Categoría:** Calidad
@@ -1320,6 +1392,8 @@ estilo: {
 
 ### F-024 — Código muerto verificado
 
+> **CORREGIDO.** Las siete declaraciones borradas (y una octava que quedó muerta al quitar `precarga`: `redondeoLegible` en `gasto.js`).
+
 1. **Severidad:** SUGERENCIA
 2. **Confianza:** alta (confirmado con conteo de referencias por archivo)
 3. **Categoría:** Calidad
@@ -1354,6 +1428,8 @@ $ grep -c "\bp\." assets/js/ui/tabs/gas.js
 ---
 
 ### F-025 — Cero pruebas de `assets/js/ui`: los cuatro contratos roto UI↔dominio no los ve ninguna compuerta
+
+> **CORREGIDO.** `tests/contratos-ui.test.js`: 14 pruebas que fijan las claves de la frontera, dónde vive cada dato, la tabla ISO, la conversión de captura y la regla de las ayudas.
 
 1. **Severidad:** SUGERENCIA
 2. **Confianza:** alta (confirmado por inventario de pruebas y por ejecución de la batería)
@@ -1407,6 +1483,8 @@ test('cada tamano ISO sembrado en el catalogo tiene fila, y la fila expone .tama
 ---
 
 ### F-026 — IDs de bitácora con `Math.random` en vez de `crypto.randomUUID`
+
+> **CORREGIDO.** `assets/js/ui/id.js` con `idRegistro`, usado por las seis superficies que guardan.
 
 1. **Severidad:** SUGERENCIA
 2. **Confianza:** alta (confirmado en código)

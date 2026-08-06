@@ -3,7 +3,7 @@
 // redundante por la ruta SI y con ida y vuelta en los despejes.
 
 import { FACTOR_LHA, PORCIENTO } from './constants.js';
-import { aviso, requierePositivo } from './validate.js';
+import { aviso, requierePositivo, ErrorDeDominio } from './validate.js';
 import { paso, redondeoLegible } from './speed.js';
 import { presionParaCaudal, caudalAPresion, caudalConDensidad } from './nozzles.js';
 import {
@@ -360,7 +360,7 @@ export function volumenConBoquilla({
   densidadRelativa = 1,
   umbralDiscrepanciaPct,
 }) {
-  if (!boquilla) throw new Error('Falta la boquilla');
+  if (!boquilla) throw new ErrorDeDominio('No se puede calcular: falta elegir la boquilla.');
   const caudalAguaLmin = caudalAPresion({
     caudalRef: boquilla.caudalRefLmin,
     presionRef: boquilla.presionRefBar,

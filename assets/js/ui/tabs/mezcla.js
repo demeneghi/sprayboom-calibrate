@@ -18,19 +18,18 @@ import {
   pintarVerificacion,
   resultadoConfiable,
   pintarResultadoNoVerificado,
+  alertaDeError,
 } from '../render.js';
 import { crearCampoNumerico, crearCampoSelect } from '../campos.js';
 import { crearCampoDato } from '../dato.js';
 import { formatear } from '../formato.js';
 import { mostrarToast } from '../toast.js';
+import { idRegistro } from '../id.js';
 import { aSistema, deSistema, unidad } from '../../domain/units.js';
 import { redondeoLegible } from '../../domain/speed.js';
 import { mezclaTanque, equivalenciaDosis } from '../../domain/mix.js';
 
 export const id = 'mezcla';
-
-const COLUMNA = { display: 'flex', flexDirection: 'column', gap: '0.75rem' };
-const CUADRICULA_2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' };
 
 export function render(panel, ctx) {
   const borrador = ctx.borrador(id);
@@ -56,14 +55,6 @@ export function render(panel, ctx) {
   function precarga(magnitud, valorMetrico) {
     if (valorMetrico === null || valorMetrico === undefined) return null;
     return redondeoLegible(aSistema(magnitud, valorMetrico, sistema));
-  }
-
-  function alertaDestructiva(error) {
-    return el(
-      'div',
-      { clase: 'alerta alerta--destructiva', role: 'alert' },
-      el('p', { clase: 'alerta__descripcion' }, String(error?.message ?? error))
-    );
   }
 
   // Unidad compuesta de la dosis en unidades de etiqueta.
@@ -166,7 +157,7 @@ export function render(panel, ctx) {
   }
 
   // ---------------- Dosis en las dos formas ----------------
-  const zonaEquivalencia = el('div', { estilo: COLUMNA });
+  const zonaEquivalencia = el('div', { clase: 'pila' });
 
   function pintarEquivalencia() {
     const nodos = [];
@@ -185,7 +176,7 @@ export function render(panel, ctx) {
         nodos.push(
           el(
             'div',
-            { estilo: CUADRICULA_2 },
+            { clase: 'rejilla-2' },
             pintarResultado({
               etiqueta: 'Por hectárea',
               valor: eq.porHa,
@@ -216,14 +207,14 @@ export function render(panel, ctx) {
         );
       }
     } catch (error) {
-      nodos.push(alertaDestructiva(error));
+      nodos.push(alertaDeError(error));
     }
     reemplazar(zonaEquivalencia, nodos);
   }
 
   // ---------------- Resultado por carga y plan ----------------
-  const zonaCarga = el('div', { estilo: COLUMNA });
-  const zonaPlan = el('div', { estilo: COLUMNA });
+  const zonaCarga = el('div', { clase: 'pila' });
+  const zonaPlan = el('div', { clase: 'pila' });
 
   function pintarPlan(resultado, hayDosis, confiable) {
     const plan = resultado.valores.plan;
@@ -244,7 +235,7 @@ export function render(panel, ctx) {
     const nodos = [
       el(
         'div',
-        { estilo: CUADRICULA_2 },
+        { clase: 'rejilla-2' },
         pintarResultado({
           etiqueta: 'Caldo total',
           valor: aSistema('volumen', plan.caldoTotalL, sistema),
@@ -287,7 +278,7 @@ export function render(panel, ctx) {
         }),
         el(
           'div',
-          { estilo: CUADRICULA_2 },
+          { clase: 'rejilla-2' },
           hayDosis
             ? confiable
               ? pintarResultado({
@@ -442,7 +433,7 @@ export function render(panel, ctx) {
 
       pintarPlan(resultado, dosis !== null, confiable);
     } catch (error) {
-      nodos.push(alertaDestructiva(error));
+      nodos.push(alertaDeError(error));
       reemplazar(
         zonaPlan,
         el('p', { clase: 'texto-suave' }, 'Corrige la captura para calcular el plan de cargas.')
@@ -475,7 +466,7 @@ export function render(panel, ctx) {
     }
     resumen += '.';
     const registroBase = {
-      id: `mezcla-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      id: idRegistro('mezcla'),
       tipo: 'mezcla',
       fecha: new Date().toISOString(),
       titulo:

@@ -11,7 +11,7 @@
 // respuesta agronomica observada tienen prioridad sobre estos numeros.
 
 import { PORCIENTO } from './constants.js';
-import { aviso, requierePositivo } from './validate.js';
+import { aviso, requierePositivo, ErrorDeDominio } from './validate.js';
 import { paso, redondeoLegible } from './speed.js';
 import { despejeScfm, despejePresion, despejeTiempo, masaGas } from './flowmeter.js';
 
@@ -123,7 +123,7 @@ export function forzamientoDesdeObjetivo({
       presionEstandarCalibracion,
     });
   } else {
-    throw new Error(`No se puede calcular: modo de despeje desconocido (${modoDespeje}).`);
+    throw new ErrorDeDominio(`No se puede calcular: modo de despeje desconocido (${modoDespeje}).`);
   }
   avisos.push(...ajuste.avisos);
   desglose.push(...ajuste.desglose);

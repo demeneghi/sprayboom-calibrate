@@ -7,6 +7,7 @@ import { crearAlmacen } from './storage.js';
 import { presionAtmosfericaEfectiva } from './domain/atmosphere.js';
 import { avance, velocidadDeAvance } from './domain/speed.js';
 import { el, limpiar } from './ui/dom.js';
+import { alertaDeError } from './ui/render.js';
 import { crearTabs } from './ui/tabs.js';
 import { mostrarAvisoPersistente, mostrarToast } from './ui/toast.js';
 import { confirmar } from './ui/dialog.js';
@@ -388,14 +389,10 @@ function renderizar({ conservarPosicion = false } = {}) {
   try {
     tab.modulo.render(panel, ctx);
   } catch (error) {
-    panel.append(
-      el(
-        'div',
-        { clase: 'alerta alerta--destructiva', role: 'alert' },
-        el('p', { clase: 'alerta__titulo' }, 'Esta pantalla no pudo pintarse'),
-        el('p', { clase: 'alerta__descripcion' }, String(error?.message ?? error))
-      )
-    );
+    // `alertaDeError` distingue el dato que falta —mensaje redactado del
+    // dominio— del defecto de la aplicacion, que antes llegaba aqui como
+    // un texto de motor JavaScript en ingles.
+    panel.append(alertaDeError(error));
   }
   if (conservarPosicion) {
     // Re-render por cambio de contexto (tractor, equipo, unidades):
@@ -446,6 +443,14 @@ function soloClavesDeJornada(jornada) {
   }
   return salida;
 }
+
+// Si la seccion y la pestana de un enlace compartido existen de verdad.
+// Es la allowlist que faltaba: sin ella, `tab` llegaba sin validar a una
+// escritura por indice.
+function rutaConocida(seccionId, tabId) {
+  const seccion = SECCIONES.find((s) => s.id === seccionId);
+  return Boolean(seccion) && seccion.tabs.some((t) => t.id === tabId);
+}
 const botonCompartir = document.getElementById('boton-compartir');
 if (botonCompartir) {
   botonCompartir.addEventListener('click', async () => {
@@ -466,7 +471,17 @@ if (botonCompartir) {
         unidades: estado.preferencias.unidades,
       },
     });
-    const resultado = await compartirUrl(url, 'Calibracion agricola MD2');
+    // Envuelto: un fallo de `compartirUrl` dejaba el boton sin ninguna
+    // señal, que en el lote se lee como aplicacion rota.
+    let resultado;
+    try {
+      resultado = await compartirUrl(url, 'Calibracion agricola MD2');
+    } catch (error) {
+      mostrarToast(`No se pudo compartir: ${String(error?.message ?? error)}`, {
+        tipo: 'destructivo',
+      });
+      return;
+    }
     if (resultado === 'copiado') {
       mostrarToast('Enlace copiado al portapapeles: pegalo en un mensaje.');
     } else if (resultado === 'sin-soporte') {
@@ -479,7 +494,10 @@ async function aplicarEstadoCompartido(consulta) {
   const parametros = new URLSearchParams(consulta);
   const codigo = parametros.get('e');
   if (!codigo) return;
-  const carga = decodificarEstadoCompartido(codigo);
+  // La ruta del enlace se valida contra el enrutador ANTES de usar `tab`
+  // como clave de escritura: es entrada no confiable y `estado.borradores`
+  // es un objeto llano.
+  const carga = decodificarEstadoCompartido(codigo, rutaConocida);
   if (!carga) {
     mostrarToast('El enlace compartido no se pudo leer.', { tipo: 'destructivo' });
     escribirHash(rutaActual.seccion, rutaActual.tab);

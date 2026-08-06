@@ -52,10 +52,17 @@ jobs:
         run: |
           node tools/sellar-version.mjs "$(date -u +%Y-%m-%d).${GITHUB_SHA::7}"
           cat version.js
-      - name: Empaquetar la raíz del repositorio
+      # Se publica SOLO lo que el sitio sirve, no la raíz del repositorio.
+      # La lista sale de precache.js —la misma que precachea el service
+      # worker— así que no puede publicarse una ruta que el precache no
+      # conozca ni precacharse una que no se publique. Va después del
+      # sellado: `version.js` tiene que ir ya estampado.
+      - name: Empaquetar solo los archivos del sitio
+        run: node tools/empaquetar-sitio.mjs _sitio
+      - name: Preparar el artefacto de Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: ./_sitio
       - name: Publicar
         id: despliegue
         uses: actions/deploy-pages@v4

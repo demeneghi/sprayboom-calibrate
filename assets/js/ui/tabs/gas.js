@@ -28,6 +28,7 @@ import {
   pintarVerificacion,
   resultadoConfiable,
   pintarResultadoNoVerificado,
+  alertaDeError,
 } from '../render.js';
 import { crearCampoNumerico } from '../campos.js';
 import { crearCampoHeredado } from '../heredado.js';
@@ -38,15 +39,13 @@ import { nodosTubo } from './gas/tubo.js';
 import { nodosManometro } from './gas/manometro.js';
 import { decimalesDe, ajustar } from './gas/escala.js';
 import { mostrarToast } from '../toast.js';
+import { idRegistro } from '../id.js';
 import { aSistema, deSistema, unidad } from '../../domain/units.js';
 import { masaGas, despejePresion, despejeTiempo, despejeScfm } from '../../domain/flowmeter.js';
 import { valorDefault } from '../../domain/defaults.js';
 import { gPorScfEfectivo } from '../../domain/gas.js';
 
 export const id = 'gas';
-
-const GRID_2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' };
-const COLUMNA = { display: 'flex', flexDirection: 'column', gap: '0.75rem' };
 
 const MODOS = [
   { id: 'masa', etiqueta: 'Consumo (masa)', descripcion: 'consumo de gas' },
@@ -67,14 +66,6 @@ export function render(panel, ctx) {
   let lecturaTubo = null; // SCFM vigente del modo (capturada o despejada)
   let presionAguja = null; // psi vigente del modo (capturada o despejada)
   let ultimoCalculo = null; // datos planos listos para bitacora
-
-  function alertaDestructiva(error) {
-    return el(
-      'div',
-      { clase: 'alerta alerta--destructiva', role: 'alert' },
-      el('p', { clase: 'alerta__descripcion' }, String(error?.message ?? error))
-    );
-  }
 
   // ---------------- Modo ----------------
   const botonesModo = new Map();
@@ -282,14 +273,13 @@ export function render(panel, ctx) {
   }
 
   // ---------------- Masa por pie cubico estandar (siempre visible) ----
-  const zonaGscf = el('div', { estilo: COLUMNA });
+  const zonaGscf = el('div', { clase: 'pila' });
 
   function pintarGscf() {
     const nodos = [];
     gEfectivoValor = null;
     gEfectivoAnulado = null;
     const gas = ctx.gasActivo();
-    const p = ctx.estado().parametros;
     if (!gas) {
       nodos.push(
         el(
@@ -343,7 +333,7 @@ export function render(panel, ctx) {
         nodos.push(
           el(
             'div',
-            { estilo: GRID_2 },
+            { clase: 'rejilla-2' },
             pintarResultado({
               etiqueta: 'Presión estándar de calibración',
               valor: gas.presionEstandarPsia,
@@ -366,14 +356,14 @@ export function render(panel, ctx) {
           )
         );
       } catch (error) {
-        nodos.push(alertaDestructiva(error));
+        nodos.push(alertaDeError(error));
       }
     }
     reemplazar(zonaGscf, nodos);
   }
 
   // ---------------- Resultado por modo ----------------
-  const zonaResultado = el('div', { estilo: COLUMNA });
+  const zonaResultado = el('div', { clase: 'pila' });
 
   function pintarCentral() {
     const nodos = [];
@@ -382,7 +372,6 @@ export function render(panel, ctx) {
     presionAguja = null;
     try {
       const gas = ctx.gasActivo();
-      const p = ctx.estado().parametros;
       const { masaObjetivoG, scfm, psiManometrica, tiempoS } = lecturas();
 
       // Los instrumentos reflejan lo capturado en cuanto existe, aunque
@@ -453,7 +442,7 @@ export function render(panel, ctx) {
               nodos.push(
                 el(
                   'div',
-                  { estilo: GRID_2 },
+                  { clase: 'rejilla-2' },
                   pintarResultado({
                     etiqueta: 'Masa de gas inyectada',
                     valor: aSistema('masa', resultado.valores.masaG, sistema),
@@ -512,7 +501,7 @@ export function render(panel, ctx) {
               nodos.push(
                 el(
                   'div',
-                  { estilo: GRID_2 },
+                  { clase: 'rejilla-2' },
                   pintarResultado({
                     etiqueta: 'Presión manométrica requerida',
                     valor: resultado.valores.psiManometrica,
@@ -569,7 +558,7 @@ export function render(panel, ctx) {
               nodos.push(
                 el(
                   'div',
-                  { estilo: GRID_2 },
+                  { clase: 'rejilla-2' },
                   pintarResultado({
                     etiqueta: `Tiempo requerido (${formatearTiempo(resultado.valores.tiempoS)})`,
                     valor: resultado.valores.tiempoS,
@@ -643,7 +632,7 @@ export function render(panel, ctx) {
               nodos.push(
                 el(
                   'div',
-                  { estilo: GRID_2 },
+                  { clase: 'rejilla-2' },
                   pintarResultado({
                     etiqueta: 'Lectura de flotador requerida',
                     valor: resultado.valores.scfm,
@@ -683,7 +672,7 @@ export function render(panel, ctx) {
         }
       }
     } catch (error) {
-      nodos.push(alertaDestructiva(error));
+      nodos.push(alertaDeError(error));
     }
     reemplazar(zonaResultado, nodos);
   }
@@ -719,7 +708,7 @@ export function render(panel, ctx) {
         `a ${formatear(c.psiManometrica, 1)} psi en ${formatearTiempo(c.tiempoS)}.`;
     }
     const registroBase = {
-      id: `gas-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      id: idRegistro('gas'),
       tipo: 'gas',
       fecha: new Date().toISOString(),
       titulo: `Gas etileno: ${etiquetaModo}`,
@@ -746,7 +735,7 @@ export function render(panel, ctx) {
   // ---------------- Tubo del rotametro en SVG ----------------
   // El dibujo vive en ./gas/tubo.js: aqui solo se le pasa el estado
   // vigente y se cuelga lo que devuelve.
-  const zonaTubo = el('div', { estilo: COLUMNA });
+  const zonaTubo = el('div', { clase: 'pila' });
 
   function dibujarTubo() {
     reemplazar(
@@ -771,7 +760,7 @@ export function render(panel, ctx) {
     escalaMaxPsi: valorDefault('manometro', 'escalaMaxPsi'),
     resolucionPsi: valorDefault('manometro', 'resolucionPsi'),
   };
-  const zonaManometro = el('div', { estilo: COLUMNA });
+  const zonaManometro = el('div', { clase: 'pila' });
 
   function dibujarManometro() {
     reemplazar(
@@ -829,7 +818,7 @@ export function render(panel, ctx) {
       filaModos,
       el(
         'div',
-        { estilo: COLUMNA },
+        { clase: 'pila' },
         campoMasa.elemento,
         campoScfm.elemento,
         campoPsi.elemento,

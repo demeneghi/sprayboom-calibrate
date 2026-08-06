@@ -24,12 +24,15 @@ import {
   COTAS_EQUIPO,
   COTAS_GAS,
   COTAS_ROTAMETRO,
+  COTAS_FACTOR_IMPORTADO,
   ORIGENES_VELOCIDAD,
   TIPOS_BOMBA,
   ACCIONAMIENTOS,
+  TEMAS,
 } from './domain/defaults.js';
 import { CATALOGO_SIEMBRA } from './data/nozzle-catalog.js';
 import { validarValor } from './domain/validate.js';
+import { SISTEMAS } from './domain/units.js';
 
 export const CLAVE_ALMACEN = 'sprayboom.v1';
 export const VERSION_ESQUEMA = 1;
@@ -521,6 +524,14 @@ function validarColeccion(lista, cotas, nombre, rechazos, validadorExtra = null)
 
 function validarTractor(tractor) {
   if (!Array.isArray(tractor.velocidades)) return 'Tractor sin tabla de velocidades.';
+  // Cota CRUZADA: cada campo pasa su rango por separado, asi que sin esto
+  // se podia guardar el minimo por encima del maximo. El efecto no era un
+  // numero raro sino un diagnostico falso: `marchasParaVelocidad` marcaba
+  // TODAS las marchas fuera de rango y Avance decia «ninguna marcha da esa
+  // velocidad», culpando a la transmision de un error de dedo.
+  if (!(tractor.regimenMinimo <= tractor.regimenMaximo)) {
+    return `El régimen mínimo (${tractor.regimenMinimo}) no puede ser mayor que el máximo (${tractor.regimenMaximo}).`;
+  }
   for (const fila of tractor.velocidades) {
     const veredicto = validarValor(
       { ...COTAS_VELOCIDAD_MARCHA.kmhNominal },
@@ -545,6 +556,28 @@ function validarEquipo(equipo) {
 function validarBoquilla(boquilla) {
   if (boquilla.presionMinBar >= boquilla.presionMaxBar) {
     return 'La presión mínima debe ser menor que la máxima.';
+  }
+  return null;
+}
+
+// Cota CRUZADA de la escala del rotametro. El dibujo del tubo ya detecta
+// la escala invertida y avisa, pero `despejeScfm` seguia comparando contra
+// ella y emitia un «fuera de escala» que no significaba nada.
+export function validarRotametro(rotametro) {
+  if (!(rotametro.escalaMin < rotametro.escalaMax)) {
+    return 'La escala mínima debe ser menor que la máxima.';
+  }
+  return null;
+}
+
+// Un registro de historial no entra a ningun calculo, asi que no lleva
+// cotas: lo que si se exige es que tenga con que identificarlo y ordenarlo.
+// Sin `id` no se puede borrar de la lista, y sin `fecha` no se puede
+// ordenar ni comparar.
+function validarRegistroHistorico(registro) {
+  if (typeof registro.id !== 'string' || registro.id === '') return 'Registro sin id.';
+  if (typeof registro.fecha !== 'string' || Number.isNaN(new Date(registro.fecha).getTime())) {
+    return 'Registro sin fecha válida.';
   }
   return null;
 }
@@ -596,16 +629,59 @@ export function importarJSON(texto, estadoActual) {
   const gases = validarColeccion(importado.gases, COTAS_GAS, 'gases', rechazos);
   if (gases && gases.length > 0) nuevo.gases = gases;
 
-  const rotametros = validarColeccion(importado.rotametros, COTAS_ROTAMETRO, 'rotametros', rechazos);
+  const rotametros = validarColeccion(
+    importado.rotametros,
+    COTAS_ROTAMETRO,
+    'rotametros',
+    rechazos,
+    validarRotametro
+  );
   if (rotametros && rotametros.length > 0) nuevo.rotametros = rotametros;
 
   const catalogo = validarColeccion(importado.catalogo, COTAS_BOQUILLA, 'catalogo', rechazos, validarBoquilla);
   if (catalogo && catalogo.length > 0) nuevo.catalogo = catalogo;
 
-  if (Array.isArray(importado.factoresDesviacion)) nuevo.factoresDesviacion = importado.factoresDesviacion;
-  if (Array.isArray(importado.bitacora)) nuevo.bitacora = importado.bitacora;
-  if (Array.isArray(importado.pruebasCaptura)) nuevo.pruebasCaptura = importado.pruebasCaptura;
-  if (importado.preferencias) nuevo.preferencias = { ...nuevo.preferencias, ...importado.preferencias };
+  // Estas cuatro entraban con solo `Array.isArray` o truthiness, contra lo
+  // que declara el encabezado de este archivo. La que dolia era
+  // `factoresDesviacion`: sus cotas ya existian (COTAS_FACTOR_DESVIACION) y
+  // no se aplicaban, asi que un factor fuera de rango multiplicaba la
+  // velocidad corregida del tractor —y con ella el volumen por hectarea, la
+  // dosis del tanque y el tiempo de inyeccion— sin rechazo ni aviso, con el
+  // chip diciendo «factor medido en campo».
+  const factores = validarColeccion(
+    importado.factoresDesviacion,
+    COTAS_FACTOR_IMPORTADO,
+    'factoresDesviacion',
+    rechazos
+  );
+  if (factores) nuevo.factoresDesviacion = factores;
+
+  const bitacora = validarColeccion(importado.bitacora, {}, 'bitacora', rechazos, validarRegistroHistorico);
+  if (bitacora) nuevo.bitacora = bitacora;
+
+  const pruebas = validarColeccion(
+    importado.pruebasCaptura,
+    {},
+    'pruebasCaptura',
+    rechazos,
+    validarRegistroHistorico
+  );
+  if (pruebas) nuevo.pruebasCaptura = pruebas;
+
+  if (importado.preferencias) {
+    const p = importado.preferencias;
+    if (TEMAS.includes(p.tema)) nuevo.preferencias.tema = p.tema;
+    else if (p.tema !== undefined) {
+      rechazos.push({ ruta: 'preferencias.tema', mensaje: `Tema desconocido (${p.tema}).` });
+    }
+    if (SISTEMAS.includes(p.unidades)) nuevo.preferencias.unidades = p.unidades;
+    else if (p.unidades !== undefined) {
+      rechazos.push({
+        ruta: 'preferencias.unidades',
+        mensaje: `Sistema de unidades desconocido (${p.unidades}).`,
+      });
+    }
+  }
   // Los datos de la jornada viajan en el respaldo; uno exportado antes de
   // que existieran se reconstruye desde sus borradores, igual que al
   // cargar lo guardado.

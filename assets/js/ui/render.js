@@ -6,6 +6,37 @@ import { el } from './dom.js';
 import { formatear } from './formato.js';
 import { crearAyuda } from './campos.js';
 import { nodoAlterno } from './alterna.js';
+import { ErrorDeDominio } from '../domain/validate.js';
+
+/* Un error atrapado, pintado como alerta.
+
+   Distingue las dos clases de error, que piden dos acciones distintas:
+
+   - ErrorDeDominio: el mensaje esta redactado para quien calibra («la
+     velocidad debe ser mayor que cero») y se muestra tal cual. Es un dato
+     que falta o que esta fuera de rango, y se corrige capturando.
+   - Cualquier otro: es un defecto de la aplicacion. Se dice con esas
+     palabras y el detalle tecnico queda a la vista para reportarlo, en vez
+     de soltar «Cannot read properties of null» en medio de una pantalla en
+     español y dejar a quien lo lee sin saber si el problema es suyo.
+
+   Vive aqui y no repetida en cada pestaña porque nueve superficies tenian
+   su propia copia identica de esta funcion. */
+export function alertaDeError(error) {
+  const deDominio = error instanceof ErrorDeDominio;
+  return el(
+    'div',
+    { clase: 'alerta alerta--destructiva', role: 'alert' },
+    deDominio ? null : el('p', { clase: 'alerta__titulo' }, 'Esto es un error de la aplicación'),
+    el(
+      'p',
+      { clase: 'alerta__descripcion' },
+      deDominio
+        ? String(error.message)
+        : `No es un dato que falte: repórtalo. Detalle técnico: ${String(error?.message ?? error)}`
+    )
+  );
+}
 
 export function pintarAviso(aviso) {
   const clase =
@@ -162,6 +193,35 @@ export function pintarResultadoNoVerificado(etiqueta) {
       'span',
       { clase: 'resultado__valor' },
       'Cálculo no verificado: las dos rutas no coinciden. No uses este número; reporta el error.'
+    )
+  );
+}
+
+/* Pantalla que no puede calcular porque falta contexto: no hay tractor, no
+   hay barra, no hay gas.
+
+   Existe porque el mismo estado se manejaba con tres criterios distintos:
+   Forzamiento comprobaba y devolvia una alerta con instruccion, el
+   asistente usaba encadenamiento opcional con defaults, y Avance y Gasto
+   de agua no comprobaban nada y dejaban salir un TypeError que llegaba a
+   la pantalla como «Cannot read properties of undefined (reading 'id')».
+   Un mensaje de motor JavaScript en medio de una pantalla en español no
+   dice si el problema es de quien captura o de la aplicacion.
+
+   `faltantes` va en el idioma de quien calibra ('un tractor', 'una
+   barra'), porque entra tal cual en la frase. */
+export function tarjetaSinContexto(titulo, faltantes) {
+  return tarjeta(
+    { titulo, descripcion: 'El cálculo necesita el contexto activo de la aplicación.' },
+    el(
+      'div',
+      { clase: 'alerta alerta--destructiva', role: 'alert' },
+      el(
+        'p',
+        { clase: 'alerta__descripcion' },
+        `Falta ${faltantes.join(' y ')} en la configuración. Agrégalo en Sistema, ` +
+          'Configuración y vuelve a esta pantalla.'
+      )
     )
   );
 }

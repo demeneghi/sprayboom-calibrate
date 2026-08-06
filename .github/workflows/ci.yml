@@ -59,6 +59,13 @@ jobs:
           echo "Sin innerHTML."
       - name: Contraste AA de tokens y colores ISO
         run: node tools/verificar-contraste.mjs
+      # Las reglas duras del sistema de diseno que se pueden verificar:
+      # toda cifra pintada lleva su ayuda, ningun color escrito a mano en
+      # un consumidor, ningun layout en linea, y el hook de sesion sigue
+      # siendo un echo literal. Las que existian sin compuerta se
+      # aflojaban en proporcion a lo nueva que era la superficie.
+      - name: Reglas del sistema de diseno
+        run: node tools/verificar-diseno.mjs
       - name: Precache del service worker al dia
         run: |
           node tools/generar-precache.mjs
@@ -87,8 +94,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      # Version FIJA y sin scripts de instalacion. Sin el pin, cada corrida
+      # resolvia la ultima version publicada: el resultado de la compuerta
+      # no era reproducible entre corridas —una version nueva puede romper
+      # o silenciar una asercion sin que nadie toque el repositorio— y una
+      # release comprometida ejecutaba codigo en el runner. `--ignore-scripts`
+      # quita los scripts de post-instalacion, que aqui no hacen falta:
+      # el navegador ya viene en el runner.
       - name: Instalar la libreria de playwright (sin descargar navegadores)
-        run: PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --no-save playwright
+        run: PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --no-save --ignore-scripts playwright@1.62.1
       - name: Humo (11 rutas x 2 viewports) e interaccion completa con recarga sin conexion
         run: |
           export CHROMIUM_PATH="$(command -v google-chrome || command -v chromium-browser || command -v chromium)"

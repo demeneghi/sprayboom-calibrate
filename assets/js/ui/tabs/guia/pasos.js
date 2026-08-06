@@ -24,7 +24,7 @@ import { crearTrioBarra } from '../../trio-barra.js';
 import { formatear, formatearTiempo } from '../../formato.js';
 import { estiloBadgeIso } from '../../color.js';
 import { filaIso } from '../../../data/iso-colors.js';
-import { aSistema, unidad } from '../../../domain/units.js';
+import { aSistema, deSistema, unidad } from '../../../domain/units.js';
 import { marchasDeTractor, modoGeometriaDe } from '../../../domain/speed.js';
 import { volumenConBoquilla, caudalRequerido } from '../../../domain/water.js';
 import { seleccionarBoquillas, clasificarGota } from '../../../domain/nozzles.js';
@@ -217,6 +217,11 @@ function pasoVelocidad(ctx, { sistema, alCambiar }) {
           unidad: unidadVelocidad,
           decimales: 2,
           principal: true,
+          ayuda:
+            'La velocidad con la que va a pasar la barra. De ella dependen el volumen por ' +
+            'hectárea y el tiempo por tabla, así que es el primer dato de la calibración. Sale ' +
+            'de la marcha con su régimen o del reporte de campo, y es la misma que ven todas ' +
+            'las pantallas.',
         })
       );
       if (avance.avance) {
@@ -226,6 +231,10 @@ function pasoVelocidad(ctx, { sistema, alCambiar }) {
             valor: avance.avance.valores.tiempoTotalS,
             unidad: 's',
             decimales: 0,
+            ayuda:
+              'Lo que dura un pase completo de la tabla a esta velocidad. Es la ventana de ' +
+              'inyección del gas: el tiempo que se puede tener abierta la válvula del ' +
+              'rotámetro en una pasada.',
           }),
           el('p', { clase: 'ayuda' }, formatearTiempo(avance.avance.valores.tiempoTotalS))
         );
@@ -360,6 +369,10 @@ function pasoCandidatas(ctx, { sistema, alCambiar }) {
           valor: aSistema('caudal', caudalRequeridoLmin, sistema),
           unidad: unidadCaudal,
           decimales: 3,
+          ayuda:
+            'Lo que tiene que salir por CADA boquilla para lograr el volumen objetivo a esta ' +
+            'velocidad y con este espaciamiento. Es el número contra el que se busca en el ' +
+            'catálogo: la boquilla sirve si lo alcanza dentro de su rango de presión.',
         })
       );
       const { candidatas, avisos } = seleccionarBoquillas({
@@ -394,8 +407,17 @@ function pasoCandidatas(ctx, { sistema, alCambiar }) {
                 'span',
                 { clase: 'paso-receta__titulo' },
                 `${b.fabricante} ${b.modelo}`,
+                // El campo de la tabla es `tamano`; y el tamaño 20 no tiene
+                // color publicado (Tabla 2 de la norma), asi que sin la
+                // guarda de `hex` el chip tumbaba el paso entero.
                 iso
-                  ? el('span', { clase: 'badge badge--iso', estilo: estiloBadgeIso(iso.hex) }, iso.iso)
+                  ? el(
+                      'span',
+                      iso.hex
+                        ? { clase: 'badge badge--iso', estilo: estiloBadgeIso(iso.hex) }
+                        : { clase: 'badge badge--contorno' },
+                      iso.tamano
+                    )
                   : null,
                 candidata.clase ? el('span', { clase: 'badge badge--contorno' }, `gota ${candidata.clase}`) : null
               ),
@@ -462,14 +484,25 @@ function pasoAforo(ctx, { sistema, alCambiar }) {
   });
 
   const cuadricula = el('div', { clase: 'rejilla-cifras' });
+
+  // El borrador guarda SIEMPRE en base metrica (mL) y el campo se captura
+  // en el sistema activo, igual que en la pestana Prueba de captura: pedir
+  // mL a un rancho que trabaja en imperial obliga a convertir a mano justo
+  // el numero que la aplicacion existe para no convertir a mano.
+  function aCampo(magnitud, valorMetrico) {
+    if (!Number.isFinite(valorMetrico)) return null;
+    return Number(aSistema(magnitud, valorMetrico, sistema).toPrecision(6));
+  }
+
   function pintarRenglones() {
     const campos = volumenes.map((valor, i) => {
       const campo = crearCampoNumerico({
         etiqueta: `Boquilla ${i + 1}`,
-        unidad: 'mL',
-        valorInicial: valor,
+        magnitud: 'volumenChico',
+        sistema,
+        valorInicial: aCampo('volumenChico', valor),
         alCambiar: (nuevo) => {
-          volumenes[i] = nuevo;
+          volumenes[i] = deSistema('volumenChico', nuevo, sistema);
           ctx.guardarBorrador('captura', { volumenesMl: volumenes.slice() });
           refrescar();
         },
@@ -532,6 +565,10 @@ function pasoAforo(ctx, { sistema, alCambiar }) {
               unidad: unidadVolumen,
               decimales: 1,
               principal: true,
+              ayuda:
+                'Lo que de verdad está dejando la barra por hectárea: sale de lo que se juntó ' +
+                'en las probetas, no de la ficha de una boquilla nueva. Manda sobre el ' +
+                'calculado, y Mezcla y Forzamiento lo heredan.',
             })
           );
         } else if (resultado.valores.lhaRealMedido !== null) {
@@ -539,10 +576,16 @@ function pasoAforo(ctx, { sistema, alCambiar }) {
         }
         nodos.push(
           pintarResultado({
+            // El dominio lo llama `cvPoblacionalPct`: el aforo cubre las
+            // boquillas capturadas como poblacion completa, no como muestra.
             etiqueta: 'CV de la barra',
-            valor: resultado.valores.cvPct,
+            valor: resultado.valores.cvPoblacionalPct,
             unidad: '%',
             decimales: 1,
+            ayuda:
+              'Qué tan parejas van las boquillas entre sí, en porcentaje de la media. Es la ' +
+              'cifra que dice si la barra aplica pareja: por norma se busca 5 % o menos, y ' +
+              'arriba de 10 % hay boquillas que reponer.',
           })
         );
       } catch (error) {
@@ -576,9 +619,13 @@ function pasoRotametro(ctx, { paso, sistema, alCambiar }) {
       nodos.push(
         pintarResultado({
           etiqueta: 'Masa de etileno objetivo por tabla',
-          valor: masa.valor,
-          unidad: 'g',
-          decimales: 1,
+          valor: aSistema('masa', masa.valor, sistema),
+          unidad: unidad('masa', sistema),
+          decimales: sistema === 'imperial' ? 2 : 1,
+          ayuda:
+            'Los gramos de etileno que le tocan a una tabla: la dosis por hectárea por las ' +
+            'hectáreas de la tabla. De aquí sale el ajuste del rotámetro, y es masa INYECTADA, ' +
+            'no masa que se queda disuelta en el agua.',
         }),
         el(
           'p',

@@ -56,7 +56,11 @@ export function crearCronometro({
     if (modo === 'regresivo' && duracionS !== null && v <= 0 && !termino) {
       termino = true;
       detener();
-      pantalla.style.color = 'hsl(var(--warning))';
+      // El estado se marca con un atributo y lo pinta components.css con su
+      // token: el color no se escribe en el consumidor (regla dura del
+      // sistema de diseno). Asi el estado existe en el CSS, se puede
+      // ajustar de un sitio y la compuerta de contraste lo ve como par.
+      pantalla.dataset.cumplido = 'true';
       if (navigator.vibrate) navigator.vibrate([250, 120, 250]);
       if (alTerminar) alTerminar();
     }
@@ -94,7 +98,7 @@ export function crearCronometro({
     detener();
     acumuladoMs = 0;
     termino = false;
-    pantalla.style.color = '';
+    delete pantalla.dataset.cumplido;
     pintar();
   }
 

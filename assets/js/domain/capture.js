@@ -5,7 +5,7 @@
 // boquilla nueva: el desgaste solo se detecta aforando.
 
 import { ML_POR_L, SEG_POR_MIN, PORCIENTO } from './constants.js';
-import { aviso, requierePositivo } from './validate.js';
+import { aviso, requierePositivo, ErrorDeDominio } from './validate.js';
 import { paso, redondeoLegible } from './speed.js';
 import { lhaPorBoquilla } from './water.js';
 
@@ -37,12 +37,12 @@ export function estadisticaCaptura({
   let caudales = caudalesLmin;
   if (caudales === null || caudales === undefined) {
     if (!Array.isArray(volumenesMl) || volumenesMl.length === 0) {
-      throw new Error('No se puede calcular: no hay capturas registradas.');
+      throw new ErrorDeDominio('No se puede calcular: no hay capturas registradas.');
     }
     caudales = volumenesMl.map((volumenMl) => caudalDesdeVolumen({ volumenMl, tiempoS }));
   }
   if (!Array.isArray(caudales) || caudales.length === 0) {
-    throw new Error('No se puede calcular: no hay capturas registradas.');
+    throw new ErrorDeDominio('No se puede calcular: no hay capturas registradas.');
   }
   caudales.forEach((c, i) => requierePositivo(`el caudal de la boquilla ${i + 1}`, c));
 

@@ -314,7 +314,7 @@ export function render(panel, ctx) {
 
   const zonaContador = el('p', { clase: 'ayuda' });
   const zonaLista = el('div', {
-    estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' },
+    clase: 'pila',
   });
 
   // ---------------- Lista ----------------
@@ -412,7 +412,7 @@ export function render(panel, ctx) {
       entrada.resumen
         ? el('p', { clase: 'texto-suave', estilo: { fontSize: 'var(--text-sm)' } }, entrada.resumen)
         : null,
-      el('div', { estilo: { display: 'flex', gap: '0.5rem' } }, botonDetalle, botonEliminar)
+      el('div', { clase: 'fila-acciones' }, botonDetalle, botonEliminar)
     );
   }
 
@@ -664,7 +664,7 @@ export function render(panel, ctx) {
     try {
       cuerpo = el(
         'div',
-        { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } },
+        { clase: 'pila' },
         el(
           'div',
           { estilo: { display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' } },
@@ -803,7 +803,7 @@ export function render(panel, ctx) {
       },
       el(
         'div',
-        { estilo: { display: 'flex', flexDirection: 'column', gap: '0.5rem' } },
+        { clase: 'pila pila--compacta' },
         botonCsvAplicaciones,
         botonCsvPruebas
       ),

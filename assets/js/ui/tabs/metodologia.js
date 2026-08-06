@@ -24,6 +24,7 @@ import {
   pintarVerificacion,
   resultadoConfiable,
   pintarResultadoNoVerificado,
+  alertaDeError,
 } from '../render.js';
 import { formatear } from '../formato.js';
 import { estiloBadgeIso } from '../color.js';
@@ -67,9 +68,6 @@ import {
 
 export const id = 'metodologia';
 
-const COLUMNA = { display: 'flex', flexDirection: 'column', gap: '0.75rem' };
-const GRID_2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' };
-
 // ---------------------------------------------------------------------
 // Nomenclatura norteamericana de boquillas (TeeJet Catalog 51A-M): el
 // numero de tamano ES el caudal en galones por minuto medido a esta
@@ -110,14 +108,6 @@ export function render(panel, ctx) {
   const unidadEspaciamiento = unidad('distanciaCorta', sistema);
 
   // ---------------- Ayudantes de presentacion ----------------
-  function alertaDestructiva(error) {
-    return el(
-      'div',
-      { clase: 'alerta alerta--destructiva', role: 'alert' },
-      el('p', { clase: 'alerta__descripcion' }, String(error?.message ?? error))
-    );
-  }
-
   function subtitulo(texto) {
     return el('h3', { clase: 'etiqueta' }, texto);
   }
@@ -270,7 +260,7 @@ export function render(panel, ctx) {
     );
     if (factorDerivado !== FACTOR_LHA) {
       cuerpo.push(
-        alertaDestructiva(
+        alertaDeError(
           new Error(
             `La constante FACTOR_LHA (${FACTOR_LHA}) no coincide con su derivación ` +
               `(${redondeoLegible(factorDerivado)}): reporta este error.`
@@ -371,7 +361,7 @@ export function render(panel, ctx) {
               cuerpo.push(
                 el(
                   'div',
-                  { estilo: GRID_2 },
+                  { clase: 'rejilla-2' },
                   pintarResultado({
                     etiqueta: 'Método por boquilla',
                     valor: aSistema('volumenAplicacion', ambos.valores.lhaPorBoquilla, sistema),
@@ -395,7 +385,7 @@ export function render(panel, ctx) {
                 ),
                 el(
                   'div',
-                  { estilo: GRID_2 },
+                  { clase: 'rejilla-2' },
                   pintarResultado({
                     etiqueta: 'Discrepancia entre métodos',
                     valor: ambos.valores.discrepanciaPct,
@@ -429,7 +419,7 @@ export function render(panel, ctx) {
         }
       }
     } catch (error) {
-      cuerpo.push(alertaDestructiva(error));
+      cuerpo.push(alertaDeError(error));
     }
 
     // Equivalente imperial.
@@ -468,7 +458,7 @@ export function render(panel, ctx) {
         descripcion:
           'De dónde sale cada fórmula, con los parámetros vigentes sustituidos: lo que ves aquí es lo que el sistema calcula hoy.',
       },
-      el('div', { estilo: COLUMNA }, cuerpo)
+      el('div', { clase: 'pila' }, cuerpo)
     );
   }
 
@@ -547,7 +537,7 @@ export function render(panel, ctx) {
         );
       }
     } catch (error) {
-      cuerpo.push(alertaDestructiva(error));
+      cuerpo.push(alertaDeError(error));
     }
 
     return tarjeta(
@@ -555,7 +545,7 @@ export function render(panel, ctx) {
         titulo: 'Relación presión-caudal',
         descripcion: 'Por qué la presión es una palanca cara y cambiar de boquilla una barata.',
       },
-      el('div', { estilo: COLUMNA }, cuerpo)
+      el('div', { clase: 'pila' }, cuerpo)
     );
   }
 
@@ -656,7 +646,7 @@ export function render(panel, ctx) {
           ...pintarAvisos(reconciliacion.avisos),
           el(
             'div',
-            { estilo: GRID_2 },
+            { clase: 'rejilla-2' },
             pintarResultado({
               etiqueta: `Convención US escalada a ${PRESION_NOMINAL_ISO_BAR} bar`,
               valor: reconciliacion.valores.caudalLmin,
@@ -698,7 +688,7 @@ export function render(panel, ctx) {
         );
       }
     } catch (error) {
-      cuerpo.push(alertaDestructiva(error));
+      cuerpo.push(alertaDeError(error));
     }
 
     return tarjeta(
@@ -706,7 +696,7 @@ export function render(panel, ctx) {
         titulo: 'Código de colores ISO 10625:2018',
         descripcion: 'La tabla completa sembrada en la aplicación, con su estado de verificación fila por fila.',
       },
-      el('div', { estilo: COLUMNA }, cuerpo)
+      el('div', { clase: 'pila' }, cuerpo)
     );
   }
 
@@ -787,7 +777,7 @@ export function render(panel, ctx) {
         titulo: 'Clases de gota ANSI/ASABE S572',
         descripcion: 'Las dos ediciones vigentes en catálogos, tal como están sembradas en la aplicación.',
       },
-      el('div', { estilo: COLUMNA }, cuerpo)
+      el('div', { clase: 'pila' }, cuerpo)
     );
   }
 
@@ -812,7 +802,7 @@ export function render(panel, ctx) {
         ),
         el(
           'div',
-          { estilo: GRID_2 },
+          { clase: 'rejilla-2' },
           pintarResultado({
             etiqueta: 'R_GAS (constante del gas)',
             valor: R_GAS,
@@ -835,7 +825,7 @@ export function render(panel, ctx) {
         ),
         el(
           'div',
-          { estilo: GRID_2 },
+          { clase: 'rejilla-2' },
           pintarResultado({
             etiqueta: 'Moles por libra-mol',
             valor: LBMOL_A_MOL,
@@ -888,7 +878,7 @@ export function render(panel, ctx) {
           );
         }
       } catch (error) {
-        cuerpo.push(alertaDestructiva(error));
+        cuerpo.push(alertaDeError(error));
       }
 
       try {
@@ -929,7 +919,7 @@ export function render(panel, ctx) {
           )
         );
       } catch (error) {
-        cuerpo.push(alertaDestructiva(error));
+        cuerpo.push(alertaDeError(error));
       }
     }
 
@@ -938,7 +928,7 @@ export function render(panel, ctx) {
         titulo: 'Derivación de g/SCF',
         descripcion: 'La masa de gas por pie cúbico estándar, derivada del gas ideal con el gas activo.',
       },
-      el('div', { estilo: COLUMNA }, cuerpo)
+      el('div', { clase: 'pila' }, cuerpo)
     );
   }
 
@@ -981,7 +971,7 @@ export function render(panel, ctx) {
       cuerpo.push(
         el(
           'div',
-          { estilo: GRID_2 },
+          { clase: 'rejilla-2' },
           pintarResultado({
             etiqueta: 'Presión estándar de calibración (gas activo)',
             valor: gas?.presionEstandarPsia ?? null,
@@ -1038,7 +1028,7 @@ export function render(panel, ctx) {
         );
       }
     } catch (error) {
-      cuerpo.push(alertaDestructiva(error));
+      cuerpo.push(alertaDeError(error));
     }
 
     return tarjeta(
@@ -1046,7 +1036,7 @@ export function render(panel, ctx) {
         titulo: 'Ecuación maestra del rotámetro',
         descripcion: 'La corrección por presión y los tres despejes que usa la pestaña Gas etileno.',
       },
-      el('div', { estilo: COLUMNA }, cuerpo)
+      el('div', { clase: 'pila' }, cuerpo)
     );
   }
 
@@ -1099,7 +1089,7 @@ export function render(panel, ctx) {
       },
       el(
         'div',
-        { estilo: COLUMNA },
+        { clase: 'pila' },
         lista(
           referencias.map(([nombre, detalle]) =>
             el('span', {}, el('strong', {}, nombre), ` — ${detalle}`)

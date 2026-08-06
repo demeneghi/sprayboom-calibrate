@@ -18,6 +18,7 @@ import {
   pintarVerificacion,
   resultadoConfiable,
   pintarResultadoNoVerificado,
+  alertaDeError,
 } from '../render.js';
 import { crearCampoNumerico, crearCampoSelect } from '../campos.js';
 import { crearCampoHeredado } from '../heredado.js';
@@ -25,6 +26,7 @@ import { crearCampoDato } from '../dato.js';
 import { nodosAvanceParaTiempo } from '../marchas.js';
 import { formatear, formatearPorcentaje, formatearTiempo } from '../formato.js';
 import { mostrarToast } from '../toast.js';
+import { idRegistro } from '../id.js';
 import { aSistema, unidad } from '../../domain/units.js';
 import { geometria } from '../../domain/speed.js';
 import { gPorScfEfectivo } from '../../domain/gas.js';
@@ -77,7 +79,6 @@ export function render(panel, ctx) {
     return;
   }
 
-  const unidadVolAplicacion = unidad('volumenAplicacion', sistema);
   const unidadVolumen = unidad('volumen', sistema);
   const unidadMasa = unidad('masa', sistema);
   const unidadSuperficie = unidad('superficie', sistema);
@@ -86,17 +87,6 @@ export function render(panel, ctx) {
   let modoDespeje = borrador.modoDespeje ?? 'scfm';
   let ultimoObjetivo = null; // resultado del sentido objetivo->ajuste listo para bitacora
   let ultimoAjuste = null; // resultado del sentido ajuste->dosis listo para bitacora
-
-  const columna = { display: 'flex', flexDirection: 'column', gap: '0.75rem' };
-  const rejilla = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' };
-
-  function alertaDestructiva(error) {
-    return el(
-      'div',
-      { clase: 'alerta alerta--destructiva', role: 'alert' },
-      el('p', { clase: 'alerta__descripcion' }, String(error?.message ?? error))
-    );
-  }
 
   // La advertencia de solubilidad vive fija en la primera tarjeta de la
   // pantalla; en los resultados se omite para no triplicarla en una
@@ -131,14 +121,14 @@ export function render(panel, ctx) {
   }
 
   // ---------------- Las dos dosis, siempre juntas ----------------
-  const zonaDosis = el('div', { estilo: columna });
+  const zonaDosis = el('div', { clase: 'pila' });
   function pintarDosis() {
     const p = ctx.estado().parametros;
     reemplazar(
       zonaDosis,
       el(
         'div',
-        { estilo: rejilla },
+        { clase: 'rejilla-2' },
         pintarResultado({
           etiqueta: 'Referencia de la literatura',
           valor: p.agronomicos.dosisEtilenoReferencia,
@@ -288,7 +278,7 @@ export function render(panel, ctx) {
   });
   const zonaScfmDado = el('div', {}, campoScfmDado.elemento);
   const zonaPsiDado = el('div', {}, campoPsiDado.elemento);
-  const zonaTiempo = el('div', { estilo: columna }, campoTiempo.elemento);
+  const zonaTiempo = el('div', { clase: 'pila' }, campoTiempo.elemento);
 
   function pintarModoDespeje() {
     zonaScfmDado.classList.toggle('oculto', modoDespeje === 'scfm');
@@ -297,7 +287,7 @@ export function render(panel, ctx) {
   }
 
   // ---------------- Resultado del sentido objetivo -> ajuste ----------------
-  const zonaResultadoObjetivo = el('div', { estilo: columna });
+  const zonaResultadoObjetivo = el('div', { clase: 'pila' });
 
   function pintarAjusteDespejado(v) {
     if (v.modoDespeje === 'scfm') {
@@ -357,7 +347,7 @@ export function render(panel, ctx) {
         })
       );
     } catch (error) {
-      reemplazar(zonaHectareas, alertaDestructiva(error));
+      reemplazar(zonaHectareas, alertaDeError(error));
     }
 
     const nodos = [];
@@ -426,7 +416,7 @@ export function render(panel, ctx) {
             nodos.push(
               el(
                 'div',
-                { estilo: rejilla },
+                { clase: 'rejilla-2' },
                 pintarResultado({
                   etiqueta: 'Masa de etileno por tabla',
                   valor: aSistema('masa', v.masaPorTablaG, sistema),
@@ -518,7 +508,7 @@ export function render(panel, ctx) {
         }
       }
     } catch (error) {
-      nodos.push(alertaDestructiva(error));
+      nodos.push(alertaDeError(error));
     }
     reemplazar(zonaResultadoObjetivo, nodos);
   }
@@ -578,7 +568,7 @@ export function render(panel, ctx) {
     },
   });
 
-  const zonaResultadoAjuste = el('div', { estilo: columna });
+  const zonaResultadoAjuste = el('div', { clase: 'pila' });
 
   function recalcularAjuste() {
     const nodos = [];
@@ -641,7 +631,7 @@ export function render(panel, ctx) {
               }),
               el(
                 'div',
-                { estilo: rejilla },
+                { clase: 'rejilla-2' },
                 pintarResultado({
                   etiqueta: 'Masa inyectada por tabla',
                   valor: aSistema('masa', v.masaPorTablaG, sistema),
@@ -708,7 +698,7 @@ export function render(panel, ctx) {
         }
       }
     } catch (error) {
-      nodos.push(alertaDestructiva(error));
+      nodos.push(alertaDeError(error));
     }
     reemplazar(zonaResultadoAjuste, nodos);
   }
@@ -735,7 +725,7 @@ export function render(panel, ctx) {
   // ---------------- Registro en bitacora ----------------
   function guardarEnBitacora(calculo, titulo, resumen) {
     const registroBase = {
-      id: `forzamiento-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      id: idRegistro('forzamiento'),
       tipo: 'forzamiento',
       fecha: new Date().toISOString(),
       titulo,
@@ -798,7 +788,7 @@ export function render(panel, ctx) {
       },
       el(
         'div',
-        { estilo: columna },
+        { clase: 'pila' },
         campoDosis.elemento,
         campoVolumenAgua.elemento,
         zonaHectareas,
@@ -821,7 +811,7 @@ export function render(panel, ctx) {
       },
       el(
         'div',
-        { estilo: columna },
+        { clase: 'pila' },
         campoScfmReal.elemento,
         campoPsiReal.elemento,
         campoTiempoReal.elemento,

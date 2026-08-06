@@ -180,7 +180,7 @@ export function crearCampoHeredado({
 
   const raiz = el(
     'div',
-    { estilo: { display: 'flex', flexDirection: 'column', gap: '0.5rem' } },
+    { clase: 'pila pila--compacta' },
     campo.elemento,
     zonaAvisos,
     estado,

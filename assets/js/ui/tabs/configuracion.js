@@ -18,6 +18,7 @@ import { formatear } from '../formato.js';
 import { nodoAlterno } from '../alterna.js';
 import { confirmar } from '../dialog.js';
 import { mostrarToast } from '../toast.js';
+import { idRegistro } from '../id.js';
 import { buscarActualizacion, reinstalar, versionInstalada } from '../actualizar.js';
 import { estiloBadgeIso } from '../color.js';
 import { aSistema, unidad } from '../../domain/units.js';
@@ -32,6 +33,7 @@ import {
   COTAS_GAS,
   COTAS_ROTAMETRO,
   COTAS_FACTOR_DESVIACION,
+  TEMAS,
   TIPOS_BOMBA,
   ACCIONAMIENTOS,
   TRACTORES_SIEMBRA,
@@ -59,6 +61,7 @@ import {
   importarCatalogoJSON,
   descargarOCompartir,
   sembrarEstado,
+  validarRotametro,
 } from '../../storage.js';
 
 export const id = 'configuracion';
@@ -159,9 +162,8 @@ function seccion(props, ...hijos) {
   return tarjeta(props, ...hijos);
 }
 
-function generarId(prefijo) {
-  return `${prefijo}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
-}
+// El mismo generador que usan las pestañas que guardan en bitacora.
+const generarId = idRegistro;
 
 // El reporte de la ultima importacion vive a nivel de modulo: el
 // re-render por 'contexto' reconstruye la pestana y el reporte se
@@ -175,13 +177,13 @@ export function render(panel, ctx) {
   // Preferencias: tema y unidades
   // ----------------------------------------------------------------
   const estado0 = ctx.estado();
+  // Las opciones salen de TEMAS (domain/defaults.js), que es la misma lista
+  // con la que la importacion rechaza un tema desconocido: dos listas
+  // separadas terminan divergiendo.
+  const TEXTO_TEMA = { claro: 'Claro', oscuro: 'Oscuro', auto: 'Automático (según el sistema)' };
   const selectTema = crearCampoSelect({
     etiqueta: 'Tema',
-    opciones: [
-      { valor: 'claro', texto: 'Claro' },
-      { valor: 'oscuro', texto: 'Oscuro' },
-      { valor: 'auto', texto: 'Automático (según el sistema)' },
-    ],
+    opciones: TEMAS.map((t) => ({ valor: t, texto: TEXTO_TEMA[t] ?? t })),
     valorInicial: estado0.preferencias.tema,
     ayuda: 'A pleno sol el claro se lee mejor. De fábrica viene el oscuro.',
     alCambiar: (valor) =>
@@ -206,7 +208,7 @@ export function render(panel, ctx) {
   // ----------------------------------------------------------------
   // Grupos de parametros escalares
   // ----------------------------------------------------------------
-  const zonaDerivados = el('div', { estilo: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' } });
+  const zonaDerivados = el('div', { clase: 'rejilla-2' });
   const zonaAvisosGeometria = el('div', {});
 
   function pintarDerivados() {
@@ -276,7 +278,7 @@ export function render(panel, ctx) {
   // porque es la que corrige el rotametro y antes se quedaba en 14.7
   // sin que nada lo dijera.
   // ----------------------------------------------------------------
-  const zonaAtmosfera = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.5rem' } });
+  const zonaAtmosfera = el('div', { clase: 'pila pila--compacta' });
 
   function pintarAtmosfera() {
     const sitio = ctx.estado().parametros.sitio;
@@ -465,7 +467,7 @@ export function render(panel, ctx) {
   // ----------------------------------------------------------------
   // Tractores y tabla de velocidades por marcha
   // ----------------------------------------------------------------
-  const zonaTractor = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } });
+  const zonaTractor = el('div', { clase: 'pila' });
 
   function pintarEditorTractor() {
     const estado = ctx.estado();
@@ -524,6 +526,21 @@ export function render(panel, ctx) {
           entrada.fijarError(veredicto.mensaje);
           entrada.fijar(tractor[campo]);
           return;
+        }
+        // Cota CRUZADA del rango de trabajo del motor: con el minimo por
+        // encima del maximo, Avance marca TODAS las marchas fuera de rango
+        // y dice «ninguna marcha da esa velocidad», culpando a la
+        // transmision de un error de dedo.
+        if (campo === 'regimenMinimo' || campo === 'regimenMaximo') {
+          const minimo = campo === 'regimenMinimo' ? valor : tractor.regimenMinimo;
+          const maximo = campo === 'regimenMaximo' ? valor : tractor.regimenMaximo;
+          if (!(minimo <= maximo)) {
+            entrada.fijarError(
+              `El régimen mínimo (${formatear(minimo, 0)}) no puede ser mayor que el máximo (${formatear(maximo, 0)}).`
+            );
+            entrada.fijar(tractor[campo]);
+            return;
+          }
         }
         entrada.fijarError(null);
         const numero = veredicto.numero ?? valor;
@@ -713,7 +730,7 @@ export function render(panel, ctx) {
         e.tractorActivoId = e.tractores[0].id;
       }, 'contexto');
     });
-    nodos.push(el('div', { estilo: { display: 'flex', gap: '0.5rem' } }, botonAlta, botonBaja));
+    nodos.push(el('div', { clase: 'fila-acciones' }, botonAlta, botonBaja));
 
     reemplazar(zonaTractor, nodos);
   }
@@ -726,7 +743,7 @@ export function render(panel, ctx) {
   // la palabra que usa quien calibra y la que dice el selector del
   // encabezado.
   // ----------------------------------------------------------------
-  const zonaEquipo = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } });
+  const zonaEquipo = el('div', { clase: 'pila' });
 
   function pintarEditorEquipo() {
     const estado = ctx.estado();
@@ -952,7 +969,7 @@ export function render(panel, ctx) {
         e.equipoActivoId = e.equipos[0].id;
       }, 'contexto');
     });
-    nodos.push(el('div', { estilo: { display: 'flex', gap: '0.5rem' } }, botonAlta, botonBaja));
+    nodos.push(el('div', { clase: 'fila-acciones' }, botonAlta, botonBaja));
 
     reemplazar(zonaEquipo, nodos);
   }
@@ -960,7 +977,7 @@ export function render(panel, ctx) {
   // ----------------------------------------------------------------
   // Gases y rotametros
   // ----------------------------------------------------------------
-  const zonaGas = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } });
+  const zonaGas = el('div', { clase: 'pila' });
 
   function pintarEditorGas() {
     const estado = ctx.estado();
@@ -1040,7 +1057,7 @@ export function render(panel, ctx) {
     pintarDerivadoGas();
   }
 
-  const zonaRotametro = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } });
+  const zonaRotametro = el('div', { clase: 'pila' });
 
   function pintarEditorRotametro() {
     const estado = ctx.estado();
@@ -1070,6 +1087,16 @@ export function render(panel, ctx) {
             entrada.fijarError(veredicto.mensaje);
             return;
           }
+          // Cota CRUZADA: con el minimo por encima del maximo, el tubo se
+          // pinta como escala invalida y el despeje sigue avisando «fuera
+          // de escala» contra una escala que no existe. Se rechaza aqui,
+          // con el mismo mensaje que la importacion.
+          const propuesta = { ...ctx.rotametroActivo(), [campo]: valor };
+          const cruce = validarRotametro(propuesta);
+          if (cruce) {
+            entrada.fijarError(cruce);
+            return;
+          }
           entrada.fijarError(null);
           almacen.actualizar((e) => {
             e.rotametros.find((x) => x.id === rotametro.id)[campo] = valor;
@@ -1084,7 +1111,7 @@ export function render(panel, ctx) {
   // ----------------------------------------------------------------
   // Factores de desviacion medidos (por tractor y regimen)
   // ----------------------------------------------------------------
-  const zonaFactores = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } });
+  const zonaFactores = el('div', { clase: 'pila' });
 
   function pintarFactores() {
     const estado = ctx.estado();
@@ -1143,6 +1170,18 @@ export function render(panel, ctx) {
       }
       try {
         const factor = factorDeMedicion({ velocidadTeoricaKmh: teorica, velocidadMedidaKmh: medida });
+        // El factor tambien tiene cota, y es la que importa: es lo unico de
+        // esta ficha que entra al calculo. Se valida con la MISMA funcion y
+        // el MISMO mensaje que la importacion de un respaldo.
+        const veredictoFactor = validarValor(COTAS_FACTOR_DESVIACION.factor, factor);
+        if (!veredictoFactor.ok) {
+          mostrarToast(
+            `${veredictoFactor.mensaje} Las dos velocidades no parecen de la misma medición: ` +
+              `${formatear(teorica, 2)} km/h teórica contra ${formatear(medida, 2)} km/h medida.`,
+            { tipo: 'destructivo', duracionMs: 9000 }
+          );
+          return;
+        }
         almacen.actualizar((e) => {
           e.factoresDesviacion.push({
             id: generarId('factor'),
@@ -1181,7 +1220,7 @@ export function render(panel, ctx) {
   // ----------------------------------------------------------------
   // Catalogo de boquillas
   // ----------------------------------------------------------------
-  const zonaCatalogo = el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.75rem' } });
+  const zonaCatalogo = el('div', { clase: 'pila' });
 
   function formularioBoquilla(boquilla = null) {
     const b = boquilla ?? {
@@ -1476,7 +1515,18 @@ export function render(panel, ctx) {
   botonRestaurarTodo.addEventListener('click', async () => {
     const ok = await confirmar({
       titulo: 'Restaurar toda la aplicación',
-      descripcion: 'Parámetros, tractores, barras, gases, rotámetros y catálogo vuelven a la siembra. La bitácora y las pruebas de captura NO se tocan. Exporta antes si tienes dudas.',
+      // El diálogo enumera TODO lo que se pierde. Antes listaba lo que
+      // vuelve a la siembra y lo que no se toca, y la captura de hoy no
+      // aparecía en ninguna de las dos listas: quien devolvía un umbral a
+      // su valor de fábrica perdía la velocidad, la presión, la boquilla y
+      // lo aforado de la jornada en curso, de pie en el lote y sin poder
+      // deshacer.
+      descripcion:
+        'Parámetros, tractores, barras, gases, rotámetros y catálogo vuelven a la siembra. Se ' +
+        'borran también las mediciones de desviación y lo capturado en la calibración de hoy: ' +
+        'velocidad, presión, boquilla, volumen objetivo, volúmenes recogidos y lo aforado. La ' +
+        'bitácora y las pruebas de captura guardadas NO se tocan. No se puede deshacer: exporta ' +
+        'antes si tienes dudas.',
       confirmarTexto: 'Restaurar todo',
       destructivo: true,
     });
@@ -1487,7 +1537,7 @@ export function render(panel, ctx) {
     semilla.pruebasCaptura = actual.pruebasCaptura;
     semilla.preferencias = actual.preferencias;
     almacen.reemplazarEstado(semilla, 'contexto');
-    mostrarToast('Aplicacion restaurada a la siembra (bitácora conservada).');
+    mostrarToast('Aplicación restaurada a la siembra (bitácora y pruebas conservadas).');
   });
 
   // ----------------------------------------------------------------
@@ -1592,7 +1642,7 @@ export function render(panel, ctx) {
       lineaVersion,
       el(
         'div',
-        { estilo: { display: 'flex', flexDirection: 'column', gap: '0.5rem' } },
+        { clase: 'pila pila--compacta' },
         botonBuscar,
         botonReinstalar
       ),
@@ -1609,7 +1659,7 @@ export function render(panel, ctx) {
         descripcion:
           'Los datos viven en este navegador y en este dispositivo. Si borras los datos del sitio o cambias de telefono, se pierden. Exporta con regularidad: es el único respaldo.',
       },
-      el('div', { estilo: { display: 'flex', flexDirection: 'column', gap: '0.5rem' } },
+      el('div', { clase: 'pila pila--compacta' },
         botonExportar, botonExportarCatalogo, botonImportar, botonImportarCatalogo),
       entradaImportar,
       entradaImportarCatalogo,

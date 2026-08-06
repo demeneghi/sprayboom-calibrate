@@ -48,9 +48,25 @@ export function validarObjeto(defs, objeto) {
 // en vez de regresar Infinity o NaN. La interfaz atrapa el error y lo
 // muestra como estado neutro con el mensaje.
 
+// Error cuyo mensaje esta REDACTADO para quien calibra: «la velocidad debe
+// ser mayor que cero» se muestra tal cual y dice que hacer.
+//
+// Existe para separarlo de lo que NO es de dominio. El mismo canal de la
+// interfaz mostraba los dos, asi que un defecto interno llegaba a la
+// pantalla como «Cannot read properties of null (reading 'replace')»: en
+// ingles, en medio de una pantalla en español, y sin decir si el problema
+// era del dato capturado o de la aplicacion. Son dos acciones distintas
+// —corregir la captura contra reportar el error— y ahora se distinguen.
+export class ErrorDeDominio extends Error {
+  constructor(mensaje) {
+    super(mensaje);
+    this.name = 'ErrorDeDominio';
+  }
+}
+
 export function requiereFinito(nombre, valor) {
   if (typeof valor !== 'number' || !Number.isFinite(valor)) {
-    throw new Error(`No se puede calcular: ${nombre} debe ser un número.`);
+    throw new ErrorDeDominio(`No se puede calcular: ${nombre} debe ser un número.`);
   }
   return valor;
 }
@@ -58,7 +74,7 @@ export function requiereFinito(nombre, valor) {
 export function requierePositivo(nombre, valor) {
   requiereFinito(nombre, valor);
   if (valor <= 0) {
-    throw new Error(`No se puede calcular: ${nombre} debe ser mayor que cero.`);
+    throw new ErrorDeDominio(`No se puede calcular: ${nombre} debe ser mayor que cero.`);
   }
   return valor;
 }
@@ -66,7 +82,7 @@ export function requierePositivo(nombre, valor) {
 export function requiereNoNegativo(nombre, valor) {
   requiereFinito(nombre, valor);
   if (valor < 0) {
-    throw new Error(`No se puede calcular: ${nombre} no puede ser negativo.`);
+    throw new ErrorDeDominio(`No se puede calcular: ${nombre} no puede ser negativo.`);
   }
   return valor;
 }
