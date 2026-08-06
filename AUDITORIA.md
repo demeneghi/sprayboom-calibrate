@@ -104,7 +104,7 @@ Pregunta de cierre de fase, «¿qué errores podrían existir aquí y aún no he
 | `node tools/verificar-contraste.mjs` | **Todos los pares cumplen AA (4.5:1)**, en ambos temas y sobre los 19 colores ISO sembrados. |
 | `node tools/generar-precache.mjs` + `git diff` | `precache.js` **al día** (74 rutas, sin diferencia). |
 | `node tools/acentuar.mjs $(find assets/js -name '*.js' \| sort)` + `git diff` | **Sin cambios**: los textos visibles están acentuados. |
-| `node tools/humo.mjs` y `node tools/interaccion.mjs` | **No ejecutadas.** Requieren `npm install --no-save playwright`, es decir tráfico de red saliente, que esta auditoría no realiza. Chromium sí está disponible en `/opt/pw-browsers`. |
+| `node tools/humo.mjs` y `node tools/interaccion.mjs` | **No ejecutadas en local.** Requieren `npm install --no-save playwright`, es decir tráfico de red saliente, que esta auditoría no realiza (Chromium sí está disponible en `/opt/pw-browsers`). **Verde en CI**: el job `humo` del flujo de validaciones las corrió sobre este mismo commit y pasó. |
 
 ---
 
