@@ -40,11 +40,18 @@
 //
 // [MJ] Magnojet, catalogo general 2019/2020 (trilingue),
 //      https://magnojet.co.za/wp-content/uploads/2023/12/MagnoJet-Catalogue-Downloadable.pdf
-//      Tablas de las series ST (pagina 16), ST-IA (18), AD (20),
-//      AD-IA (24) y MUG (12). El catalogo es un PDF de imagenes, sin
-//      texto: las tablas se leyeron pagina por pagina y cada renglon se
-//      comprobo contra su propia columna de l/ha, que el catalogo
-//      calcula como q x 600 / (v x f) con v = 4 km/h y f = 0,5 m.
+//      Tablas de TODAS las series de puntas del catalogo, paginas 12 a
+//      46: MUG (12), APS (14), BD-AV (15), ST (16), ST/D (17), ST-IA
+//      (18), ST-IA/D (19), AD (20), AD/D (21), AD/T (22), ADGA (23),
+//      AD-IA (24), AD-IA/D (25), AD-IA/T (26), BD (27), AS7030 (28),
+//      AS-IA7030 (29), AS-IA (30), MD-IA/D (31), MDC (32), TM-IA (33),
+//      PB (34), PB-IA (35), MAG (36), serie X (37), MGA 90 (38-39),
+//      MGA 60 (40), MGA 40 (41), BX-AP/70 (42), BX-AP/90 (43), CV-IA
+//      (44), MAG CH (45) y CH 100 (46). La pagina impresa es la del PDF
+//      menos dos. El catalogo es un PDF de imagenes, sin texto: las
+//      tablas se leyeron pagina por pagina y cada renglon se comprobo
+//      contra su propia columna de l/ha, que el catalogo calcula como
+//      q x 600 / (v x f) con v = 4 km/h y f = 0,5 m.
 //
 // [AL] Albuz (CoorsTek), ficha ATR 80 cono hueco, catalogo 2024,
 //      https://albuz-spray.com/en/pdf/arbo-viticulture-NON-ISO-ATR-80.pdf
@@ -103,9 +110,9 @@
 // caudal (el orificio no sabe de angulo) y su clase.
 //
 // Quedan fuera los angulos de las series que no estan sembradas de por
-// si (TP, DG y XRC en 80 grados), y los 90 grados de Lechler y los 140
-// de la ST-IA de Magnojet, que son el mismo caso pero de otro angulo:
-// se pueden sembrar igual el dia que hagan falta.
+// si (TP, DG y XRC en 80 grados) y los 90 grados de Lechler, que son el
+// mismo caso pero de otro angulo: se pueden sembrar igual el dia que
+// hagan falta. De Magnojet ya no falta ninguno.
 //
 // Pendiente declarado (no sembrado por falta de fuente verificable
 // durante la construccion): ARAG. El usuario puede capturarlo en el
@@ -519,12 +526,10 @@ CATALOGO_SIEMBRA.push(
 // aplicacion usa de verdad, asi que es la que tiene que reproducir la
 // tabla.
 //
-// Se siembran las cinco series SIMPLES de barra. Quedan fuera, y a
-// proposito: las de dos y tres abanicos (ST/D, AD/D, AD/T, AD-IA/D,
-// AD-IA/T, MD-IA/D), porque tipoPatron no distingue el abanico doble del
-// simple y sembrarlas seria decir que son lo mismo; y las de uso
-// especial (MGA de fertilizante liquido, PB, BX, cono MAG, serie X), que
-// no son boquillas de barra.
+// Este bloque trae las cinco series SIMPLES de barra. El resto del
+// catalogo Magnojet —los abanicos dobles y triples, los asimetricos, los
+// deflectores, los conos huecos y los conos llenos— va mas abajo, en su
+// propio bloque, con el mismo procedimiento y las mismas compuertas.
 //
 // Tampoco se sembraron TRES fichas cuya tabla publicada NO se deja
 // representar por la ley presion-caudal con la que calcula la
@@ -756,13 +761,618 @@ CATALOGO_SIEMBRA.push(
   })
 );
 
+
+// ----- Magnojet: el resto del catalogo -----
+// Las cinco series de barra ya sembradas arriba (ST, ST-IA, AD, AD-IA y
+// MUG) eran las SIMPLES. Aqui van las demas: las de dos y tres abanicos,
+// las asimetricas, los deflectores, los conos huecos y los conos llenos.
+// Todas salen del mismo catalogo general 2019/2020 [MJ] y se construyen
+// con el mismo procedimiento que las anteriores:
+//
+//   - presionRefBar es el renglon publicado mas cercano a 3 bar y
+//     caudalRefLmin el caudal de ESE renglon, sin interpolar nada;
+//   - el exponente se ajusta por minimos cuadrados sobre TODOS los puntos
+//     publicados de la ficha (ln q contra ln p), con la curva obligada a
+//     pasar por su renglon de referencia, y se redondea a tres decimales;
+//   - los rangos de clase de gota ponen la frontera en el punto medio
+//     entre la ultima presion de una clase y la primera de la siguiente;
+//   - presionMinBar y presionMaxBar son el primer y el ultimo renglon
+//     publicado de esa ficha, que no siempre coinciden con el rango que
+//     el encabezado declara para la serie entera.
+//
+// TIPOS DE PATRON NUEVOS: un abanico doble o triple NO es un abanico
+// simple con otro nombre —cambia el traslape, la altura de barra y la
+// penetracion en el follaje—, asi que estas fichas estrenan
+// 'abanico-doble', 'abanico-doble-induccion', 'abanico-triple',
+// 'abanico-triple-induccion' y 'cono-hueco-induccion'. Antes se dejaron
+// fuera justo porque tipoPatron no las distinguia del abanico simple.
+//
+// SIN SEMBRAR, y por que: DIEZ fichas cuya tabla publicada NO se deja
+// representar por la ley presion-caudal con la que calcula la aplicacion,
+// con el mismo 5 % de tolerancia que usa la compuerta contra ISO. En
+// todas, el renglon que se sale es UNO solo —casi siempre el de la
+// presion mas baja— y su propia columna de l/ha lo confirma, asi que no
+// es una lectura mal hecha sino el dato tal como esta impreso:
+//
+// BD-AV 11008: la curva se aparta -16.0 % de la tabla
+// AD/T 06: la curva se aparta -13.1 % de la tabla
+// AD-IA/T 02: la curva se aparta 5.7 % de la tabla
+// AS-IA7030 01: la curva se aparta 13.6 % de la tabla
+// MDC 0,5: la curva se aparta -6.2 % de la tabla
+// MDC 2: la curva se aparta 7.0 % de la tabla
+// PB-IA 06: la curva se aparta -10.1 % de la tabla
+// MAG 6: la curva se aparta -5.4 % de la tabla
+// X 0,50: la curva se aparta -10.0 % de la tabla
+// CH 100 6: la curva se aparta -6.3 % de la tabla
+//
+// SEMBRADAS PERO SIN TAMANO ISO: cuatro fichas que el catalogo rotula con
+// un codigo de tamano que su caudal no sostiene, o que no existe en la
+// tabla ISO 10625 de la aplicacion. El caudal es util igual; el tamano
+// declarado seria falso, asi que va vacio y la ficha lo dice en sus notas:
+//
+// BD-AV 11025: rotulada 25, fuera de la tabla ISO de la aplicación
+// AS7030 01: rotulada 01, se desvía 22.9 % del nominal
+// MGA 90 04: rotulada 04, se desvía 5.9 % del nominal
+// CV-IA 01: rotulada 01, se desvía 5.8 % del nominal
+//
+// Quedan fuera, y no son boquillas: los porta-boquillas, los filtros, los
+// adaptadores y los accesorios (paginas 48 en adelante del catalogo).
+
+const NOTA_MJ = {
+  'APS': 'Aplicación selectiva, para implementos WEED-IT y WEED SEEKER.',
+  'BD-AV': 'Baja deriva de alto caudal; el catálogo no publica clase de gota para esta serie.',
+  'ST/D': 'Dos abanicos de 130° con 40° entre ellos (uno hacia adelante y otro hacia atrás).',
+  'ST-IA/D': 'Dos abanicos de 130° con 40° entre ellos, con inducción de aire.',
+  'AD/D': 'Dos abanicos de 110° con 40° entre ellos (uno hacia adelante y otro hacia atrás).',
+  'AD/T': 'Tres abanicos de 110° (adelante, atrás y al centro), con 40° entre ellos.',
+  'ADGA': 'Antideriva de gran ángulo: 120° permiten acercar la barra al objetivo.',
+  'AD-IA/D': 'Dos abanicos de 110° con 40° entre ellos, con inducción de aire.',
+  'AD-IA/T': 'Tres abanicos de 110° con inducción de aire.',
+  'BD': 'Baja deriva. El catálogo publica un código de pieza para 80° y otro para 110°, con una sola tabla.',
+  'AS7030': 'Dos abanicos planos asimétricos de 110°: 70 % del caudal a un lado y 30 % al otro.',
+  'AS-IA7030': 'Dos abanicos asimétricos de 110° (70/30) con inducción de aire.',
+  'AS-IA': 'Abanico asimétrico con inducción de aire; el catálogo no publica clase de gota para esta serie.',
+  'MD-IA/D': 'Magno divergente doble con inducción de aire.',
+  'MDC': 'Deflector de cerámica: el chorro se abre al chocar contra una superficie. Tamaño propio Magnojet, no ISO.',
+  'TM-IA': 'Turbo Magno con inducción de aire, 150° de apertura. Tamaño propio Magnojet, no ISO.',
+  'PB': 'Abanico plano de 60°.',
+  'PB-IA': 'Abanico plano de 60° con inducción de aire.',
+  'MAG': 'Cono hueco de 80°. Tamaño propio Magnojet, no ISO.',
+  'X': 'Cono hueco de 85° a alta presión y caudal muy bajo; también se usa para humidificar aviarios. Tamaño propio Magnojet, no ISO.',
+  'MGA': 'Cono hueco de gotas atomizadas, para turbopulverizador y para barra.',
+  'BX-AP/70': 'Cono hueco de baja presión y alta penetración, 70°.',
+  'CV-IA': 'Cono hueco de 100° con inducción de aire, para herbicidas sistémicos, preemergentes e incorporados.',
+  'MAG CH': 'Cono lleno de 80°. Tamaño propio Magnojet, no ISO.',
+  'CH 100': 'Cono lleno de 100° sin inducción de aire. Tamaño propio Magnojet, no ISO.',
+};
+
+function mj2(id, serie, modelo, tamanoIso, angulo, patron, caudalRef, presionRef, presionMin, presionMax, exponente, clasesGota, notaExtra = '') {
+  return {
+    id: `mj-${id}`,
+    fabricante: 'Magnojet',
+    serie,
+    modelo,
+    tipoPatron: patron,
+    anguloGrados: angulo,
+    tamanoIso,
+    caudalRefLmin: caudalRef,
+    presionRefBar: presionRef,
+    presionMinBar: presionMin,
+    presionMaxBar: presionMax,
+    exponente,
+    material: 'ceramica',
+    edicionEstandar: clasesGota.length > 0 ? 'S572.1' : null,
+    clasesGota,
+    notas: [NOTA_MJ[serie], notaExtra].filter(Boolean).join(' '),
+    fuente:
+      clasesGota.length > 0
+        ? 'Magnojet, catálogo general 2019/2020, tabla de la serie; clase de gota según BCPC ' +
+          '(equivale a ASABE S572.1).'
+        : 'Magnojet, catálogo general 2019/2020, tabla de la serie. No publica clase de gota.',
+  };
+}
+
+CATALOGO_SIEMBRA.push(
+  // ----- APS (página 14) -----
+  mj2('aps-30-01', 'APS', 'APS 30 01', '01', 30, 'abanico-plano', 0.41, 3.1, 1, 4.1, 0.545,
+    rangos([1, 4.1, 'F'])),
+  mj2('aps-30-02', 'APS', 'APS 30 02', '02', 30, 'abanico-plano', 0.82, 3.1, 1, 4.1, 0.479,
+    rangos([1, 1.5, 'M'], [1.5, 4.1, 'F'])),
+  mj2('aps-30-03', 'APS', 'APS 30 03', '03', 30, 'abanico-plano', 1.25, 3.1, 1, 4.1, 0.49,
+    rangos([1, 2.55, 'M'], [2.55, 4.1, 'F'])),
+  mj2('aps-30-04', 'APS', 'APS 30 04', '04', 30, 'abanico-plano', 1.62, 3.1, 1, 4.1, 0.468,
+    rangos([1, 2.55, 'M'], [2.55, 4.1, 'F'])),
+
+  // ----- BD-AV (página 15) -----
+  mj2('bd-av-11010', 'BD-AV', 'BD-AV 11010', '10', 110, 'abanico-preorificio', 4.18, 3.1, 1, 4.1, 0.488,
+    []),
+  mj2('bd-av-11015', 'BD-AV', 'BD-AV 11015', '15', 110, 'abanico-preorificio', 6.28, 3.1, 1, 4.1, 0.486,
+    []),
+  mj2('bd-av-11018', 'BD-AV', 'BD-AV 11018', '18', 110, 'abanico-preorificio', 7.4, 3.1, 1, 4.1, 0.477,
+    []),
+  mj2('bd-av-11020', 'BD-AV', 'BD-AV 11020', '20', 110, 'abanico-preorificio', 8.48, 3.1, 1, 4.1, 0.485,
+    []),
+  mj2('bd-av-11025', 'BD-AV', 'BD-AV 11025', null, 110, 'abanico-preorificio', 10.64, 3.1, 1, 4.1, 0.471,
+    [],
+    'El catálogo la rotula 25, tamaño que no trae la tabla ISO 10625 de la aplicación: va sin tamaño declarado.'),
+
+  // ----- ST/D (página 17) -----
+  mj2('st-d-01', 'ST/D', 'ST/D 01', '01', 130, 'abanico-doble', 0.41, 3.1, 2, 5.2, 0.527,
+    rangos([2, 4.65, 'F'], [4.65, 5.2, 'VF'])),
+  mj2('st-d-015', 'ST/D', 'ST/D 015', '015', 130, 'abanico-doble', 0.62, 3.1, 2, 5.2, 0.459,
+    rangos([2, 2.55, 'M'], [2.55, 4.65, 'F'], [4.65, 5.2, 'VF'])),
+  mj2('st-d-02', 'ST/D', 'ST/D 02', '02', 130, 'abanico-doble', 0.82, 3.1, 2, 5.2, 0.434,
+    rangos([2, 2.55, 'M'], [2.55, 5.2, 'F'])),
+  mj2('st-d-025', 'ST/D', 'ST/D 025', '025', 130, 'abanico-doble', 1.04, 3.1, 2, 5.2, 0.499,
+    rangos([2, 2.55, 'M'], [2.55, 5.2, 'F'])),
+  mj2('st-d-03', 'ST/D', 'ST/D 03', '03', 130, 'abanico-doble', 1.25, 3.1, 2, 5.2, 0.489,
+    rangos([2, 2.55, 'M'], [2.55, 5.2, 'F'])),
+  mj2('st-d-04', 'ST/D', 'ST/D 04', '04', 130, 'abanico-doble', 1.63, 3.1, 2, 5.2, 0.46,
+    rangos([2, 2.55, 'M'], [2.55, 5.2, 'F'])),
+  mj2('st-d-05', 'ST/D', 'ST/D 05', '05', 130, 'abanico-doble', 2.08, 3.1, 2, 5.2, 0.483,
+    rangos([2, 2.55, 'M'], [2.55, 5.2, 'F'])),
+  mj2('st-d-06', 'ST/D', 'ST/D 06', '06', 130, 'abanico-doble', 2.5, 3.1, 2, 5.2, 0.469,
+    rangos([2, 2.55, 'M'], [2.55, 5.2, 'F'])),
+
+  // ----- ST-IA/D (página 19) -----
+  mj2('st-ia-d-015', 'ST-IA/D', 'ST-IA/D 015', '015', 130, 'abanico-doble-induccion', 0.65, 3.4, 2, 6.2, 0.509,
+    rangos([2, 2.7, 'C'], [2.7, 5.5, 'M'], [5.5, 6.2, 'F'])),
+  mj2('st-ia-d-02', 'ST-IA/D', 'ST-IA/D 02', '02', 130, 'abanico-doble-induccion', 0.89, 3.4, 2, 6.2, 0.491,
+    rangos([2, 2.7, 'VC'], [2.7, 4.1, 'C'], [4.1, 5.5, 'M'], [5.5, 6.2, 'F'])),
+  mj2('st-ia-d-025', 'ST-IA/D', 'ST-IA/D 025', '025', 130, 'abanico-doble-induccion', 1.09, 3.4, 2, 6.2, 0.497,
+    rangos([2, 2.7, 'VC'], [2.7, 4.1, 'C'], [4.1, 5.5, 'M'], [5.5, 6.2, 'F'])),
+  mj2('st-ia-d-03', 'ST-IA/D', 'ST-IA/D 03', '03', 130, 'abanico-doble-induccion', 1.33, 3.4, 2, 6.2, 0.509,
+    rangos([2, 2.7, 'VC'], [2.7, 4.1, 'C'], [4.1, 5.5, 'M'], [5.5, 6.2, 'F'])),
+  mj2('st-ia-d-04', 'ST-IA/D', 'ST-IA/D 04', '04', 130, 'abanico-doble-induccion', 1.73, 3.4, 2, 6.2, 0.494,
+    rangos([2, 2.7, 'VC'], [2.7, 4.1, 'C'], [4.1, 5.5, 'M'], [5.5, 6.2, 'F'])),
+  mj2('st-ia-d-05', 'ST-IA/D', 'ST-IA/D 05', '05', 130, 'abanico-doble-induccion', 2.14, 3.4, 2, 6.2, 0.498,
+    rangos([2, 2.7, 'VC'], [2.7, 4.1, 'C'], [4.1, 5.5, 'M'], [5.5, 6.2, 'F'])),
+
+  // ----- AD/D (página 21) -----
+  mj2('ad-d-015', 'AD/D', 'AD/D 015', '015', 110, 'abanico-doble', 0.61, 3.1, 2, 4.1, 0.465,
+    rangos([2, 3.6, 'M'], [3.6, 4.1, 'F'])),
+  mj2('ad-d-02', 'AD/D', 'AD/D 02', '02', 110, 'abanico-doble', 0.82, 3.1, 2, 4.1, 0.504,
+    rangos([2, 3.6, 'M'], [3.6, 4.1, 'F'])),
+  mj2('ad-d-025', 'AD/D', 'AD/D 025', '025', 110, 'abanico-doble', 1.04, 3.1, 2, 4.1, 0.514,
+    rangos([2, 3.6, 'M'], [3.6, 4.1, 'F'])),
+  mj2('ad-d-03', 'AD/D', 'AD/D 03', '03', 110, 'abanico-doble', 1.25, 3.1, 2, 4.1, 0.501,
+    rangos([2, 4.1, 'M'])),
+  mj2('ad-d-04', 'AD/D', 'AD/D 04', '04', 110, 'abanico-doble', 1.62, 3.1, 2, 4.1, 0.492,
+    rangos([2, 2.55, 'C'], [2.55, 4.1, 'M'])),
+  mj2('ad-d-05', 'AD/D', 'AD/D 05', '05', 110, 'abanico-doble', 2.07, 3.1, 2, 4.1, 0.497,
+    rangos([2, 2.55, 'C'], [2.55, 4.1, 'M'])),
+  mj2('ad-d-06', 'AD/D', 'AD/D 06', '06', 110, 'abanico-doble', 2.49, 3.1, 2, 4.1, 0.483,
+    rangos([2, 2.55, 'C'], [2.55, 4.1, 'M'])),
+  mj2('ad-d-08', 'AD/D', 'AD/D 08', '08', 110, 'abanico-doble', 3.37, 3.1, 2, 4.1, 0.458,
+    rangos([2, 3.6, 'C'], [3.6, 4.1, 'M'])),
+
+  // ----- AD/T (página 22) -----
+  mj2('ad-t-02', 'AD/T', 'AD/T 02', '02', 110, 'abanico-triple', 0.76, 2.7, 2.7, 8.9, 0.481,
+    rangos([2.7, 5.5, 'F'], [5.5, 8.9, 'VF'])),
+  mj2('ad-t-025', 'AD/T', 'AD/T 025', '025', 110, 'abanico-triple', 0.98, 2.7, 2.7, 8.9, 0.396,
+    rangos([2.7, 6.9, 'F'], [6.9, 8.9, 'VF'])),
+  mj2('ad-t-03', 'AD/T', 'AD/T 03', '03', 110, 'abanico-triple', 1.18, 2.7, 2.7, 8.9, 0.407,
+    rangos([2.7, 6.9, 'F'], [6.9, 8.9, 'VF'])),
+  mj2('ad-t-04', 'AD/T', 'AD/T 04', '04', 110, 'abanico-triple', 1.58, 2.7, 2.7, 8.9, 0.374,
+    rangos([2.7, 3.05, 'M'], [3.05, 8.9, 'F'])),
+  mj2('ad-t-05', 'AD/T', 'AD/T 05', '05', 110, 'abanico-triple', 1.97, 2.7, 2.7, 8.9, 0.381,
+    rangos([2.7, 3.05, 'M'], [3.05, 8.9, 'F'])),
+  mj2('ad-t-08', 'AD/T', 'AD/T 08', '08', 110, 'abanico-triple', 3.1, 2.7, 2.7, 8.9, 0.412,
+    rangos([2.7, 3.75, 'M'], [3.75, 8.9, 'F'])),
+  mj2('ad-t-10', 'AD/T', 'AD/T 10', '10', 110, 'abanico-triple', 3.88, 2.7, 2.7, 8.9, 0.406,
+    rangos([2.7, 4.45, 'M'], [4.45, 8.9, 'F'])),
+
+  // ----- ADGA (página 23) -----
+  mj2('adga-01', 'ADGA', 'ADGA 01', '01', 120, 'abanico-preorificio', 0.41, 3.1, 1, 4.1, 0.545,
+    rangos([1, 1.5, 'M'], [1.5, 4.1, 'F'])),
+  mj2('adga-015', 'ADGA', 'ADGA 015', '015', 120, 'abanico-preorificio', 0.61, 3.1, 1, 4.1, 0.466,
+    rangos([1, 1.5, 'M'], [1.5, 4.1, 'F'])),
+  mj2('adga-02', 'ADGA', 'ADGA 02', '02', 120, 'abanico-preorificio', 0.82, 3.1, 1, 4.1, 0.479,
+    rangos([1, 2.55, 'M'], [2.55, 4.1, 'F'])),
+  mj2('adga-025', 'ADGA', 'ADGA 025', '025', 120, 'abanico-preorificio', 1.04, 3.1, 1, 4.1, 0.489,
+    rangos([1, 2.55, 'M'], [2.55, 4.1, 'F'])),
+  mj2('adga-03', 'ADGA', 'ADGA 03', '03', 120, 'abanico-preorificio', 1.25, 3.1, 1, 4.1, 0.49,
+    rangos([1, 3.6, 'M'], [3.6, 4.1, 'F'])),
+  mj2('adga-04', 'ADGA', 'ADGA 04', '04', 120, 'abanico-preorificio', 1.62, 3.1, 1, 4.1, 0.468,
+    rangos([1, 4.1, 'M'])),
+
+  // ----- AD-IA/D (página 25) -----
+  mj2('ad-ia-d-01', 'AD-IA/D', 'AD-IA/D 01', '01', 110, 'abanico-doble-induccion', 0.38, 2.7, 2.7, 7.6, 0.473,
+    rangos([2.7, 3.05, 'XC'], [3.05, 4.1, 'VC'], [4.1, 6.9, 'C'], [6.9, 7.6, 'M'])),
+  mj2('ad-ia-d-015', 'AD-IA/D', 'AD-IA/D 015', '015', 110, 'abanico-doble-induccion', 0.65, 3.4, 2, 7.6, 0.492,
+    rangos([2, 2.7, 'XC'], [2.7, 4.1, 'VC'], [4.1, 7.6, 'C'])),
+  mj2('ad-ia-d-02', 'AD-IA/D', 'AD-IA/D 02', '02', 110, 'abanico-doble-induccion', 0.89, 3.4, 2, 7.6, 0.477,
+    rangos([2, 2.7, 'XC'], [2.7, 4.1, 'VC'], [4.1, 7.6, 'C'])),
+  mj2('ad-ia-d-025', 'AD-IA/D', 'AD-IA/D 025', '025', 110, 'abanico-doble-induccion', 1.09, 3.4, 2, 7.6, 0.491,
+    rangos([2, 2.7, 'XC'], [2.7, 4.1, 'VC'], [4.1, 7.6, 'C'])),
+  mj2('ad-ia-d-03', 'AD-IA/D', 'AD-IA/D 03', '03', 110, 'abanico-doble-induccion', 1.33, 3.4, 2, 7.6, 0.499,
+    rangos([2, 2.7, 'XC'], [2.7, 4.1, 'VC'], [4.1, 7.6, 'C'])),
+  mj2('ad-ia-d-04', 'AD-IA/D', 'AD-IA/D 04', '04', 110, 'abanico-doble-induccion', 1.73, 3.4, 2, 7.6, 0.493,
+    rangos([2, 2.7, 'XC'], [2.7, 5.5, 'VC'], [5.5, 7.6, 'C'])),
+  mj2('ad-ia-d-05', 'AD-IA/D', 'AD-IA/D 05', '05', 110, 'abanico-doble-induccion', 2.14, 3.4, 2, 7.6, 0.494,
+    rangos([2, 2.7, 'XC'], [2.7, 5.5, 'VC'], [5.5, 7.6, 'C'])),
+  mj2('ad-ia-d-06', 'AD-IA/D', 'AD-IA/D 06', '06', 110, 'abanico-doble-induccion', 2.6, 3.4, 2, 7.6, 0.471,
+    rangos([2, 2.7, 'XC'], [2.7, 7.6, 'VC'])),
+
+  // ----- AD-IA/T (página 26) -----
+  mj2('ad-ia-t-025', 'AD-IA/T', 'AD-IA/T 025', '025', 110, 'abanico-triple-induccion', 1.07, 3.4, 2, 8.9, 0.51,
+    rangos([2, 2.7, 'C'], [2.7, 4.1, 'M'], [4.1, 8.9, 'F'])),
+  mj2('ad-ia-t-03', 'AD-IA/T', 'AD-IA/T 03', '03', 110, 'abanico-triple-induccion', 1.29, 3.4, 2, 8.9, 0.494,
+    rangos([2, 2.7, 'C'], [2.7, 4.1, 'M'], [4.1, 8.9, 'F'])),
+  mj2('ad-ia-t-04', 'AD-IA/T', 'AD-IA/T 04', '04', 110, 'abanico-triple-induccion', 1.71, 3.4, 2, 8.9, 0.502,
+    rangos([2, 2.7, 'C'], [2.7, 4.1, 'M'], [4.1, 8.9, 'F'])),
+  mj2('ad-ia-t-05', 'AD-IA/T', 'AD-IA/T 05', '05', 110, 'abanico-triple-induccion', 2.16, 3.4, 2, 8.9, 0.498,
+    rangos([2, 2.7, 'C'], [2.7, 5.5, 'M'], [5.5, 8.9, 'F'])),
+  mj2('ad-ia-t-06', 'AD-IA/T', 'AD-IA/T 06', '06', 110, 'abanico-triple-induccion', 2.65, 3.4, 2, 8.9, 0.461,
+    rangos([2, 2.7, 'C'], [2.7, 5.5, 'M'], [5.5, 8.9, 'F'])),
+
+  // ----- BD (página 27) -----
+  mj2('bd-80005', 'BD', 'BD 80005', null, 80, 'abanico-preorificio', 0.22, 3.1, 1, 4.1, 0.417,
+    rangos([1, 3.6, 'F'], [3.6, 4.1, 'VF'])),
+  mj2('bd-110-01', 'BD', 'BD 110 01', '01', 110, 'abanico-preorificio', 0.41, 3.1, 1, 4.1, 0.545,
+    rangos([1, 4.1, 'F'])),
+  mj2('bd-110-015', 'BD', 'BD 110 015', '015', 110, 'abanico-preorificio', 0.61, 3.1, 1, 4.1, 0.466,
+    rangos([1, 1.5, 'M'], [1.5, 4.1, 'F'])),
+  mj2('bd-110-02', 'BD', 'BD 110 02', '02', 110, 'abanico-preorificio', 0.82, 3.1, 1, 4.1, 0.479,
+    rangos([1, 1.5, 'M'], [1.5, 4.1, 'F'])),
+  mj2('bd-110-025', 'BD', 'BD 110 025', '025', 110, 'abanico-preorificio', 1.04, 3.1, 1, 4.1, 0.489,
+    rangos([1, 2.55, 'M'], [2.55, 4.1, 'F'])),
+  mj2('bd-110-03', 'BD', 'BD 110 03', '03', 110, 'abanico-preorificio', 1.25, 3.1, 1, 4.1, 0.49,
+    rangos([1, 2.55, 'M'], [2.55, 4.1, 'F'])),
+  mj2('bd-110-04', 'BD', 'BD 110 04', '04', 110, 'abanico-preorificio', 1.62, 3.1, 1, 4.1, 0.468,
+    rangos([1, 2.55, 'M'], [2.55, 4.1, 'F'])),
+  mj2('bd-110-05', 'BD', 'BD 110 05', '05', 110, 'abanico-preorificio', 2.07, 3.1, 1, 4.1, 0.485,
+    rangos([1, 1.5, 'C'], [1.5, 2.55, 'M'], [2.55, 4.1, 'F'])),
+  mj2('bd-110-06', 'BD', 'BD 110 06', '06', 110, 'abanico-preorificio', 2.49, 3.1, 1, 4.1, 0.484,
+    rangos([1, 1.5, 'C'], [1.5, 2.55, 'M'], [2.55, 4.1, 'F'])),
+  mj2('bd-110-08', 'BD', 'BD 110 08', '08', 110, 'abanico-preorificio', 3.37, 3.1, 1, 4.1, 0.506,
+    rangos([1, 1.5, 'C'], [1.5, 2.55, 'M'], [2.55, 4.1, 'F'])),
+
+  // ----- AS7030 (página 28) -----
+  mj2('as7030-01', 'AS7030', 'AS7030 01', null, 110, 'abanico-doble', 0.5, 3.1, 2, 5.2, 0.511,
+    rangos([2, 2.55, 'C'], [2.55, 3.6, 'M'], [3.6, 5.2, 'F']),
+    'El catálogo la rotula 01, pero su caudal se desvía 22.9 % del nominal de ese tamaño (la norma tolera 5 %): va sin tamaño ISO declarado.'),
+  mj2('as7030-015', 'AS7030', 'AS7030 015', '015', 110, 'abanico-doble', 0.62, 3.1, 2, 5.2, 0.467,
+    rangos([2, 2.55, 'C'], [2.55, 3.6, 'M'], [3.6, 5.2, 'F'])),
+  mj2('as7030-02', 'AS7030', 'AS7030 02', '02', 110, 'abanico-doble', 0.82, 3.1, 2, 5.2, 0.318,
+    rangos([2, 2.55, 'C'], [2.55, 3.6, 'M'], [3.6, 5.2, 'F'])),
+  mj2('as7030-025', 'AS7030', 'AS7030 025', '025', 110, 'abanico-doble', 1.06, 3.1, 2, 5.2, 0.474,
+    rangos([2, 2.55, 'C'], [2.55, 3.6, 'M'], [3.6, 5.2, 'F'])),
+  mj2('as7030-03', 'AS7030', 'AS7030 03', '03', 110, 'abanico-doble', 1.22, 3.1, 2, 5.2, 0.385,
+    rangos([2, 2.55, 'C'], [2.55, 4.65, 'M'], [4.65, 5.2, 'F'])),
+  mj2('as7030-04', 'AS7030', 'AS7030 04', '04', 110, 'abanico-doble', 1.66, 3.1, 2, 5.2, 0.483,
+    rangos([2, 2.55, 'C'], [2.55, 4.65, 'M'], [4.65, 5.2, 'F'])),
+  mj2('as7030-05', 'AS7030', 'AS7030 05', '05', 110, 'abanico-doble', 2.04, 3.1, 2, 5.2, 0.426,
+    rangos([2, 2.55, 'C'], [2.55, 4.65, 'M'], [4.65, 5.2, 'F'])),
+  mj2('as7030-06', 'AS7030', 'AS7030 06', '06', 110, 'abanico-doble', 2.48, 3.1, 2, 5.2, 0.413,
+    rangos([2, 2.55, 'C'], [2.55, 4.65, 'M'], [4.65, 5.2, 'F'])),
+
+  // ----- AS-IA7030 (página 29) -----
+  mj2('as-ia7030-015', 'AS-IA7030', 'AS-IA7030 015', '015', 110, 'abanico-doble-induccion', 0.65, 3.4, 2, 7.6, 0.465,
+    rangos([2, 2.7, 'XC'], [2.7, 4.1, 'VC'], [4.1, 5.5, 'C'], [5.5, 7.6, 'M'])),
+  mj2('as-ia7030-02', 'AS-IA7030', 'AS-IA7030 02', '02', 110, 'abanico-doble-induccion', 0.86, 3.4, 2, 7.6, 0.488,
+    rangos([2, 2.7, 'XC'], [2.7, 4.1, 'VC'], [4.1, 5.5, 'C'], [5.5, 7.6, 'M'])),
+  mj2('as-ia7030-025', 'AS-IA7030', 'AS-IA7030 025', '025', 110, 'abanico-doble-induccion', 1.07, 3.4, 2, 7.6, 0.473,
+    rangos([2, 2.7, 'XC'], [2.7, 4.1, 'VC'], [4.1, 5.5, 'C'], [5.5, 7.6, 'M'])),
+  mj2('as-ia7030-03', 'AS-IA7030', 'AS-IA7030 03', '03', 110, 'abanico-doble-induccion', 1.3, 3.4, 2, 7.6, 0.46,
+    rangos([2, 4.1, 'XC'], [4.1, 6.9, 'C'], [6.9, 7.6, 'M'])),
+  mj2('as-ia7030-04', 'AS-IA7030', 'AS-IA7030 04', '04', 110, 'abanico-doble-induccion', 1.75, 3.4, 2, 7.6, 0.48,
+    rangos([2, 4.1, 'XC'], [4.1, 5.5, 'VC'], [5.5, 6.9, 'C'], [6.9, 7.6, 'M'])),
+  mj2('as-ia7030-05', 'AS-IA7030', 'AS-IA7030 05', '05', 110, 'abanico-doble-induccion', 2.2, 3.4, 2, 7.6, 0.467,
+    rangos([2, 4.1, 'XC'], [4.1, 5.5, 'VC'], [5.5, 6.9, 'C'], [6.9, 7.6, 'M'])),
+
+  // ----- AS-IA (página 30) -----
+  mj2('as-ia-01', 'AS-IA', 'AS-IA 01', '01', 110, 'abanico-induccion', 0.39, 2.7, 2.7, 7.6, 0.477,
+    []),
+  mj2('as-ia-015', 'AS-IA', 'AS-IA 015', '015', 110, 'abanico-induccion', 0.65, 3.4, 2, 7.6, 0.465,
+    []),
+  mj2('as-ia-02', 'AS-IA', 'AS-IA 02', '02', 110, 'abanico-induccion', 0.86, 3.4, 2, 7.6, 0.488,
+    []),
+  mj2('as-ia-025', 'AS-IA', 'AS-IA 025', '025', 110, 'abanico-induccion', 1.07, 3.4, 2, 7.6, 0.473,
+    []),
+  mj2('as-ia-03', 'AS-IA', 'AS-IA 03', '03', 110, 'abanico-induccion', 1.3, 3.4, 2, 7.6, 0.46,
+    []),
+  mj2('as-ia-04', 'AS-IA', 'AS-IA 04', '04', 110, 'abanico-induccion', 1.75, 3.4, 2, 7.6, 0.48,
+    []),
+  mj2('as-ia-05', 'AS-IA', 'AS-IA 05', '05', 110, 'abanico-induccion', 2.2, 3.4, 2, 7.6, 0.467,
+    []),
+
+  // ----- MD-IA/D (página 31) -----
+  mj2('md-ia-d-01', 'MD-IA/D', 'MD-IA/D 01', '01', 110, 'abanico-doble-induccion', 0.43, 3.4, 2, 7.6, 0.419,
+    rangos([2, 2.7, 'C'], [2.7, 4.1, 'M'], [4.1, 7.6, 'F'])),
+  mj2('md-ia-d-015', 'MD-IA/D', 'MD-IA/D 015', '015', 110, 'abanico-doble-induccion', 0.64, 3.4, 2, 7.6, 0.475,
+    rangos([2, 2.7, 'C'], [2.7, 4.1, 'M'], [4.1, 7.6, 'F'])),
+  mj2('md-ia-d-02', 'MD-IA/D', 'MD-IA/D 02', '02', 110, 'abanico-doble-induccion', 0.86, 3.4, 2, 7.6, 0.484,
+    rangos([2, 2.7, 'C'], [2.7, 4.1, 'M'], [4.1, 7.6, 'F'])),
+  mj2('md-ia-d-025', 'MD-IA/D', 'MD-IA/D 025', '025', 110, 'abanico-doble-induccion', 1.09, 3.4, 2, 7.6, 0.474,
+    rangos([2, 2.7, 'C'], [2.7, 4.1, 'M'], [4.1, 7.6, 'F'])),
+  mj2('md-ia-d-03', 'MD-IA/D', 'MD-IA/D 03', '03', 110, 'abanico-doble-induccion', 1.3, 3.4, 2, 7.6, 0.518,
+    rangos([2, 2.7, 'C'], [2.7, 5.5, 'M'], [5.5, 7.6, 'F'])),
+  mj2('md-ia-d-04', 'MD-IA/D', 'MD-IA/D 04', '04', 110, 'abanico-doble-induccion', 1.71, 3.4, 2, 7.6, 0.494,
+    rangos([2, 2.7, 'C'], [2.7, 5.5, 'M'], [5.5, 7.6, 'F'])),
+  mj2('md-ia-d-05', 'MD-IA/D', 'MD-IA/D 05', '05', 110, 'abanico-doble-induccion', 2.13, 3.4, 2, 7.6, 0.497,
+    rangos([2, 4.1, 'C'], [4.1, 5.5, 'M'], [5.5, 7.6, 'F'])),
+
+  // ----- MDC (página 32) -----
+  mj2('mdc-0-75', 'MDC', 'MDC 0,75', null, 130, 'abanico-impacto', 0.62, 3.1, 1, 3.1, 0.526,
+    rangos([1, 1.5, 'M'], [1.5, 3.1, 'F'])),
+  mj2('mdc-1', 'MDC', 'MDC 1', null, 130, 'abanico-impacto', 0.84, 3.1, 1, 3.1, 0.526,
+    rangos([1, 1.5, 'M'], [1.5, 3.1, 'F'])),
+  mj2('mdc-1-5', 'MDC', 'MDC 1,5', null, 130, 'abanico-impacto', 1.24, 3.1, 1, 3.1, 0.503,
+    rangos([1, 1.5, 'C'], [1.5, 2.55, 'M'], [2.55, 3.1, 'F'])),
+  mj2('mdc-2-5', 'MDC', 'MDC 2,5', null, 130, 'abanico-impacto', 1.98, 3.1, 1, 3.1, 0.439,
+    rangos([1, 1.5, 'C'], [1.5, 2.55, 'M'], [2.55, 3.1, 'F'])),
+  mj2('mdc-3', 'MDC', 'MDC 3', null, 130, 'abanico-impacto', 2.45, 3.1, 1, 3.1, 0.422,
+    rangos([1, 1.5, 'C'], [1.5, 2.55, 'M'], [2.55, 3.1, 'F'])),
+  mj2('mdc-4', 'MDC', 'MDC 4', null, 130, 'abanico-impacto', 3.26, 3.1, 1, 3.1, 0.454,
+    rangos([1, 1.5, 'C'], [1.5, 2.55, 'M'], [2.55, 3.1, 'F'])),
+  mj2('mdc-5', 'MDC', 'MDC 5', null, 130, 'abanico-impacto', 3.97, 3.1, 1, 3.1, 0.463,
+    rangos([1, 1.5, 'C'], [1.5, 3.1, 'M'])),
+  mj2('mdc-7-5', 'MDC', 'MDC 7,5', null, 130, 'abanico-impacto', 6.24, 3.1, 1, 3.1, 0.496,
+    rangos([1, 1.5, 'C'], [1.5, 3.1, 'M'])),
+
+  // ----- TM-IA (página 33) -----
+  mj2('tm-ia-0-5', 'TM-IA', 'TM-IA 0,5', null, 150, 'abanico-induccion', 0.62, 3.1, 2, 6.2, 0.517,
+    rangos([2, 5.7, 'XC'], [5.7, 6.2, 'VC'])),
+  mj2('tm-ia-0-75', 'TM-IA', 'TM-IA 0,75', null, 150, 'abanico-induccion', 0.66, 3.1, 2, 6.2, 0.5,
+    rangos([2, 6.2, 'XC'])),
+  mj2('tm-ia-1', 'TM-IA', 'TM-IA 1', null, 150, 'abanico-induccion', 0.82, 3.1, 2, 6.2, 0.494,
+    rangos([2, 6.2, 'XC'])),
+  mj2('tm-ia-1-5', 'TM-IA', 'TM-IA 1,5', null, 150, 'abanico-induccion', 1.12, 3.1, 2, 6.2, 0.512,
+    rangos([2, 6.2, 'XC'])),
+  mj2('tm-ia-2', 'TM-IA', 'TM-IA 2', null, 150, 'abanico-induccion', 1.6, 3.1, 2, 6.2, 0.486,
+    rangos([2, 6.2, 'XC'])),
+  mj2('tm-ia-2-5', 'TM-IA', 'TM-IA 2,5', null, 150, 'abanico-induccion', 1.98, 3.1, 2, 6.2, 0.48,
+    rangos([2, 6.2, 'XC'])),
+  mj2('tm-ia-3', 'TM-IA', 'TM-IA 3', null, 150, 'abanico-induccion', 2.45, 3.1, 2, 6.2, 0.47,
+    rangos([2, 6.2, 'XC'])),
+  mj2('tm-ia-4', 'TM-IA', 'TM-IA 4', null, 150, 'abanico-induccion', 3.26, 3.1, 2, 6.2, 0.476,
+    rangos([2, 6.2, 'XC'])),
+  mj2('tm-ia-5', 'TM-IA', 'TM-IA 5', null, 150, 'abanico-induccion', 3.97, 3.1, 2, 6.2, 0.437,
+    rangos([2, 6.2, 'XC'])),
+  mj2('tmj-7-5', 'TM-IA', 'TMJ 7,5', null, 150, 'abanico-induccion', 6.24, 3.1, 2, 6.2, 0.372,
+    rangos([2, 6.2, 'XC'])),
+
+  // ----- PB (página 34) -----
+  mj2('pb-01', 'PB', 'PB 01', '01', 60, 'abanico-plano', 0.41, 3.1, 2, 4.1, 0.521,
+    rangos([2, 2.55, 'M'], [2.55, 4.1, 'F'])),
+  mj2('pb-015', 'PB', 'PB 015', '015', 60, 'abanico-plano', 0.61, 3.1, 2, 4.1, 0.465,
+    rangos([2, 2.55, 'M'], [2.55, 4.1, 'F'])),
+  mj2('pb-02', 'PB', 'PB 02', '02', 60, 'abanico-plano', 0.82, 3.1, 2, 4.1, 0.504,
+    rangos([2, 2.55, 'M'], [2.55, 4.1, 'F'])),
+  mj2('pb-03', 'PB', 'PB 03', '03', 60, 'abanico-plano', 1.25, 3.1, 2, 4.1, 0.501,
+    rangos([2, 2.55, 'M'], [2.55, 4.1, 'F'])),
+  mj2('pb-04', 'PB', 'PB 04', '04', 60, 'abanico-plano', 1.62, 3.1, 2, 4.1, 0.492,
+    rangos([2, 3.6, 'M'], [3.6, 4.1, 'F'])),
+  mj2('pb-05', 'PB', 'PB 05', '05', 60, 'abanico-plano', 2.07, 3.1, 2, 4.1, 0.497,
+    rangos([2, 3.6, 'M'], [3.6, 4.1, 'F'])),
+  mj2('pb-06', 'PB', 'PB 06', '06', 60, 'abanico-plano', 2.5, 3.1, 2, 4.1, 0.452,
+    rangos([2, 3.6, 'M'], [3.6, 4.1, 'F'])),
+
+  // ----- PB-IA (página 35) -----
+  mj2('pb-ia-01', 'PB-IA', 'PB-IA 01', '01', 60, 'abanico-induccion', 0.38, 2.7, 2.7, 7.6, 0.481,
+    rangos([2.7, 3.05, 'XC'], [3.05, 5.5, 'VC'], [5.5, 7.6, 'C'])),
+  mj2('pb-ia-015', 'PB-IA', 'PB-IA 015', '015', 60, 'abanico-induccion', 0.65, 3.4, 2, 7.6, 0.492,
+    rangos([2, 2.7, 'XC'], [2.7, 6.9, 'VC'], [6.9, 7.6, 'C'])),
+  mj2('pb-ia-02', 'PB-IA', 'PB-IA 02', '02', 60, 'abanico-induccion', 0.89, 3.4, 2, 7.6, 0.477,
+    rangos([2, 4.1, 'XC'], [4.1, 6.9, 'VC'], [6.9, 7.6, 'C'])),
+  mj2('pb-ia-025', 'PB-IA', 'PB-IA 025', '025', 60, 'abanico-induccion', 1.09, 3.4, 2, 7.6, 0.491,
+    rangos([2, 4.1, 'XC'], [4.1, 6.9, 'VC'], [6.9, 7.6, 'C'])),
+  mj2('pb-ia-03', 'PB-IA', 'PB-IA 03', '03', 60, 'abanico-induccion', 1.33, 3.4, 2, 7.6, 0.499,
+    rangos([2, 4.1, 'XC'], [4.1, 7.6, 'VC'])),
+  mj2('pb-ia-04', 'PB-IA', 'PB-IA 04', '04', 60, 'abanico-induccion', 1.73, 3.4, 2, 7.6, 0.493,
+    rangos([2, 4.1, 'XC'], [4.1, 7.6, 'VC'])),
+  mj2('pb-ia-05', 'PB-IA', 'PB-IA 05', '05', 60, 'abanico-induccion', 2.14, 3.4, 2, 7.6, 0.494,
+    rangos([2, 5.5, 'XC'], [5.5, 7.6, 'VC'])),
+
+  // ----- MAG (página 36) -----
+  mj2('mag-1', 'MAG', 'MAG 1', null, 80, 'cono-hueco', 0.32, 4.1, 4.1, 16.6, 0.447,
+    rangos([4.1, 15.55, 'F'], [15.55, 16.6, 'VF'])),
+  mj2('mag-1-5', 'MAG', 'MAG 1,5', null, 80, 'cono-hueco', 0.43, 4.1, 4.1, 16.6, 0.461,
+    rangos([4.1, 15.55, 'F'], [15.55, 16.6, 'VF'])),
+  mj2('mag-2', 'MAG', 'MAG 2', null, 80, 'cono-hueco', 0.64, 4.1, 4.1, 16.6, 0.459,
+    rangos([4.1, 16.6, 'F'])),
+  mj2('mag-3', 'MAG', 'MAG 3', null, 80, 'cono-hueco', 0.88, 4.1, 4.1, 16.6, 0.459,
+    rangos([4.1, 16.6, 'F'])),
+  mj2('mag-4', 'MAG', 'MAG 4', null, 80, 'cono-hueco', 1.25, 4.1, 4.1, 16.6, 0.452,
+    rangos([4.1, 16.6, 'F'])),
+  mj2('mag-5', 'MAG', 'MAG 5', null, 80, 'cono-hueco', 1.6, 4.1, 4.1, 16.6, 0.475,
+    rangos([4.1, 16.6, 'F'])),
+
+  // ----- X (página 37) -----
+  mj2('x-1', 'X', 'X 1', null, 85, 'cono-hueco', 0.13, 5.5, 5.5, 13.8, 0.382,
+    rangos([5.5, 13.8, 'VF'])),
+  mj2('x-2', 'X', 'X 2', null, 85, 'cono-hueco', 0.17, 5.5, 5.5, 13.8, 0.494,
+    rangos([5.5, 13.8, 'VF'])),
+  mj2('x-3', 'X', 'X 3', null, 85, 'cono-hueco', 0.26, 5.5, 5.5, 13.8, 0.503,
+    rangos([5.5, 6.2, 'F'], [6.2, 13.8, 'VF'])),
+
+  // ----- MGA (página 38) -----
+  mj2('mga-90-005', 'MGA', 'MGA 90 005', '0050', 90, 'cono-hueco', 0.19, 2.7, 2.7, 10.4, 0.442,
+    rangos([2.7, 10.4, 'VF'])),
+  mj2('mga-90-0067', 'MGA', 'MGA 90 0067', '0067', 90, 'cono-hueco', 0.25, 2.7, 2.7, 10.4, 0.461,
+    rangos([2.7, 10.4, 'VF'])),
+  mj2('mga-90-01', 'MGA', 'MGA 90 01', '01', 90, 'cono-hueco', 0.39, 2.7, 2.7, 10.4, 0.423,
+    rangos([2.7, 10.4, 'VF'])),
+  mj2('mga-90-015', 'MGA', 'MGA 90 015', '015', 90, 'cono-hueco', 0.57, 2.7, 2.7, 10.4, 0.466,
+    rangos([2.7, 10.4, 'VF'])),
+  mj2('mga-90-02', 'MGA', 'MGA 90 02', '02', 90, 'cono-hueco', 0.75, 2.7, 2.7, 10.4, 0.482,
+    rangos([2.7, 3.25, 'F'], [3.25, 10.4, 'VF'])),
+  mj2('mga-90-025', 'MGA', 'MGA 90 025', '025', 90, 'cono-hueco', 0.95, 2.7, 2.7, 10.4, 0.479,
+    rangos([2.7, 3.25, 'F'], [3.25, 10.4, 'VF'])),
+  mj2('mga-90-03', 'MGA', 'MGA 90 03', '03', 90, 'cono-hueco', 1.15, 2.7, 2.7, 10.4, 0.476,
+    rangos([2.7, 4.3, 'F'], [4.3, 10.4, 'VF'])),
+  mj2('mga-90-035', 'MGA', 'MGA 90 035', '035', 90, 'cono-hueco', 1.3, 2.7, 2.7, 10.4, 0.514,
+    rangos([2.7, 4.3, 'F'], [4.3, 10.4, 'VF'])),
+  mj2('mga-90-04', 'MGA', 'MGA 90 04', null, 90, 'cono-hueco', 1.61, 2.7, 2.7, 10.4, 0.483,
+    rangos([2.7, 5.85, 'F'], [5.85, 10.4, 'VF']),
+    'El catálogo la rotula 04, pero su caudal se desvía 5.9 % del nominal de ese tamaño (la norma tolera 5 %): va sin tamaño ISO declarado.'),
+  mj2('mga-90-05', 'MGA', 'MGA 90 05', '05', 90, 'cono-hueco', 1.96, 2.7, 2.7, 10.4, 0.464,
+    rangos([2.7, 8.65, 'F'], [8.65, 10.4, 'VF'])),
+  mj2('mga-90-06', 'MGA', 'MGA 90 06', '06', 90, 'cono-hueco', 2.34, 2.7, 2.7, 10.4, 0.465,
+    rangos([2.7, 8.65, 'F'], [8.65, 10.4, 'VF'])),
+
+  // ----- BX-AP/70 (página 42) -----
+  mj2('bx-ap-70-01', 'BX-AP/70', 'BX-AP/70 01', '01', 70, 'cono-hueco', 0.4, 3.1, 3.1, 8.3, 0.538,
+    rangos([3.1, 6.2, 'F'], [6.2, 8.3, 'VF'])),
+  mj2('bx-ap-70-015', 'BX-AP/70', 'BX-AP/70 015', '015', 70, 'cono-hueco', 0.6, 3.1, 3.1, 8.3, 0.472,
+    rangos([3.1, 6.2, 'F'], [6.2, 8.3, 'VF'])),
+  mj2('bx-ap-70-02', 'BX-AP/70', 'BX-AP/70 02', '02', 70, 'cono-hueco', 0.8, 3.1, 3.1, 8.3, 0.464,
+    rangos([3.1, 7.6, 'F'], [7.6, 8.3, 'VF'])),
+  mj2('bx-ap-70-025', 'BX-AP/70', 'BX-AP/70 025', '025', 70, 'cono-hueco', 1, 3.1, 3.1, 8.3, 0.449,
+    rangos([3.1, 7.6, 'F'], [7.6, 8.3, 'VF'])),
+  mj2('bx-ap-70-03', 'BX-AP/70', 'BX-AP/70 03', '03', 70, 'cono-hueco', 1.2, 3.1, 3.1, 8.3, 0.449,
+    rangos([3.1, 7.6, 'F'], [7.6, 8.3, 'VF'])),
+  mj2('bx-ap-70-035', 'BX-AP/70', 'BX-AP/70 035', '035', 70, 'cono-hueco', 1.4, 3.1, 3.1, 8.3, 0.467,
+    rangos([3.1, 7.6, 'F'], [7.6, 8.3, 'VF'])),
+  mj2('bx-ap-70-04', 'BX-AP/70', 'BX-AP/70 04', '04', 70, 'cono-hueco', 1.6, 3.1, 3.1, 8.3, 0.465,
+    rangos([3.1, 8.3, 'F'])),
+  mj2('bx-ap-70-05', 'BX-AP/70', 'BX-AP/70 05', '05', 70, 'cono-hueco', 2, 3.1, 3.1, 8.3, 0.486,
+    rangos([3.1, 8.3, 'F'])),
+
+  // ----- CV-IA (página 44) -----
+  mj2('cv-ia-01', 'CV-IA', 'CV-IA 01', null, 100, 'cono-hueco-induccion', 0.43, 3.1, 3.1, 10.4, 0.474,
+    rangos([3.1, 6.2, 'XC'], [6.2, 9.35, 'VC'], [9.35, 10.4, 'C']),
+    'El catálogo la rotula 01, pero su caudal se desvía 5.8 % del nominal de ese tamaño (la norma tolera 5 %): va sin tamaño ISO declarado.'),
+  mj2('cv-ia-015', 'CV-IA', 'CV-IA 015', '015', 100, 'cono-hueco-induccion', 0.62, 3.1, 3.1, 10.4, 0.473,
+    rangos([3.1, 6.2, 'XC'], [6.2, 9.35, 'VC'], [9.35, 10.4, 'C'])),
+  mj2('cv-ia-02', 'CV-IA', 'CV-IA 02', '02', 100, 'cono-hueco-induccion', 0.78, 3.1, 3.1, 10.4, 0.483,
+    rangos([3.1, 6.2, 'XC'], [6.2, 9.35, 'VC'], [9.35, 10.4, 'C'])),
+  mj2('cv-ia-025', 'CV-IA', 'CV-IA 025', '025', 100, 'cono-hueco-induccion', 1.04, 3.1, 3.1, 10.4, 0.528,
+    rangos([3.1, 6.2, 'XC'], [6.2, 10.4, 'VC'])),
+  mj2('cv-ia-03', 'CV-IA', 'CV-IA 03', '03', 100, 'cono-hueco-induccion', 1.22, 3.1, 3.1, 10.4, 0.52,
+    rangos([3.1, 6.2, 'XC'], [6.2, 10.4, 'VC'])),
+  mj2('cv-ia-04', 'CV-IA', 'CV-IA 04', '04', 100, 'cono-hueco-induccion', 1.56, 3.1, 3.1, 10.4, 0.504,
+    rangos([3.1, 6.2, 'XC'], [6.2, 10.4, 'VC'])),
+  mj2('cv-ia-05', 'CV-IA', 'CV-IA 05', '05', 100, 'cono-hueco-induccion', 2, 3.1, 3.1, 10.4, 0.505,
+    rangos([3.1, 7.6, 'XC'], [7.6, 10.4, 'VC'])),
+
+  // ----- MAG CH (página 45) -----
+  mj2('mag-ch-0-5', 'MAG CH', 'MAG CH 0,5', null, 80, 'cono-lleno', 0.56, 3.4, 3.4, 10.4, 0.466,
+    rangos([3.4, 6.9, 'F'], [6.9, 10.4, 'VF'])),
+  mj2('mag-ch-0-75', 'MAG CH', 'MAG CH 0,75', null, 80, 'cono-lleno', 0.75, 3.4, 3.4, 10.4, 0.486,
+    rangos([3.4, 8.3, 'F'], [8.3, 10.4, 'VF'])),
+  mj2('mag-ch-1', 'MAG CH', 'MAG CH 1', null, 80, 'cono-lleno', 1, 3.4, 3.4, 10.4, 0.493,
+    rangos([3.4, 9.7, 'F'], [9.7, 10.4, 'VF'])),
+  mj2('mag-ch-2', 'MAG CH', 'MAG CH 2', null, 80, 'cono-lleno', 1.28, 3.4, 3.4, 10.4, 0.482,
+    rangos([3.4, 9.7, 'F'], [9.7, 10.4, 'VF'])),
+  mj2('mag-ch-3', 'MAG CH', 'MAG CH 3', null, 80, 'cono-lleno', 1.5, 3.4, 3.4, 10.4, 0.477,
+    rangos([3.4, 10.4, 'F'])),
+  mj2('mag-ch-4', 'MAG CH', 'MAG CH 4', null, 80, 'cono-lleno', 1.94, 3.4, 3.4, 10.4, 0.455,
+    rangos([3.4, 4.1, 'M'], [4.1, 10.4, 'F'])),
+  mj2('mag-ch-5', 'MAG CH', 'MAG CH 5', null, 80, 'cono-lleno', 2.13, 3.4, 3.4, 10.4, 0.518,
+    rangos([3.4, 4.1, 'M'], [4.1, 10.4, 'F'])),
+  mj2('mag-ch-6', 'MAG CH', 'MAG CH 6', null, 80, 'cono-lleno', 2.4, 3.4, 3.4, 10.4, 0.482,
+    rangos([3.4, 4.1, 'M'], [4.1, 10.4, 'F'])),
+
+  // ----- CH 100 (página 46) -----
+  mj2('ch-100-1', 'CH 100', 'CH 100 1', null, 100, 'cono-lleno', 0.6, 2.7, 2, 6.9, 0.485,
+    rangos([2, 3.05, 'C'], [3.05, 6.2, 'M'], [6.2, 6.9, 'F'])),
+  mj2('ch-100-1-5', 'CH 100', 'CH 100 1,5', null, 100, 'cono-lleno', 0.7, 2.7, 2, 6.9, 0.53,
+    rangos([2, 3.75, 'C'], [3.75, 6.2, 'M'], [6.2, 6.9, 'F'])),
+  mj2('ch-100-2', 'CH 100', 'CH 100 2', null, 100, 'cono-lleno', 0.88, 2.7, 2, 6.9, 0.473,
+    rangos([2, 4.8, 'C'], [4.8, 6.9, 'M'])),
+  mj2('ch-100-3', 'CH 100', 'CH 100 3', null, 100, 'cono-lleno', 1.08, 2.7, 2, 6.9, 0.485,
+    rangos([2, 2.35, 'VC'], [2.35, 4.8, 'C'], [4.8, 6.9, 'M'])),
+  mj2('ch-100-4', 'CH 100', 'CH 100 4', null, 100, 'cono-lleno', 1.45, 2.7, 2, 6.9, 0.46,
+    rangos([2, 2.35, 'VC'], [2.35, 4.8, 'C'], [4.8, 6.9, 'M'])),
+  mj2('ch-100-5', 'CH 100', 'CH 100 5', null, 100, 'cono-lleno', 1.81, 2.7, 2, 6.9, 0.442,
+    rangos([2, 2.35, 'VC'], [2.35, 6.2, 'C'], [6.2, 6.9, 'M'])),
+  mj2('ch-100-8', 'CH 100', 'CH 100 8', null, 100, 'cono-lleno', 2.84, 2.7, 2, 6.9, 0.468,
+    rangos([2, 3.05, 'VC'], [3.05, 6.2, 'C'], [6.2, 6.9, 'M'])),
+);
+
+// Series que el catalogo publica en mas de un angulo con UNA sola tabla de
+// caudal y de clase de gota: entre una y otra solo cambia el codigo de
+// pieza. Se derivan de la ficha del angulo base en vez de retranscribir
+// sus numeros, igual que las AD-IA de 80 grados, para que no puedan
+// separarse si manana se corrige la tabla.
+const MJ_OTROS_ANGULOS = [
+  // ST-IA en 140 grados (página 18). La ST-IA 005 solo existe en 140, y
+  // es una de las tres fichas que la ley presión-caudal no reproduce:
+  // por eso no tiene par aquí.
+  ['stia-01', 'stia140-01', 'ST-IA 140 01', 140],
+  ['stia-015', 'stia140-015', 'ST-IA 140 015', 140],
+  ['stia-02', 'stia140-02', 'ST-IA 140 02', 140],
+  ['stia-025', 'stia140-025', 'ST-IA 140 025', 140],
+  ['stia-03', 'stia140-03', 'ST-IA 140 03', 140],
+  ['stia-04', 'stia140-04', 'ST-IA 140 04', 140],
+  // APS en 60 grados (página 14).
+  ['aps-30-02', 'aps-60-02', 'APS 60 02', 60],
+  ['aps-30-03', 'aps-60-03', 'APS 60 03', 60],
+  ['aps-30-04', 'aps-60-04', 'APS 60 04', 60],
+  // BD en 80 grados (página 27).
+  ['bd-110-01', 'bd-80-01', 'BD 80 01', 80],
+  ['bd-110-015', 'bd-80-015', 'BD 80 015', 80],
+  ['bd-110-02', 'bd-80-02', 'BD 80 02', 80],
+  ['bd-110-025', 'bd-80-025', 'BD 80 025', 80],
+  ['bd-110-03', 'bd-80-03', 'BD 80 03', 80],
+  ['bd-110-04', 'bd-80-04', 'BD 80 04', 80],
+  ['bd-110-05', 'bd-80-05', 'BD 80 05', 80],
+  ['bd-110-06', 'bd-80-06', 'BD 80 06', 80],
+  ['bd-110-08', 'bd-80-08', 'BD 80 08', 80],
+  // MGA en 60 grados (página 40).
+  ['mga-90-0067', 'mga-60-0067', 'MGA 60 0067', 60],
+  ['mga-90-01', 'mga-60-01', 'MGA 60 01', 60],
+  ['mga-90-015', 'mga-60-015', 'MGA 60 015', 60],
+  ['mga-90-02', 'mga-60-02', 'MGA 60 02', 60],
+  ['mga-90-025', 'mga-60-025', 'MGA 60 025', 60],
+  ['mga-90-03', 'mga-60-03', 'MGA 60 03', 60],
+  ['mga-90-035', 'mga-60-035', 'MGA 60 035', 60],
+  ['mga-90-04', 'mga-60-04', 'MGA 60 04', 60],
+  ['mga-90-05', 'mga-60-05', 'MGA 60 05', 60],
+  ['mga-90-06', 'mga-60-06', 'MGA 60 06', 60],
+  // MGA en 40 grados (página 41).
+  ['mga-90-01', 'mga-40-01', 'MGA 40 01', 40],
+  ['mga-90-015', 'mga-40-015', 'MGA 40 015', 40],
+  ['mga-90-02', 'mga-40-02', 'MGA 40 02', 40],
+  ['mga-90-025', 'mga-40-025', 'MGA 40 025', 40],
+  ['mga-90-03', 'mga-40-03', 'MGA 40 03', 40],
+  ['mga-90-035', 'mga-40-035', 'MGA 40 035', 40],
+  ['mga-90-04', 'mga-40-04', 'MGA 40 04', 40],
+  ['mga-90-05', 'mga-40-05', 'MGA 40 05', 40],
+  // BX-AP/70 en 90 grados (página 43).
+  ['bx-ap-70-01', 'bx-ap-90-01', 'BX-AP/90 01', 90, 'BX-AP/90'],
+  ['bx-ap-70-015', 'bx-ap-90-015', 'BX-AP/90 015', 90, 'BX-AP/90'],
+  ['bx-ap-70-02', 'bx-ap-90-02', 'BX-AP/90 02', 90, 'BX-AP/90'],
+  ['bx-ap-70-025', 'bx-ap-90-025', 'BX-AP/90 025', 90, 'BX-AP/90'],
+  ['bx-ap-70-03', 'bx-ap-90-03', 'BX-AP/90 03', 90, 'BX-AP/90'],
+  ['bx-ap-70-035', 'bx-ap-90-035', 'BX-AP/90 035', 90, 'BX-AP/90'],
+  ['bx-ap-70-04', 'bx-ap-90-04', 'BX-AP/90 04', 90, 'BX-AP/90'],
+  ['bx-ap-70-05', 'bx-ap-90-05', 'BX-AP/90 05', 90, 'BX-AP/90'],
+];
+
+const NOTA_OTRO_ANGULO =
+  'El catálogo publica una sola tabla de caudal y de clase de gota para los dos ángulos de este ' +
+  'tamaño: lo que cambia entre uno y otro es el código de pieza.';
+
+CATALOGO_SIEMBRA.push(
+  ...MJ_OTROS_ANGULOS.map(([idBase, idNuevo, modelo, anguloGrados, serie]) => {
+    const base = CATALOGO_SIEMBRA.find((b) => b.id === `mj-${idBase}`);
+    return {
+      ...base,
+      id: `mj-${idNuevo}`,
+      serie: serie ?? base.serie,
+      modelo,
+      anguloGrados,
+      clasesGota: base.clasesGota.map((r) => ({ ...r })),
+      notas: `${base.notas} ${NOTA_OTRO_ANGULO}`,
+    };
+  })
+);
+
 export const TIPOS_PATRON = [
   'abanico-plano',
   'abanico-preorificio',
   'abanico-induccion',
   'abanico-impacto',
+  'abanico-doble',
+  'abanico-doble-induccion',
+  'abanico-triple',
+  'abanico-triple-induccion',
   'cono-lleno',
   'cono-hueco',
+  'cono-hueco-induccion',
   'chorro',
 ];
 
