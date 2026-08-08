@@ -14,7 +14,7 @@ import {
   CLASES_S572_3,
   ORDEN_CLASES,
 } from '../assets/js/data/droplet-classes.js';
-import { CATALOGO_SIEMBRA } from '../assets/js/data/nozzle-catalog.js';
+import { CATALOGO_SIEMBRA, TIPOS_PATRON } from '../assets/js/data/nozzle-catalog.js';
 import { validarContraIso, clasificarGota, caudalAPresion } from '../assets/js/domain/nozzles.js';
 import { cercanoRel } from './helpers.js';
 
@@ -185,9 +185,13 @@ test('la tabla de Hypro ULD120-08 se reproduce con exponente 0.5', () => {
   assert.equal(clasificarGota({ boquilla: uld08, presionBar: 3 }), null);
 });
 
-test('el cono lleno y el chorro solido estan sembrados, y sin clase inventada', () => {
-  const conoLleno = CATALOGO_SIEMBRA.filter((b) => b.tipoPatron === 'cono-lleno');
-  const chorro = CATALOGO_SIEMBRA.filter((b) => b.tipoPatron === 'chorro');
+test('el cono lleno y el chorro solido de TeeJet estan sembrados, y sin clase inventada', () => {
+  // Solo las de TeeJet: es SU catalogo el que tabula estas dos familias
+  // sin columna de tamaño de gota. Magnojet si publica la clase de sus
+  // conos llenos (MAG CH y CH 100), y esos van con su clase.
+  const deTeeJet = CATALOGO_SIEMBRA.filter((b) => b.fabricante === 'TeeJet');
+  const conoLleno = deTeeJet.filter((b) => b.tipoPatron === 'cono-lleno');
+  const chorro = deTeeJet.filter((b) => b.tipoPatron === 'chorro');
   assert.ok(conoLleno.length > 0, 'ninguna boquilla de cono lleno');
   assert.ok(chorro.length > 0, 'ninguna boquilla de chorro');
   // El catalogo no publica tamaño de gota para estas series.
@@ -315,6 +319,198 @@ test('no se sembraron las tres fichas Magnojet que la ley presion-caudal no repr
   // Las vecinas de la misma serie sí están: no se descartó la serie entera.
   for (const id of ['mj-st-015', 'mj-stia-01']) {
     assert.ok(CATALOGO_SIEMBRA.some((b) => b.id === id), `falta ${id}`);
+  }
+});
+
+test('está sembrado el catálogo Magnojet completo, serie por serie', () => {
+  // Las 30 series de puntas del catálogo general 2019/2020. Si mañana se
+  // borra una sin querer, esta prueba lo dice por su nombre.
+  const esperadas = [
+    'MUG', 'APS', 'BD-AV', 'ST', 'ST/D', 'ST-IA', 'ST-IA/D', 'AD', 'AD/D', 'AD/T',
+    'ADGA', 'AD-IA', 'AD-IA/D', 'AD-IA/T', 'BD', 'AS7030', 'AS-IA7030', 'AS-IA',
+    'MD-IA/D', 'MDC', 'TM-IA', 'PB', 'PB-IA', 'MAG', 'X', 'MGA', 'BX-AP/70',
+    'CV-IA', 'MAG CH', 'CH 100', 'BX-AP/90',
+  ];
+  const sembradas = new Set(
+    CATALOGO_SIEMBRA.filter((b) => b.fabricante === 'Magnojet').map((b) => b.serie)
+  );
+  for (const serie of esperadas) {
+    assert.ok(sembradas.has(serie), `falta la serie Magnojet ${serie}`);
+  }
+  assert.equal(sembradas.size, esperadas.length, 'hay series Magnojet no declaradas aquí');
+});
+
+test('todo tipo de patrón usado está declarado en TIPOS_PATRON', () => {
+  // El editor del catálogo arma su selector con TIPOS_PATRON: un patrón
+  // que no esté en la lista deja el campo en blanco al abrir esa ficha.
+  for (const b of CATALOGO_SIEMBRA) {
+    assert.ok(TIPOS_PATRON.includes(b.tipoPatron), `${b.id}: patrón ${b.tipoPatron} sin declarar`);
+  }
+});
+
+test('el abanico doble y el triple no se confunden con el simple', () => {
+  // Sembrarlos como 'abanico-plano' sería decir que un ST/D y un ST son
+  // la misma boquilla; el traslape y la altura de barra no lo son.
+  const porPatron = (p) => CATALOGO_SIEMBRA.filter((b) => b.tipoPatron === p);
+  assert.ok(porPatron('abanico-doble').length > 0, 'ningún abanico doble');
+  assert.ok(porPatron('abanico-doble-induccion').length > 0, 'ningún abanico doble de inducción');
+  assert.ok(porPatron('abanico-triple').length > 0, 'ningún abanico triple');
+  assert.ok(porPatron('abanico-triple-induccion').length > 0, 'ningún abanico triple de inducción');
+  assert.ok(porPatron('cono-hueco-induccion').length > 0, 'ningún cono hueco de inducción');
+  // El mismo tamaño en simple y en doble tiene que existir por separado.
+  const ad03 = CATALOGO_SIEMBRA.find((b) => b.id === 'mj-ad-03');
+  const adD03 = CATALOGO_SIEMBRA.find((b) => b.id === 'mj-ad-d-03');
+  assert.ok(ad03 && adD03, 'faltan AD 03 o AD/D 03');
+  assert.equal(ad03.tipoPatron, 'abanico-preorificio');
+  assert.equal(adD03.tipoPatron, 'abanico-doble');
+});
+
+test('el resto del catálogo Magnojet se reproduce con el exponente ajustado a cada ficha', () => {
+  const en = (id, presion) => {
+    const b = CATALOGO_SIEMBRA.find((x) => x.id === id);
+    assert.ok(b, `falta ${id}`);
+    return caudalAPresion({
+      caudalRef: b.caudalRefLmin,
+      presionRef: b.presionRefBar,
+      presion,
+      exponente: b.exponente,
+    });
+  };
+  // Los extremos publicados de cada serie nueva, con la misma tolerancia
+  // del 5 % con la que se decidió qué ficha se podía sembrar.
+  const T = 0.05;
+  cercanoRel(en('mj-aps-30-04', 1), 0.96, T, 'APS 04 a 1 bar');
+  cercanoRel(en('mj-aps-30-04', 4.1), 1.89, T, 'APS 04 a 4,1 bar');
+  cercanoRel(en('mj-bd-av-11020', 1), 4.88, T, 'BD-AV 11020 a 1 bar');
+  cercanoRel(en('mj-bd-av-11020', 4.1), 9.88, T, 'BD-AV 11020 a 4,1 bar');
+  cercanoRel(en('mj-st-d-06', 2), 2.03, T, 'ST/D 06 a 2 bar');
+  cercanoRel(en('mj-st-d-06', 5.2), 3.15, T, 'ST/D 06 a 5,2 bar');
+  cercanoRel(en('mj-st-ia-d-05', 2), 1.64, T, 'ST-IA/D 05 a 2 bar');
+  cercanoRel(en('mj-st-ia-d-05', 6.2), 2.87, T, 'ST-IA/D 05 a 6,2 bar');
+  cercanoRel(en('mj-ad-d-08', 2), 2.77, T, 'AD/D 08 a 2 bar');
+  cercanoRel(en('mj-ad-d-08', 4.1), 3.86, T, 'AD/D 08 a 4,1 bar');
+  cercanoRel(en('mj-ad-t-10', 2.7), 3.88, T, 'AD/T 10 a 2,7 bar');
+  cercanoRel(en('mj-ad-t-10', 8.9), 6.34, T, 'AD/T 10 a 8,9 bar');
+  cercanoRel(en('mj-adga-04', 1), 0.96, T, 'ADGA 04 a 1 bar');
+  cercanoRel(en('mj-adga-04', 4.1), 1.89, T, 'ADGA 04 a 4,1 bar');
+  cercanoRel(en('mj-ad-ia-d-06', 2), 2.04, T, 'AD-IA/D 06 a 2 bar');
+  cercanoRel(en('mj-ad-ia-d-06', 7.6), 3.81, T, 'AD-IA/D 06 a 7,6 bar');
+  cercanoRel(en('mj-ad-ia-t-06', 2), 2.08, T, 'AD-IA/T 06 a 2 bar');
+  cercanoRel(en('mj-ad-ia-t-06', 8.9), 4.1, T, 'AD-IA/T 06 a 8,9 bar');
+  cercanoRel(en('mj-bd-110-08', 1), 1.88, T, 'BD 08 a 1 bar');
+  cercanoRel(en('mj-bd-110-08', 4.1), 3.86, T, 'BD 08 a 4,1 bar');
+  cercanoRel(en('mj-as7030-06', 2), 2.06, T, 'AS7030 06 a 2 bar');
+  cercanoRel(en('mj-as7030-06', 5.2), 3.06, T, 'AS7030 06 a 5,2 bar');
+  cercanoRel(en('mj-as-ia7030-05', 2), 1.72, T, 'AS-IA7030 05 a 2 bar');
+  cercanoRel(en('mj-as-ia7030-05', 7.6), 3.2, T, 'AS-IA7030 05 a 7,6 bar');
+  cercanoRel(en('mj-as-ia-05', 2), 1.72, T, 'AS-IA 05 a 2 bar');
+  cercanoRel(en('mj-as-ia-05', 7.6), 3.2, T, 'AS-IA 05 a 7,6 bar');
+  cercanoRel(en('mj-md-ia-d-05', 2), 1.65, T, 'MD-IA/D 05 a 2 bar');
+  cercanoRel(en('mj-md-ia-d-05', 7.6), 3.15, T, 'MD-IA/D 05 a 7,6 bar');
+  cercanoRel(en('mj-mdc-7-5', 1), 3.54, T, 'MDC 7,5 a 1 bar');
+  cercanoRel(en('mj-mdc-7-5', 3.1), 6.24, T, 'MDC 7,5 a 3,1 bar');
+  cercanoRel(en('mj-tm-ia-5', 2), 3.25, T, 'TM-IA 5 a 2 bar');
+  cercanoRel(en('mj-tm-ia-5', 6.2), 5.4, T, 'TM-IA 5 a 6,2 bar');
+  cercanoRel(en('mj-pb-06', 2), 2.08, T, 'PB 06 a 2 bar');
+  cercanoRel(en('mj-pb-06', 4.1), 2.9, T, 'PB 06 a 4,1 bar');
+  cercanoRel(en('mj-pb-ia-05', 2), 1.64, T, 'PB-IA 05 a 2 bar');
+  cercanoRel(en('mj-pb-ia-05', 7.6), 3.17, T, 'PB-IA 05 a 7,6 bar');
+  cercanoRel(en('mj-mag-5', 4.1), 1.6, T, 'MAG 5 a 4,1 bar');
+  cercanoRel(en('mj-mag-5', 16.6), 3.22, T, 'MAG 5 a 16,6 bar');
+  cercanoRel(en('mj-x-3', 5.5), 0.26, T, 'X 3 a 5,5 bar');
+  cercanoRel(en('mj-x-3', 13.8), 0.42, T, 'X 3 a 13,8 bar');
+  cercanoRel(en('mj-mga-90-06', 2.7), 2.34, T, 'MGA 90 06 a 2,7 bar');
+  cercanoRel(en('mj-mga-90-06', 10.4), 4.42, T, 'MGA 90 06 a 10,4 bar');
+  cercanoRel(en('mj-bx-ap-70-05', 3.1), 2.0, T, 'BX-AP/70 05 a 3,1 bar');
+  cercanoRel(en('mj-bx-ap-70-05', 8.3), 3.2, T, 'BX-AP/70 05 a 8,3 bar');
+  cercanoRel(en('mj-cv-ia-05', 3.1), 2.0, T, 'CV-IA 05 a 3,1 bar');
+  cercanoRel(en('mj-cv-ia-05', 10.4), 3.66, T, 'CV-IA 05 a 10,4 bar');
+  cercanoRel(en('mj-mag-ch-6', 3.4), 2.4, T, 'MAG CH 6 a 3,4 bar');
+  cercanoRel(en('mj-mag-ch-6', 10.4), 4.08, T, 'MAG CH 6 a 10,4 bar');
+  cercanoRel(en('mj-ch-100-8', 2), 2.5, T, 'CH 100 8 a 2 bar');
+  cercanoRel(en('mj-ch-100-8', 6.9), 4.45, T, 'CH 100 8 a 6,9 bar');
+});
+
+test('tampoco se sembraron las diez fichas Magnojet que la curva no reproduce', () => {
+  // En todas se sale UN solo renglón publicado —casi siempre el de la
+  // presión más baja— y su propia columna de l/ha lo confirma: es el dato
+  // impreso, no una mala lectura. Un dato que no se puede reproducir es
+  // peor que no tenerlo.
+  const fuera = [
+    'mj-bd-av-11008', 'mj-ad-t-06', 'mj-ad-ia-t-02', 'mj-as-ia7030-01',
+    'mj-mdc-0-5', 'mj-mdc-2', 'mj-pb-ia-06', 'mj-mag-6', 'mj-x-0-50', 'mj-ch-100-6',
+  ];
+  for (const id of fuera) {
+    assert.equal(CATALOGO_SIEMBRA.find((b) => b.id === id), undefined, `${id} no debería estar`);
+  }
+  // Y en todos los casos quedó sembrada la vecina de la misma serie: no se
+  // descartó ninguna serie entera.
+  for (const id of [
+    'mj-bd-av-11010', 'mj-ad-t-08', 'mj-ad-ia-t-025', 'mj-as-ia7030-015',
+    'mj-mdc-0-75', 'mj-mdc-1-5', 'mj-pb-ia-05', 'mj-mag-5', 'mj-x-1', 'mj-ch-100-5',
+  ]) {
+    assert.ok(CATALOGO_SIEMBRA.some((b) => b.id === id), `falta ${id}`);
+  }
+});
+
+test('la ficha Magnojet cuyo caudal no sostiene su rótulo va sin tamaño ISO, y lo dice', () => {
+  // El catálogo las rotula 01, 04 o 25; el caudal publicado no corresponde
+  // a ese tamaño dentro de la tolerancia de la norma (o el tamaño ni
+  // siquiera está en la tabla). Declararlo sería sembrar un dato falso.
+  for (const id of ['mj-bd-av-11025', 'mj-as7030-01', 'mj-mga-90-04', 'mj-cv-ia-01']) {
+    const b = CATALOGO_SIEMBRA.find((x) => x.id === id);
+    assert.ok(b, `falta ${id}`);
+    assert.equal(b.tamanoIso, null, `${id} no debería declarar tamaño ISO`);
+    assert.match(b.notas, /rotula/, `${id} debería explicar por qué va sin tamaño`);
+  }
+});
+
+test('las Magnojet de otro ángulo salen de su ficha base, sin números propios', () => {
+  // Igual que las AD-IA de 80 grados: el catálogo publica UNA tabla para
+  // los dos ángulos y solo cambia el código de pieza.
+  const pares = [
+    ['mj-aps-60-03', 'mj-aps-30-03', 60],
+    ['mj-bd-80-04', 'mj-bd-110-04', 80],
+    ['mj-mga-60-03', 'mj-mga-90-03', 60],
+    ['mj-mga-40-03', 'mj-mga-90-03', 40],
+    ['mj-bx-ap-90-03', 'mj-bx-ap-70-03', 90],
+    ['mj-stia140-03', 'mj-stia-03', 140],
+  ];
+  for (const [idDerivada, idBase, angulo] of pares) {
+    const d = CATALOGO_SIEMBRA.find((b) => b.id === idDerivada);
+    const base = CATALOGO_SIEMBRA.find((b) => b.id === idBase);
+    assert.ok(d && base, `faltan ${idDerivada} o ${idBase}`);
+    assert.equal(d.anguloGrados, angulo);
+    assert.equal(d.caudalRefLmin, base.caudalRefLmin);
+    assert.equal(d.presionRefBar, base.presionRefBar);
+    assert.equal(d.exponente, base.exponente);
+    assert.equal(d.tamanoIso, base.tamanoIso);
+    assert.deepEqual(d.clasesGota, base.clasesGota);
+    assert.notEqual(d.clasesGota, base.clasesGota, 'los rangos deben ser copia, no el mismo arreglo');
+  }
+  // La APS 01 solo existe en 30 grados: no se inventa su par de 60.
+  assert.ok(CATALOGO_SIEMBRA.some((b) => b.id === 'mj-aps-30-01'));
+  assert.equal(CATALOGO_SIEMBRA.find((b) => b.id === 'mj-aps-60-01'), undefined);
+});
+
+test('las clases BCPC del resto del catálogo Magnojet quedan traducidas', () => {
+  // MF (muito fina) = VF y EG (extremamente grossa) = XC son las dos
+  // puntas de la escala; si una se tradujera mal, el filtro por clase de
+  // gota mandaría a campo la boquilla contraria a la que se pidió.
+  const stD01 = CATALOGO_SIEMBRA.find((b) => b.id === 'mj-st-d-01');
+  assert.equal(clasificarGota({ boquilla: stD01, presionBar: 3.1 }), 'F');
+  assert.equal(clasificarGota({ boquilla: stD01, presionBar: 5.2 }), 'VF');
+  const cvIa05 = CATALOGO_SIEMBRA.find((b) => b.id === 'mj-cv-ia-05');
+  assert.equal(clasificarGota({ boquilla: cvIa05, presionBar: 3.1 }), 'XC');
+  assert.equal(clasificarGota({ boquilla: cvIa05, presionBar: 10.4 }), 'VC');
+  // La TM-IA es extremadamente gruesa en casi todo su rango.
+  const tmIa3 = CATALOGO_SIEMBRA.find((b) => b.id === 'mj-tm-ia-3');
+  assert.deepEqual(tmIa3.clasesGota.map((r) => r.clase), ['XC']);
+  // Las dos series sin columna de clase no inventan ninguna.
+  for (const id of ['mj-bd-av-11015', 'mj-as-ia-03']) {
+    const b = CATALOGO_SIEMBRA.find((x) => x.id === id);
+    assert.equal(b.edicionEstandar, null, `${id} no debería declarar edición`);
+    assert.deepEqual(b.clasesGota, [], `${id} no debería traer clase`);
   }
 });
 
